@@ -174,8 +174,8 @@ async function resolvePermissions(roleKey: PermissionKey): Promise<Set<Permissio
     .select(
       `
       permission_key,
-      roles ( key )
-    `
+      roles!inner ( key )
+    `,
     )
     .eq("roles.key", roleKey);
 
