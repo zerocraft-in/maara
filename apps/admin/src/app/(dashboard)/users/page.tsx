@@ -280,7 +280,7 @@ export default async function UsersPage() {
     redirect("/onboarding")
   }
 
-  if (!context.permissions.has("users.invite")) {
+  if (!context.permissions.has("users.view")) {
     redirect("/overview")
   }
 
@@ -310,7 +310,7 @@ export default async function UsersPage() {
             </p>
           </div>
         </div>
-        <InviteMemberForm />
+        {context.permissions.has("users.invite") && <InviteMemberForm />}
       </div>
 
       <Separator className="mt-4 mb-8" />
