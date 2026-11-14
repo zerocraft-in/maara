@@ -22,6 +22,7 @@ export default function LoginPage() {
     ? new URLSearchParams(window.location.search)
     : new URLSearchParams();
   const next = searchParams.get("next") || "/overview";
+  const token = searchParams.get("token") ?? "";
 
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -143,10 +144,10 @@ export default function LoginPage() {
         <p className="mt-6 text-center text-2xs text-meta">
           Don&rsquo;t have an account?{" "}
           <a
-            href="/onboarding"
+            href={token ? `/signup?token=${token}` : "/signup"}
             className="text-brand underline-offset-4 hover:underline"
           >
-            Create your business
+            Create your account
           </a>
         </p>
         <p className="mt-2 text-center text-2xs text-meta">

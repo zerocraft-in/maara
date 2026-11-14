@@ -29,6 +29,12 @@ export type OrganizationSummary = {
 
 export type PermissionKey = string;
 
+/**
+ * Thrown when the authenticated user has no active organization membership.
+ * Callers can use this to redirect to onboarding instead of surfacing an error.
+ */
+export const NO_ACTIVE_MEMBERSHIP_ERROR = "No active organization membership";
+
 export type SessionContext = {
   user: SessionUser;
   memberships: MembershipSummary[];
@@ -81,17 +87,40 @@ export async function requireOrganization(): Promise<SessionContext> {
     .eq("user_id", user.id)
     .eq("status", "active");
 
-  if (error || !memberships) {
+  if (error) {
+    // Surface the database failure instead of masking it as "no membership".
+    // Only the error code, message and details are logged — never tokens,
+    // cookies, credentials or invitation secrets.
+    console.error("Organization membership query failed.", {
+      code: error.code,
+      message: error.message,
+      details: error.details,
+    });
     throw new Error("Unable to resolve organization membership");
   }
 
-  const activeMembership = memberships[0];
+  const activeMembership = memberships?.[0];
   if (!activeMembership) {
-    throw new Error("No active organization membership");
+    throw new Error(NO_ACTIVE_MEMBERSHIP_ERROR);
   }
 
-  const org = (activeMembership.organizations as { id: string; name: string; slug: string }[])[0];
-  const role = (activeMembership.roles as { key: string }[])[0];
+  // `organizations` and `roles` are many-to-one embeds (organization_members
+  // holds the FK to their primary key), so PostgREST returns them as single
+  // objects, not arrays. A missing organization or role is an error: this
+  // must never fall through to an empty permission set.
+  //
+  // The casts go through `unknown` because the client has no generated
+  // database types and therefore infers embedded resources as arrays.
+  const org = activeMembership.organizations as unknown as {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+  const role = activeMembership.roles as unknown as { key: string } | null;
+
+  if (!org || !role) {
+    throw new Error("Unable to resolve organization membership");
+  }
 
   const permissions = await resolvePermissions(role.key);
 
@@ -99,8 +128,9 @@ export async function requireOrganization(): Promise<SessionContext> {
     user,
     memberships: memberships.map((m) => ({
       organizationId: m.organization_id,
-      organizationName: (m.organizations as { name: string }[])[0]?.name || "",
-      roleKey: (m.roles as { key: string }[])[0]?.key || "",
+      organizationName:
+        (m.organizations as unknown as { name: string } | null)?.name || "",
+      roleKey: (m.roles as unknown as { key: string } | null)?.key || "",
       status: m.status,
     })),
     activeOrganization: {
@@ -128,180 +158,47 @@ export async function requirePermission(permission: PermissionKey) {
 
 /**
  * Resolves the permission keys for a role key from the database.
- * This is a placeholder until the roles/permissions tables exist.
- * After migration 003 is applied, this queries role_permissions.
- */
-/**
- * Resolves the permission keys for a role key from the database.
- * Queries the role_permissions table once migrations 002-003 are applied.
- * Falls back to a static mapping for development before migrations exist.
+ *
+ * Fails closed: the database is the only source of truth. If the lookup
+ * fails, or returns a state that cannot be interpreted, this throws rather
+ * than falling back to a hardcoded permission map. A silent fallback would
+ * grant permissions that the database never confirmed.
  */
 async function resolvePermissions(roleKey: PermissionKey): Promise<Set<PermissionKey>> {
   const permissions = new Set<PermissionKey>();
 
-  try {
-    const supabase = await createServerSupabaseClient();
+  const supabase = await createServerSupabaseClient();
 
-    const { data: rolePerms, error } = await supabase
-      .from("role_permissions")
-      .select(
-        `
-        permission_key,
-        roles ( key )
+  const { data: rolePerms, error } = await supabase
+    .from("role_permissions")
+    .select(
       `
-      )
-      .eq("roles.key", roleKey);
+      permission_key,
+      roles ( key )
+    `
+    )
+    .eq("roles.key", roleKey);
 
-    if (!error && rolePerms) {
-      rolePerms.forEach((rp) => {
-        if (rp.permission_key) {
-          permissions.add(rp.permission_key as string);
-        }
-      });
-
-      if (permissions.size > 0) {
-        return permissions;
-      }
-    }
-  } catch {
-    // Database tables may not exist yet; fall back to static mapping below.
+  if (error) {
+    // Log the database failure so it is diagnosable. Only the error code and
+    // message are logged — never tokens, cookies or credentials.
+    console.error("Permission resolution query failed.", {
+      code: error.code,
+      message: error.message,
+    });
+    throw new Error("Unable to resolve permissions");
   }
 
-  // Static fallback mapping used until the database tables exist.
-  const rolePermissions: Record<string, PermissionKey[]> = {
-    owner: [
-      "dashboard.view",
-      "products.view",
-      "products.create",
-      "products.update",
-      "products.archive",
-      "categories.view",
-      "categories.manage",
-      "inventory.view",
-      "inventory.adjust",
-      "inventory.transfer",
-      "suppliers.view",
-      "suppliers.manage",
-      "purchases.view",
-      "purchases.create",
-      "purchases.receive",
-      "sales.view",
-      "sales.manage",
-      "sales.refund",
-      "customers.view",
-      "customers.manage",
-      "expenses.view",
-      "expenses.create",
-      "expenses.update",
-      "finance.view",
-      "analytics.view",
-      "reports.view",
-      "reports.export",
-      "locations.view",
-      "locations.manage",
-      "users.view",
-      "users.invite",
-      "users.manage_roles",
-      "audit_logs.view",
-      "settings.view",
-      "settings.manage",
-    ],
-    admin: [
-      "dashboard.view",
-      "products.view",
-      "products.create",
-      "products.update",
-      "products.archive",
-      "categories.view",
-      "categories.manage",
-      "inventory.view",
-      "inventory.adjust",
-      "inventory.transfer",
-      "suppliers.view",
-      "suppliers.manage",
-      "purchases.view",
-      "purchases.create",
-      "purchases.receive",
-      "sales.view",
-      "sales.manage",
-      "sales.refund",
-      "customers.view",
-      "customers.manage",
-      "expenses.view",
-      "expenses.create",
-      "expenses.update",
-      "finance.view",
-      "analytics.view",
-      "reports.view",
-      "reports.export",
-      "locations.view",
-      "locations.manage",
-      "users.view",
-      "users.invite",
-      "audit_logs.view",
-      "settings.view",
-      "settings.manage",
-    ],
-    manager: [
-      "dashboard.view",
-      "products.view",
-      "inventory.view",
-      "inventory.adjust",
-      "inventory.transfer",
-      "suppliers.view",
-      "purchases.view",
-      "sales.view",
-      "sales.manage",
-      "sales.refund",
-      "customers.view",
-      "expenses.view",
-      "expenses.create",
-      "expenses.update",
-      "finance.view",
-      "analytics.view",
-      "reports.view",
-      "locations.view",
-      "users.view",
-      "settings.view",
-    ],
-    "inventory_staff": [
-      "dashboard.view",
-      "products.view",
-      "inventory.view",
-      "inventory.adjust",
-      "inventory.transfer",
-      "suppliers.view",
-      "purchases.view",
-      "sales.view",
-      "customers.view",
-    ],
-    accountant: [
-      "dashboard.view",
-      "products.view",
-      "suppliers.view",
-      "purchases.view",
-      "sales.view",
-      "customers.view",
-      "expenses.view",
-      "expenses.create",
-      "expenses.update",
-      "finance.view",
-      "reports.view",
-      "reports.export",
-    ],
-    "sales_staff": [
-      "dashboard.view",
-      "products.view",
-      "inventory.view",
-      "sales.view",
-      "sales.manage",
-      "customers.view",
-      "customers.manage",
-    ],
-  };
+  if (!rolePerms) {
+    console.error("Permission resolution returned no result set.");
+    throw new Error("Unable to resolve permissions");
+  }
 
-  const keys = rolePermissions[roleKey] || [];
-  keys.forEach((key) => permissions.add(key));
+  rolePerms.forEach((rp) => {
+    if (rp.permission_key) {
+      permissions.add(rp.permission_key as string);
+    }
+  });
 
   return permissions;
 }
