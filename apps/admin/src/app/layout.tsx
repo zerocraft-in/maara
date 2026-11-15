@@ -40,7 +40,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={manrope.variable}>
-      <body className="min-h-dvh bg-background font-sans text-foreground antialiased">
+      <body className="min-h-dvh bg-background font-sans overscroll-none text-foreground antialiased">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

@@ -46,6 +46,17 @@ const ACTION_LABELS: Record<string, string> = {
   "member.invited": "Member invited",
   "invitation.accepted": "Invitation accepted",
   "member.role_changed": "Member role changed",
+  "category.created": "Category created",
+  "category.updated": "Category updated",
+  "category.archived": "Category archived",
+  "category.status_changed": "Category status changed",
+  "product.created": "Product created",
+  "product.updated": "Product updated",
+  "product.archived": "Product archived",
+  "product.status_changed": "Product status changed",
+  "variant.created": "Variant created",
+  "variant.updated": "Variant updated",
+  "variant.status_changed": "Variant status changed",
 };
 
 function actionLabel(action: string): string {
@@ -56,7 +67,13 @@ function actionVariant(action: string): "default" | "success" | "outline" {
   switch (action) {
     case "member.invited":
     case "invitation.accepted":
+    case "category.created":
+    case "product.created":
+    case "variant.created":
       return "success";
+    case "category.archived":
+    case "product.archived":
+      return "outline";
     default:
       return "default";
   }
@@ -108,6 +125,116 @@ function renderMetadata(action: string, metadata: unknown): React.ReactNode {
       return (
         <span className="text-xs text-body">
           {oldRole} → {newRole}
+        </span>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "category.created") {
+    const name = m.name;
+    if (typeof name === "string") {
+      return <span className="text-xs text-body">{name}</span>;
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "category.updated") {
+    const columns = m.changed_columns;
+    if (Array.isArray(columns) && columns.length > 0) {
+      return (
+        <span className="text-xs text-body">
+          {String(columns.join(", "))}
+        </span>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "category.archived") {
+    const status = m.status;
+    if (typeof status === "string") {
+      return <span className="text-xs text-body">{status}</span>;
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "category.status_changed") {
+    const oldStatus = m.old_status;
+    const newStatus = m.new_status;
+    if (typeof oldStatus === "string" && typeof newStatus === "string") {
+      return (
+        <span className="text-xs text-body">
+          {oldStatus} → {newStatus}
+        </span>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "product.created") {
+    const name = m.name;
+    const status = m.status;
+    if (typeof name === "string") {
+      return (
+        <span className="text-xs text-body">
+          {name}
+          {typeof status === "string" ? ` (${status})` : ""}
+        </span>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "product.updated" || action === "variant.updated") {
+    const columns = m.changed_columns;
+    if (Array.isArray(columns) && columns.length > 0) {
+      return (
+        <span className="text-xs text-body">
+          {String(columns.join(", "))}
+        </span>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "product.archived") {
+    const status = m.status;
+    if (typeof status === "string") {
+      return <span className="text-xs text-body">{status}</span>;
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "product.status_changed") {
+    const oldStatus = m.old_status;
+    const newStatus = m.new_status;
+    if (typeof oldStatus === "string" && typeof newStatus === "string") {
+      return (
+        <span className="text-xs text-body">
+          {oldStatus} → {newStatus}
+        </span>
+      );
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "variant.created") {
+    const sku = m.sku;
+    if (typeof sku === "string") {
+      return <span className="text-xs text-body">{sku}</span>;
+    }
+    return <span className="text-xs text-muted-foreground">—</span>;
+  }
+
+  if (action === "variant.status_changed") {
+    const oldActive = m.old_is_active;
+    const newActive = m.new_is_active;
+    if (typeof oldActive === "boolean" && typeof newActive === "boolean") {
+      const format = (value: boolean) => (value ? "active" : "inactive");
+      return (
+        <span className="text-xs text-body">
+          {format(oldActive)} → {format(newActive)}
         </span>
       );
     }

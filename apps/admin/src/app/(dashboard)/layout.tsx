@@ -1,5 +1,5 @@
 ﻿import { requireOrganization } from "@/lib/auth/session";
-import DashboardShell from "./dashboard-shell";
+import DashboardShell from "@/components/layout/dashboard-shell";
 
 export default async function DashboardLayout({
   children,
@@ -9,8 +9,10 @@ export default async function DashboardLayout({
   const context = await requireOrganization();
 
   return (
-    <DashboardShell permissions={Array.from(context.permissions)}>
+   <div className="bg-background">
+     <DashboardShell permissions={Array.from(context.permissions)}>
       {children}
     </DashboardShell>
+   </div>
   );
 }
