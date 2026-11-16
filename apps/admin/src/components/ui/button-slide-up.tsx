@@ -39,6 +39,8 @@ const slideUpButtonVariants = cva(
 export interface SlideUpButtonProps
   extends React.ButtonHTMLAttributes<HTMLButtonElement>,
     VariantProps<typeof slideUpButtonVariants> {
+  /** Optional leading element (e.g. an icon) rendered beside the sliding text */
+  children?: React.ReactNode
   /** Default label shown before hover */
   label?: string
   /** Second label that rolls up from below on hover */
@@ -47,12 +49,12 @@ export interface SlideUpButtonProps
 
 const SlideUpButton = React.forwardRef<HTMLButtonElement, SlideUpButtonProps>(
   ({ className, variant, size, label, labelHover, children, ...props }, ref) => {
-    const defaultLabel = children ?? label ?? ""
+    const defaultLabel = label ?? ""
     const hoverLabel = labelHover ?? defaultLabel
     const hasEffect =
       typeof labelHover === "string" &&
       labelHover.length > 0 &&
-      labelHover !== (typeof label === "string" ? label : "")
+      labelHover !== defaultLabel
 
     return (
       <BaseUIButton
@@ -61,6 +63,7 @@ const SlideUpButton = React.forwardRef<HTMLButtonElement, SlideUpButtonProps>(
         {...props}
       >
         <span className="relative flex items-center justify-center w-full h-full">
+          {children && <span className="shrink-0">{children}</span>}
           {/* One-line viewport centered in the button. `em` scales with the
               button's font-size so the clip stays a single line across size
               variants. Grid stacking keeps the button width stable when the

@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -51,12 +52,25 @@ export function SettingsSidebar() {
 
       {/* Header section */}
       <div className="flex flex-col gap-1 p-4">
-        <h2 className="text-[10px] font-semibold tracking-tighter text-sidebar-foreground/60 uppercase">
-          Settings
-        </h2>
-        <p className="text-[11px] text-sidebar-foreground/50">
-          Manage your workspace
-        </p>
+        <button
+          className="flex items-center gap-2 min-w-0 text-sidebar-foreground hover:text-sidebar-foreground transition-colors"
+          aria-label="Back"
+        >
+          <ChevronLeft className="size-3 shrink-0" />
+          <span className="relative flex items-center justify-center min-w-0">
+            <span className="w-full overflow-hidden h-[1.2em]">
+              <motion.span
+                initial={{ y: 0 }}
+                whileHover={{ y: "-50%" }}
+                transition={{ type: "spring", stiffness: 500, damping: 28 }}
+                className="h-[2.4em] grid grid-rows-2 w-full items-center text-xs font-semibold tracking-tighter uppercase"
+              >
+                <span>Settings</span>
+                <span>Back</span>
+              </motion.span>
+            </span>
+          </span>
+        </button>
       </div>
 
       {/* Navigation list */}
