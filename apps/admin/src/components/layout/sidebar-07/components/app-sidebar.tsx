@@ -18,6 +18,7 @@ import type { LucideIcon } from "lucide-react"
 import { NavMain } from "./nav-main"
 import { NavProjects } from "./nav-projects"
 import { NavSecondary } from "./nav-secondary"
+import { SearchForm } from "./search-form"
 import { NavUser } from "./nav-user"
 import { TeamSwitcher } from "./team-switcher"
 import {
@@ -134,11 +135,13 @@ export function AppSidebar({
     <Sidebar collapsible="icon" {...sidebarProps}>
       <SidebarHeader>
         <TeamSwitcher teams={sidebarDataResolved.teams} />
+         <SearchForm />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={sidebarDataResolved.navMain} />
         <NavProjects projects={sidebarDataResolved.projects} />
-          <NavSecondary items={sidebarDataResolved.navSecondary} className="mt-auto" />
+        <SearchForm />
+        <NavSecondary items={sidebarDataResolved.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={sidebarDataResolved.user} />
