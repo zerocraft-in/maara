@@ -65,7 +65,7 @@ export function SettingsSidebar() {
                 initial={{ y: 0 }}
                 whileHover={{ y: "-50%" }}
                 transition={{ type: "spring", stiffness: 500, damping: 28 }}
-                className="h-[2.4em] grid grid-rows-2 w-full items-center text-xs font-semibold tracking-tighter"
+                className="grid grid-rows-2 w-full items-center justify-center text-start text-xs font-semibold tracking-tighter"
               >
                 <span>Settings</span>
                 <span>Back</span>
