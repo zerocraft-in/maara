@@ -71,15 +71,7 @@ export default function ForgotPasswordPage() {
             If an account exists for that email, a password reset link has been
             sent. The link works only once and expires after 1 hour.
           </p>
-          <Button
-            asChild
-            variant="outline"
-            className="mt-6 w-auto"
-          >
-            <a href="/login" className="text-sm">
-              Back to sign in
-            </a>
-          </Button>
+<Button render={<a href="/login" className="text-sm">Back to login</a>} variant="outline" className="mt-6 w-auto" />
         </div>
       </div>
     );

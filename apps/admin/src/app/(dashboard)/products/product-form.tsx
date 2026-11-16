@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useForm, useFieldArray } from "react-hook-form";
+import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import {
@@ -641,11 +641,20 @@ export default function ProductForm({
                 <div className="space-y-6">
                   <div className="space-y-4">
                     <Label>
-                      <Checkbox {...form.register("requires_shipping")} />
+                      <Controller
+                        name="requires_shipping"
+                        control={form.control}
+                        render={({ field }) => (
+                          <Checkbox
+                            checked={field.value}
+                            onCheckedChange={field.onChange}
+                          />
+                        )}
+                      />
                       <span className="ml-2">This is a physical product</span>
                     </Label>
                     <p className="text-sm text-muted-foreground ml-6">
-                      Uncheck for digital products or services that don't require shipping.
+                      Uncheck for digital products or services that don&apos;t require shipping.
                     </p>
                   </div>
 
@@ -661,7 +670,7 @@ export default function ProductForm({
                           {...form.register("weight_grams")}
                           placeholder="0"
                         />
-                        <Select value={form.watch("weight_unit")} onValueChange={v => form.setValue("weight_unit", v as any)}>
+                        <Select value={form.watch("weight_unit")} onValueChange={v => form.setValue("weight_unit", v ?? undefined)}>
                           <SelectTrigger className="w-[80px]">
                             <SelectValue />
                           </SelectTrigger>

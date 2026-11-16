@@ -1,144 +1,168 @@
-import { notFound, redirect } from "next/navigation";
+"use client";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
-import {
-  requireOrganization,
-  NO_ACTIVE_MEMBERSHIP_ERROR,
-} from "@/lib/auth/session";
-import ProductDetail from "./product-detail";
+import * as React from "react";
+import { useParams, useRouter } from "next/navigation";
+import { toast } from "sonner";
 
-async function requireOrganizationOrRedirect() {
-  try {
-    return await requireOrganization();
-  } catch (error) {
-    if (
-      error instanceof Error &&
-      error.message === NO_ACTIVE_MEMBERSHIP_ERROR
-    ) {
-      redirect("/onboarding");
-    }
-    throw error;
-  }
-}
+import ProductForm from "../product-form";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-type PageProps = {
-  params: Promise<{ id: string }>;
+type CategoryOption = {
+  id: string;
+  name: string;
+  status: string;
 };
 
-export async function generateMetadata({ params }: PageProps) {
-  const { id } = await params;
-  return {
-    title: `Product ${id}`,
-  };
-}
+type ProductData = {
+  id: string;
+  name: string;
+  description: string | null;
+  category_id: string | null;
+  handle: string;
+  vendor: string | null;
+  product_type: string | null;
+  tags: string[];
+  tax_rate_bps: number;
+  is_tax_inclusive: boolean;
+  requires_shipping: boolean;
+  weight_grams: number | null;
+  weight_unit: "g" | "kg" | "oz" | "lb";
+  hs_code: string | null;
+  country_of_origin: string | null;
+  seo_title: string | null;
+  seo_description: string | null;
+  published_scope: "web" | "global";
+  status: string;
+  product_options: Array<{
+    id: string;
+    name: string;
+    position: 1 | 2 | 3;
+    values: string[];
+  }>;
+};
 
-export default async function ProductPage({ params }: PageProps) {
-  const context = await requireOrganizationOrRedirect();
+export default function EditProductPage() {
+  const params = useParams();
+  const router = useRouter();
+  const productId = params.id as string;
+  
+  const [categories, setCategories] = React.useState<CategoryOption[]>([]);
+  const [product, setProduct] = React.useState<ProductData | null>(null);
+  const [organizationId, setOrganizationId] = React.useState<string | null>(null);
+  const [loading, setLoading] = React.useState(true);
 
-  const organizationId = context.activeOrganization?.id;
-  if (!organizationId) {
-    redirect("/onboarding");
-  }
+  React.useEffect(() => {
+    async function loadData() {
+      const supabase = createBrowserSupabaseClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        router.push("/login");
+        return;
+      }
 
-  const { id } = await params;
-  const supabase = await createServerSupabaseClient();
+      const { data: membership } = await supabase
+        .from("organization_members")
+        .select("organization_id")
+        .eq("user_id", user.id)
+        .eq("status", "active")
+        .maybeSingle();
 
-  const { data: product, error } = await supabase
-    .from("products")
-    .select(
-      `
-      id,
-      organization_id,
-      category_id,
-      name,
-      description,
-      status,
-      tax_rate_bps,
-      is_tax_inclusive,
-      created_at,
-      updated_at
-    `,
-    )
-    .eq("organization_id", organizationId)
-    .eq("id", id)
-    .maybeSingle();
+      if (!membership) {
+        router.push("/onboarding");
+        return;
+      }
 
-  if (error) {
-    console.error("Product fetch failed:", error);
-    notFound();
-  }
+      const orgId = membership.organization_id;
+      setOrganizationId(orgId);
 
-  if (!product) {
-    notFound();
-  }
+      // Load categories and product in parallel
+      const [categoriesResult, productResult, optionsResult] = await Promise.all([
+        supabase
+          .from("categories")
+          .select("id, name, status")
+          .eq("organization_id", orgId)
+          .order("name", { ascending: true }),
+        supabase
+          .from("products")
+          .select(
+            "id, name, category_id, description, handle, vendor, product_type, tags, " +
+            "tax_rate_bps, is_tax_inclusive, requires_shipping, weight_grams, weight_unit, " +
+            "hs_code, country_of_origin, seo_title, seo_description, published_scope, status"
+          )
+          .eq("organization_id", orgId)
+          .eq("id", productId)
+          .maybeSingle(),
+        supabase
+          .from("product_options")
+          .select("id, name, position, values")
+          .eq("organization_id", orgId)
+          .eq("product_id", productId)
+          .order("position", { ascending: true }),
+      ]);
 
-  const { data: variants, error: variantsError } = await supabase
-    .from("product_variants")
-    .select(
-      `
-      id,
-      sku,
-      barcode,
-      size,
-      colour,
-      cost_price_paise,
-      selling_price_paise,
-      tax_rate_bps,
-      reorder_point,
-      is_active,
-      created_at,
-      updated_at
-    `,
-    )
-    .eq("organization_id", organizationId)
-    .eq("product_id", id)
-    .order("sku", { ascending: true });
+      if (categoriesResult.error) {
+        console.error("Failed to load categories:", categoriesResult.error);
+        toast.error("Failed to load categories");
+      } else {
+        setCategories((categoriesResult.data ?? []) as CategoryOption[]);
+      }
 
-  if (variantsError) {
-    console.error("Variants fetch failed:", variantsError);
-    notFound();
-  }
+      if (optionsResult.error) {
+        console.error("Failed to load options:", optionsResult.error);
+      }
 
-  let category: { id: string; name: string } | null = null;
-  if (product.category_id) {
-    const { data: categoryRow, error: categoryError } = await supabase
-      .from("categories")
-      .select("id, name")
-      .eq("organization_id", organizationId)
-      .eq("id", product.category_id)
-      .maybeSingle();
-
-    if (categoryError) {
-      console.error("Category fetch failed:", categoryError);
+      if (productResult.error) {
+        console.error("Failed to load product:", productResult.error);
+        toast.error("Failed to load product");
+        router.push("/products");
+      } else if (!productResult.data) {
+        toast.error("Product not found");
+        router.push("/products");
+      } else {
+        const productData = productResult.data as unknown as ProductData;
+        setProduct({
+          ...productData,
+          product_options: (optionsResult.data ?? []) as ProductData["product_options"],
+        });
+      }
+      setLoading(false);
     }
-    category = categoryRow ?? null;
+
+    loadData();
+  }, [productId, router]);
+
+  if (loading) {
+    return (
+      <div className="mx-auto flex max-w-6xl flex-col px-5 py-6 sm:px-8 sm:py-10">
+        <div className="flex items-center justify-center h-64">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
+        </div>
+      </div>
+    );
   }
 
-  const canUpdate = context.permissions.has("products.update");
-  const canArchive = context.permissions.has("products.archive");
+  if (!product || !organizationId) {
+    return null;
+  }
+
+  const handleSuccess = () => {
+    toast.success("Product updated successfully.");
+    router.push(`/products/${productId}`);
+  };
+
+  const handleClose = () => {
+    router.push(`/products/${productId}`);
+  };
 
   return (
-    <ProductDetail
-      product={{
-        ...product,
-        categories: category,
-        product_variants: (variants ?? []) as {
-          id: string;
-          sku: string;
-          barcode: string | null;
-          size: string | null;
-          colour: string | null;
-          cost_price_paise: number;
-          selling_price_paise: number;
-          tax_rate_bps: number | null;
-          reorder_point: number;
-          is_active: boolean;
-          created_at: string;
-          updated_at: string;
-        }[],
-      }}
-      canUpdate={canUpdate}
-      canArchive={canArchive}
+    <ProductForm
+      mode="edit"
+      organizationId={organizationId!}
+      categories={categories}
+      product={product}
+      onSuccess={handleSuccess}
+      onClose={handleClose}
     />
   );
 }

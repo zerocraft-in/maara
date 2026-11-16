@@ -91,14 +91,7 @@ export default function AcceptInvitePage() {
           <p className="mt-2 text-2xs text-meta">
             You are now a member of the organization.
           </p>
-          <Button
-            asChild
-            className="mt-6 w-auto"
-          >
-            <a href="/overview" className="text-sm">
-              Go to dashboard
-            </a>
-          </Button>
+          <Button render={<a href="/overview" className="text-sm">Go to dashboard</a>} className="mt-6 w-auto" />
         </div>
       </div>
     );
@@ -134,11 +127,7 @@ export default function AcceptInvitePage() {
                 Create an account using the same email address that received
                 the invitation.
               </p>
-              <Button asChild className="w-full">
-                <a href={`/signup?token=${token}`} className="text-sm">
-                  Create account
-                </a>
-              </Button>
+              <Button render={<a href={`/signup?token=${token}`} className="text-sm">Create account</a>} className="w-full" />
             </div>
           </div>
         ) : (
@@ -188,11 +177,7 @@ export default function AcceptInvitePage() {
             {authChecked && !isAuthenticated && !token ? (
               <div className="mt-6 text-center text-2xs text-meta">
                 You need an account to accept an invitation.{" "}
-                <Button asChild className="inline-flex">
-                  <a href="/signup" className="text-brand underline-offset-4 hover:underline">
-                    Create account
-                  </a>
-                </Button>
+                <Button render={<a href="/signup" className="text-brand underline-offset-4 hover:underline">Create account</a>} className="inline-flex" />
               </div>
             ) : null}
           </>

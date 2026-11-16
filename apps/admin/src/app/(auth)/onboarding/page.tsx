@@ -64,14 +64,7 @@ export default function OnboardingPage() {
           <p className="mt-2 text-2xs text-meta">
             Your organization is set up. You are the Owner.
           </p>
-          <Button
-            asChild
-            className="mt-6 w-auto"
-          >
-            <a href="/overview" className="text-sm">
-              Go to dashboard
-            </a>
-          </Button>
+          <Button render={<a href="/overview" className="text-sm">Go to dashboard</a>} className="mt-6 w-auto" />
         </div>
       </div>
     );

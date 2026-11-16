@@ -194,12 +194,12 @@ export default function ProductDetail({
           </Link>
 
           <DropdownMenu>
-            <DropdownMenuTrigger asChild>
+            <DropdownMenuTrigger render={
               <Button variant="outline" className="gap-2">
                 <ChevronRight className="size-4" />
                 More
               </Button>
-            </DropdownMenuTrigger>
+            } />
             <DropdownMenuContent align="end" className="min-w-[180px]">
               {product.status === "draft" && canUpdate && (
                 <DropdownMenuItem

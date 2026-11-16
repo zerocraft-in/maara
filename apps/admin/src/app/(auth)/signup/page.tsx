@@ -167,15 +167,7 @@ export default function SignupPage() {
                   {error}
                 </div>
               )}
-              <Button
-                asChild
-                disabled={resending}
-                className="mt-6 w-full"
-              >
-                <a href="/login" className="text-sm">
-                  Back to sign in
-                </a>
-              </Button>
+              <Button render={<a href="/login" className="text-sm">Back to login</a>} disabled={resending} className="mt-6 w-full" />
               <Button
                 type="button"
                 onClick={resendConfirmation}

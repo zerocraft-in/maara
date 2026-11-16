@@ -53,7 +53,7 @@ export function Header({ title, user }: HeaderProps) {
       </div>
       <div className="ml-auto flex items-center gap-2 px-4">
         <DropdownMenu>
-          <DropdownMenuTrigger asChild>
+          <DropdownMenuTrigger >
             <button className="inline-flex items-center justify-center gap-2 rounded-md px-2 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 hover:bg-accent hover:text-accent-foreground">
               <User className="size-4" />
               <span className="hidden sm:block">{user?.name ?? "User"}</span>

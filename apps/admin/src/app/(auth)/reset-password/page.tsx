@@ -76,15 +76,7 @@ export default function ResetPasswordPage() {
           <p className="mt-2 text-2xs text-meta">
             Your password has been changed. You can now sign in.
           </p>
-          <Button
-            asChild
-            variant="outline"
-            className="mt-6 w-auto"
-          >
-            <a href="/login" className="text-sm">
-              Sign in
-            </a>
-          </Button>
+<Button render={<a href="/login" className="text-sm">Back to login</a>} variant="outline" className="mt-6 w-auto" />
         </div>
       </div>
     );

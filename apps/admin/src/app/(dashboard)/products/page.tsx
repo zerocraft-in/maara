@@ -33,5 +33,10 @@ export default async function ProductsPage() {
     redirect("/overview");
   }
 
-  return <ProductsManager organizationId={organizationId} permissions={context.permissions} />;
+  return (
+    <ProductsManager
+      organizationId={organizationId}
+      permissions={context.permissions}
+    />
+  );
 }

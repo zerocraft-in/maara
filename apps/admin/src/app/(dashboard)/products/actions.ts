@@ -26,12 +26,15 @@ function generateHandle(name: string, existingHandles: string[] = []): string {
   return uniqueHandle;
 }
 
-async function getExistingHandles(supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>, organizationId: string): Promise<string[]> {
+async function getExistingHandles(
+  supabase: Awaited<ReturnType<typeof createServerSupabaseClient>>,
+  organizationId: string,
+): Promise<string[]> {
   const { data } = await supabase
     .from("products")
     .select("handle")
     .eq("organization_id", organizationId);
-  return (data ?? []).map(d => d.handle);
+  return (data ?? []).map((d) => d.handle);
 }
 
 // ============================================================================
@@ -85,10 +88,15 @@ const productBaseSchema = z.object({
   seo_description: z.string().trim().max(320).optional().or(z.literal("")),
   published_scope: z.enum(["web", "global"]).default("web"),
   status: z.enum(["draft", "active", "archived"]),
-  options: z.array(z.object({
-    name: z.string().trim().min(1).max(50),
-    values: z.array(z.string().trim().min(1).max(50)),
-  })).max(3).optional(),
+  options: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(50),
+        values: z.array(z.string().trim().min(1).max(50)),
+      }),
+    )
+    .max(3)
+    .optional(),
 });
 
 export async function createProduct(input: unknown): Promise<ProductResult> {
@@ -136,7 +144,10 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
 
   // Generate handle if not provided
   const existingHandles = await getExistingHandles(supabase, organization.id);
-  const handle = inputHandle && inputHandle.trim() ? slugify(inputHandle.trim()) : generateHandle(name, existingHandles);
+  const handle =
+    inputHandle && inputHandle.trim()
+      ? slugify(inputHandle.trim())
+      : generateHandle(name, existingHandles);
 
   // Check handle uniqueness
   if (existingHandles.includes(handle)) {
@@ -169,7 +180,9 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
   });
 
   if (error) {
-    console.error(`Product creation failed. code=${error.code ?? "-"} message=${error.message}`);
+    console.error(
+      `Product creation failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
     if (error.code === "23505") {
       return { ok: false, error: "A product with this handle already exists." };
     }
@@ -183,13 +196,16 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
     for (let i = 0; i < options.length; i++) {
       const opt = options[i];
       if (opt.values.length > 0) {
-        const { error: optError } = await supabase.rpc("create_product_option", {
-          p_organization_id: organization.id,
-          p_product_id: productId,
-          p_name: opt.name,
-          p_position: i + 1,
-          p_values: opt.values,
-        });
+        const { error: optError } = await supabase.rpc(
+          "create_product_option",
+          {
+            p_organization_id: organization.id,
+            p_product_id: productId,
+            p_name: opt.name,
+            p_position: i + 1,
+            p_values: opt.values,
+          },
+        );
         if (optError) {
           console.error(`Option creation failed: ${optError.message}`);
         }
@@ -253,18 +269,29 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
   }
 
   // Handle uniqueness check
-  if (inputHandle && inputHandle.trim() && slugify(inputHandle.trim()) !== currentProduct.handle) {
-    const existingHandles = await getExistingHandles(supabase, currentProduct.handle);
+  if (
+    inputHandle &&
+    inputHandle.trim() &&
+    slugify(inputHandle.trim()) !== currentProduct.handle
+  ) {
+    const existingHandles = await getExistingHandles(
+      supabase,
+      currentProduct.handle,
+    );
     const newHandle = slugify(inputHandle.trim());
     if (existingHandles.includes(newHandle)) {
       return { ok: false, error: "A product with this handle already exists." };
     }
   }
 
-  const handle = inputHandle && inputHandle.trim() ? slugify(inputHandle.trim()) : currentProduct.handle;
+  const handle =
+    inputHandle && inputHandle.trim()
+      ? slugify(inputHandle.trim())
+      : currentProduct.handle;
   const wasPublished = currentProduct.status === "active";
   const willBePublished = status === "active";
-  const published_at = willBePublished && !wasPublished ? new Date().toISOString() : null;
+  const published_at =
+    willBePublished && !wasPublished ? new Date().toISOString() : null;
 
   const { error } = await supabase.rpc("update_product", {
     p_product_id: id,
@@ -290,23 +317,28 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
   });
 
   if (error) {
-    console.error(`Product update failed. code=${error.code ?? "-"} message=${error.message}`);
+    console.error(
+      `Product update failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
     return { ok: false, error: "Unable to update product. Please try again." };
   }
 
   // Update options (delete and recreate for simplicity)
   if (options !== undefined) {
-    await supabase
-      .from("product_options")
-      .delete()
-      .eq("product_id", id);
+    await supabase.from("product_options").delete().eq("product_id", id);
 
     if (options.length > 0) {
       for (let i = 0; i < options.length; i++) {
         const opt = options[i];
         if (opt.values.length > 0) {
           await supabase.rpc("create_product_option", {
-            p_organization_id: (await supabase.from("products").select("organization_id").eq("id", id).single()).data?.organization_id,
+            p_organization_id: (
+              await supabase
+                .from("products")
+                .select("organization_id")
+                .eq("id", id)
+                .single()
+            ).data?.organization_id,
             p_product_id: id,
             p_name: opt.name,
             p_position: i + 1,
@@ -344,7 +376,9 @@ export async function archiveProduct(input: unknown): Promise<ProductResult> {
   });
 
   if (error) {
-    console.error(`Product archive failed. code=${error.code ?? "-"} message=${error.message}`);
+    console.error(
+      `Product archive failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
     return { ok: false, error: "Unable to archive product. Please try again." };
   }
 
@@ -377,9 +411,10 @@ export async function setProductStatus(input: unknown): Promise<ProductResult> {
     .eq("id", parseResult.data.id)
     .single();
 
-  const published_at = parseResult.data.status === "active" && current?.status !== "active"
-    ? new Date().toISOString()
-    : null;
+  const published_at =
+    parseResult.data.status === "active" && current?.status !== "active"
+      ? new Date().toISOString()
+      : null;
 
   const { error } = await supabase.rpc("set_product_status", {
     p_product_id: parseResult.data.id,
@@ -388,8 +423,13 @@ export async function setProductStatus(input: unknown): Promise<ProductResult> {
   });
 
   if (error) {
-    console.error(`Product status change failed. code=${error.code ?? "-"} message=${error.message}`);
-    return { ok: false, error: "Unable to change product status. Please try again." };
+    console.error(
+      `Product status change failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
+    return {
+      ok: false,
+      error: "Unable to change product status. Please try again.",
+    };
   }
 
   revalidatePath("/products");
@@ -418,10 +458,19 @@ const variantBaseSchema = z.object({
   option1: z.string().trim().max(50).optional().or(z.literal("")),
   option2: z.string().trim().max(50).optional().or(z.literal("")),
   option3: z.string().trim().max(50).optional().or(z.literal("")),
-  cost_price_paise: z.number().int().min(0, "Cost price must be zero or greater"),
-  selling_price_paise: z.number().int().min(0, "Selling price must be zero or greater"),
+  cost_price_paise: z
+    .number()
+    .int()
+    .min(0, "Cost price must be zero or greater"),
+  selling_price_paise: z
+    .number()
+    .int()
+    .min(0, "Selling price must be zero or greater"),
   compare_at_price_paise: z.number().int().min(0).nullable(),
-  cost_per_item_paise: z.number().int().min(0, "Cost per item must be zero or greater"),
+  cost_per_item_paise: z
+    .number()
+    .int()
+    .min(0, "Cost per item must be zero or greater"),
   tax_rate_bps: z.number().int().min(0).max(10000).nullable(),
   track_quantity: z.boolean(),
   quantity: z.number().int().min(0, "Quantity must be zero or greater"),
@@ -492,9 +541,15 @@ export async function createVariant(input: unknown): Promise<ProductResult> {
   });
 
   if (error) {
-    console.error(`Variant creation failed. code=${error.code ?? "-"} message=${error.message}`);
+    console.error(
+      `Variant creation failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
     if (error.code === "23505") {
-      return { ok: false, error: "A variant with this SKU or barcode already exists in your organization." };
+      return {
+        ok: false,
+        error:
+          "A variant with this SKU or barcode already exists in your organization.",
+      };
     }
     return { ok: false, error: "Unable to create variant. Please try again." };
   }
@@ -564,9 +619,15 @@ export async function updateVariant(input: unknown): Promise<ProductResult> {
   });
 
   if (error) {
-    console.error(`Variant update failed. code=${error.code ?? "-"} message=${error.message}`);
+    console.error(
+      `Variant update failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
     if (error.code === "23505") {
-      return { ok: false, error: "A variant with this SKU or barcode already exists in your organization." };
+      return {
+        ok: false,
+        error:
+          "A variant with this SKU or barcode already exists in your organization.",
+      };
     }
     return { ok: false, error: "Unable to update variant. Please try again." };
   }
@@ -599,8 +660,14 @@ export async function setVariantStatus(input: unknown): Promise<ProductResult> {
   });
 
   if (error) {
-    console.error("Variant status change failed.", { code: error.code, message: error.message });
-    return { ok: false, error: "Unable to change variant status. Please try again." };
+    console.error("Variant status change failed.", {
+      code: error.code,
+      message: error.message,
+    });
+    return {
+      ok: false,
+      error: "Unable to change variant status. Please try again.",
+    };
   }
 
   revalidatePath("/products");
@@ -619,12 +686,17 @@ const createImageSchema = z.object({
   position: z.number().int().min(1).default(1),
 });
 
-export async function createProductImage(input: unknown): Promise<ProductResult> {
+export async function createProductImage(
+  input: unknown,
+): Promise<ProductResult> {
   await requirePermission("products.create");
 
   const parseResult = createImageSchema.safeParse(input);
   if (!parseResult.success) {
-    return { ok: false, error: parseResult.error.issues[0]?.message ?? "Invalid image data." };
+    return {
+      ok: false,
+      error: parseResult.error.issues[0]?.message ?? "Invalid image data.",
+    };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -633,7 +705,13 @@ export async function createProductImage(input: unknown): Promise<ProductResult>
     .from("product_images")
     .insert({
       ...parseResult.data,
-      organization_id: (await supabase.from("products").select("organization_id").eq("id", parseResult.data.product_id).single()).data?.organization_id,
+      organization_id: (
+        await supabase
+          .from("products")
+          .select("organization_id")
+          .eq("id", parseResult.data.product_id)
+          .single()
+      ).data?.organization_id,
     })
     .select("id")
     .single();
@@ -654,12 +732,17 @@ const updateImageSchema = z.object({
   position: z.number().int().min(1).optional(),
 });
 
-export async function updateProductImage(input: unknown): Promise<ProductResult> {
+export async function updateProductImage(
+  input: unknown,
+): Promise<ProductResult> {
   await requirePermission("products.update");
 
   const parseResult = updateImageSchema.safeParse(input);
   if (!parseResult.success) {
-    return { ok: false, error: parseResult.error.issues[0]?.message ?? "Invalid image data." };
+    return {
+      ok: false,
+      error: parseResult.error.issues[0]?.message ?? "Invalid image data.",
+    };
   }
 
   const supabase = await createServerSupabaseClient();
@@ -680,7 +763,9 @@ export async function updateProductImage(input: unknown): Promise<ProductResult>
   return { ok: true };
 }
 
-export async function deleteProductImage(input: unknown): Promise<ProductResult> {
+export async function deleteProductImage(
+  input: unknown,
+): Promise<ProductResult> {
   await requirePermission("products.update");
 
   const parseResult = z.object({ id: z.string().uuid() }).safeParse(input);
@@ -713,7 +798,18 @@ const createCollectionSchema = z.object({
   handle: z.string().trim().max(255).optional().or(z.literal("")),
   description: z.string().optional().or(z.literal("")),
   image_src: z.string().url().optional().or(z.literal("")),
-  sort_order: z.enum(["manual", "best-selling", "title-ascending", "title-descending", "price-ascending", "price-descending", "created-descending", "created-ascending"]).default("manual"),
+  sort_order: z
+    .enum([
+      "manual",
+      "best-selling",
+      "title-ascending",
+      "title-descending",
+      "price-ascending",
+      "price-descending",
+      "created-descending",
+      "created-ascending",
+    ])
+    .default("manual"),
   template_suffix: z.string().optional().or(z.literal("")),
   published_scope: z.enum(["web", "global"]).default("web"),
 });
@@ -723,14 +819,19 @@ export async function createCollection(input: unknown): Promise<ProductResult> {
 
   const parseResult = createCollectionSchema.safeParse(input);
   if (!parseResult.success) {
-    return { ok: false, error: parseResult.error.issues[0]?.message ?? "Invalid collection data." };
+    return {
+      ok: false,
+      error: parseResult.error.issues[0]?.message ?? "Invalid collection data.",
+    };
   }
 
   const context = await requirePermission("products.create");
   const organization = context.activeOrganization!;
   const supabase = await createServerSupabaseClient();
 
-  const handle = parseResult.data.handle ? slugify(parseResult.data.handle) : slugify(parseResult.data.title);
+  const handle = parseResult.data.handle
+    ? slugify(parseResult.data.handle)
+    : slugify(parseResult.data.title);
 
   const { data, error } = await supabase
     .from("collections")
@@ -745,7 +846,10 @@ export async function createCollection(input: unknown): Promise<ProductResult> {
   if (error) {
     console.error("Collection creation failed:", error);
     if (error.code === "23505") {
-      return { ok: false, error: "A collection with this handle already exists." };
+      return {
+        ok: false,
+        error: "A collection with this handle already exists.",
+      };
     }
     return { ok: false, error: "Unable to create collection." };
   }
@@ -758,12 +862,16 @@ export async function createCollection(input: unknown): Promise<ProductResult> {
 // Bulk Actions
 // ============================================================================
 
-export async function bulkArchiveProducts(input: unknown): Promise<ProductResult> {
+export async function bulkArchiveProducts(
+  input: unknown,
+): Promise<ProductResult> {
   await requirePermission("products.archive");
 
-  const parseResult = z.object({
-    ids: z.array(z.string().uuid()),
-  }).safeParse(input);
+  const parseResult = z
+    .object({
+      ids: z.array(z.string().uuid()),
+    })
+    .safeParse(input);
 
   if (!parseResult.success) {
     return { ok: false, error: "Invalid product IDs." };
@@ -772,7 +880,9 @@ export async function bulkArchiveProducts(input: unknown): Promise<ProductResult
   const supabase = await createServerSupabaseClient();
 
   for (const id of parseResult.data.ids) {
-    const { error } = await supabase.rpc("archive_product", { p_product_id: id });
+    const { error } = await supabase.rpc("archive_product", {
+      p_product_id: id,
+    });
     if (error) {
       console.error(`Bulk archive failed for ${id}:`, error);
     }
@@ -782,13 +892,17 @@ export async function bulkArchiveProducts(input: unknown): Promise<ProductResult
   return { ok: true };
 }
 
-export async function bulkSetProductStatus(input: unknown): Promise<ProductResult> {
+export async function bulkSetProductStatus(
+  input: unknown,
+): Promise<ProductResult> {
   await requirePermission("products.update");
 
-  const parseResult = z.object({
-    ids: z.array(z.string().uuid()),
-    status: z.enum(["draft", "active"]),
-  }).safeParse(input);
+  const parseResult = z
+    .object({
+      ids: z.array(z.string().uuid()),
+      status: z.enum(["draft", "active"]),
+    })
+    .safeParse(input);
 
   if (!parseResult.success) {
     return { ok: false, error: "Invalid input." };
@@ -800,7 +914,8 @@ export async function bulkSetProductStatus(input: unknown): Promise<ProductResul
     const { error } = await supabase.rpc("set_product_status", {
       p_product_id: id,
       p_status: parseResult.data.status,
-      p_published_at: parseResult.data.status === "active" ? new Date().toISOString() : null,
+      p_published_at:
+        parseResult.data.status === "active" ? new Date().toISOString() : null,
     });
     if (error) {
       console.error(`Bulk status change failed for ${id}:`, error);
@@ -822,7 +937,9 @@ const createProductOptionSchema = z.object({
   position: z.number().int().min(1).max(3),
 });
 
-export async function createProductOption(input: unknown): Promise<ProductResult> {
+export async function createProductOption(
+  input: unknown,
+): Promise<ProductResult> {
   await requirePermission("products.update");
 
   const parseResult = createProductOptionSchema.safeParse(input);
@@ -838,7 +955,13 @@ export async function createProductOption(input: unknown): Promise<ProductResult
   const supabase = await createServerSupabaseClient();
 
   const { data, error } = await supabase.rpc("create_product_option", {
-    p_organization_id: (await supabase.from("products").select("organization_id").eq("id", product_id).single()).data?.organization_id,
+    p_organization_id: (
+      await supabase
+        .from("products")
+        .select("organization_id")
+        .eq("id", product_id)
+        .single()
+    ).data?.organization_id,
     p_product_id: product_id,
     p_name: name,
     p_position: position,
@@ -846,7 +969,9 @@ export async function createProductOption(input: unknown): Promise<ProductResult
   });
 
   if (error) {
-    console.error(`Product option creation failed. code=${error.code ?? "-"} message=${error.message}`);
+    console.error(
+      `Product option creation failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
     return { ok: false, error: "Unable to create product option." };
   }
 
@@ -858,7 +983,9 @@ const deleteProductOptionSchema = z.object({
   id: z.string().uuid("Invalid option ID."),
 });
 
-export async function deleteProductOption(input: unknown): Promise<ProductResult> {
+export async function deleteProductOption(
+  input: unknown,
+): Promise<ProductResult> {
   await requirePermission("products.update");
 
   const parseResult = deleteProductOptionSchema.safeParse(input);
@@ -876,7 +1003,9 @@ export async function deleteProductOption(input: unknown): Promise<ProductResult
   });
 
   if (error) {
-    console.error(`Product option deletion failed. code=${error.code ?? "-"} message=${error.message}`);
+    console.error(
+      `Product option deletion failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
     return { ok: false, error: "Unable to delete product option." };
   }
 
