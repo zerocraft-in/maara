@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -28,12 +29,9 @@ const signupSchema = z
 
 type SignupFormValues = z.infer<typeof signupSchema>;
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter();
-
-  const searchParams = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : new URLSearchParams();
+  const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
   const [submitted, setSubmitted] = React.useState(false);
@@ -167,7 +165,7 @@ export default function SignupPage() {
                   {error}
                 </div>
               )}
-              <Button render={<a href="/login" className="text-sm">Back to login</a>} disabled={resending} className="mt-6 w-full" />
+              <Button render={<Link href="/login" className="text-sm">Back to login</Link>} disabled={resending} className="mt-6 w-full" />
               <Button
                 type="button"
                 onClick={resendConfirmation}
@@ -283,14 +281,22 @@ export default function SignupPage() {
 
         <p className="mt-6 text-center text-2xs text-meta">
           Already have an account?{" "}
-          <a
+          <Link
             href={token ? `/login?token=${token}` : "/login"}
             className="text-brand underline-offset-4 hover:underline"
           >
             Sign in
-          </a>
+          </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function SignupPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <SignupForm />
+    </React.Suspense>
   );
 }

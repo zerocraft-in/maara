@@ -1,18 +1,6 @@
 "use client";
 
 import * as React from "react";
-import {
-  SquareTerminal,
-  Bot,
-  BookOpen,
-  Settings2,
-  Frame,
-  PieChart,
-  Map,
-  GalleryVerticalEnd,
-  LifeBuoy,
-  Send,
-} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
 import { NavMain } from "./nav-main";
@@ -26,7 +14,6 @@ import {
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
-  SidebarRail,
 } from "@/components/ui/sidebar";
 
 type Team = {
@@ -61,36 +48,21 @@ export type AppSidebarData = {
   projects: Project[];
 };
 
-const ICONS: Record<string, LucideIcon> = {
-  SquareTerminal,
-  Bot,
-  BookOpen,
-  Settings2,
-  Frame,
-  PieChart,
-  Map,
-  GalleryVerticalEnd,
-  LifeBuoy,
-  Send,
-}
-
 export function AppSidebar({
   data,
-  defaultOpen,
   ...sidebarProps
 }: React.ComponentProps<typeof Sidebar> & {
   data?: AppSidebarData;
-  defaultOpen?: boolean;
 }) {
-  const [sidebarData, setSidebarData] = React.useState<AppSidebarData | null>(
-    null,
-  );
+  const [fallbackData, setFallbackData] =
+    React.useState<AppSidebarData | null>(null);
 
   React.useEffect(() => {
     if (data) {
-      setSidebarData(data);
       return;
     }
+
+    let cancelled = false;
 
     // Fall back to fetching user session client-side when no server data is
     // provided (e.g. used directly outside DashboardShell).
@@ -100,10 +72,12 @@ export function AppSidebar({
       const supabase = createBrowserSupabaseClient();
       const { data: sessionData } = await supabase.auth.getSession();
       const user = sessionData?.session?.user;
-      if (!user) {
+
+      if (!user || cancelled) {
         return;
       }
-      setSidebarData({
+
+      setFallbackData({
         user: {
           name:
             user.user_metadata?.full_name ??
@@ -118,31 +92,35 @@ export function AppSidebar({
         projects: [],
       });
     })();
+
+    return () => {
+      cancelled = true;
+    };
   }, [data]);
 
-  const sidebarDataResolved = sidebarData ?? data;
+  const sidebarData = data ?? fallbackData;
 
-  if (!sidebarDataResolved) {
+  if (!sidebarData) {
     return null;
   }
 
   return (
     <Sidebar collapsible="icon" {...sidebarProps}>
       <SidebarHeader>
-        <TeamSwitcher teams={sidebarDataResolved.teams} />
+        <TeamSwitcher teams={sidebarData.teams} />
       </SidebarHeader>
       <SidebarContent className="pt-2">
         <SearchForm />
-        <NavMain items={sidebarDataResolved.navMain} />
-        <NavProjects projects={sidebarDataResolved.projects} />
+        <NavMain items={sidebarData.navMain} />
+        <NavProjects projects={sidebarData.projects} />
 
         <NavSecondary
-          items={sidebarDataResolved.navSecondary}
+          items={sidebarData.navSecondary}
           className="mt-auto"
         />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarDataResolved.user} />
+        <NavUser user={sidebarData.user} />
       </SidebarFooter>
       {/* not set a sidebar rail */}
       {/* <SidebarRail /> */}

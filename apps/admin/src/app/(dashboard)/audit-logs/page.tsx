@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -18,13 +17,22 @@ import { Separator } from "@/components/ui/separator";
 
 import { DataTable } from "./data-table";
 import { type AuditLogRow } from "./columns";
-import { DEFAULT_SORTING } from "./data-table-features";
+import { AuditLogFiltersBar } from "./audit-log-filters-bar";
+import { AuditLogPagination } from "./audit-log-pagination";
+import {
+  buildAuditLogsHref,
+  parseAuditLogFilters,
+  type AuditLogFilters,
+} from "./audit-log-filters";
 
 const PAGE_SIZE = 25;
 
 // Hard upper bound for the `page` query parameter. Together with PAGE_SIZE it
 // keeps the PostgREST offset inside a safe integer range.
 const MAX_PAGE = 10_000;
+
+const AUDIT_LOG_COLUMNS =
+  "id, organization_id, actor_user_id, action, entity_type, entity_id, metadata, created_at";
 
 type ProfileRow = {
   id: string;
@@ -78,29 +86,48 @@ async function fetchAuditLogs(
   supabase: SupabaseClient,
   organizationId: string,
   page: number,
+  filters: AuditLogFilters,
 ): Promise<{
   logs: AuditLogRow[];
-  hasNextPage: boolean;
+  totalCount: number;
 }> {
   const offset = (page - 1) * PAGE_SIZE;
 
-  const { data, error } = await supabase
+  let query = supabase
     .from("audit_logs")
-    .select(
-      "id, organization_id, actor_user_id, action, entity_type, entity_id, metadata, created_at",
-    )
-    .eq("organization_id", organizationId)
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false })
-    .range(offset, offset + PAGE_SIZE);
+    .select(AUDIT_LOG_COLUMNS, { count: "exact" })
+    .eq("organization_id", organizationId);
+
+  if (filters.query) {
+    const term = `%${filters.query}%`;
+    query = query.or(`action.ilike.${term},entity_type.ilike.${term}`);
+  }
+
+  if (filters.entity !== "all") {
+    query = query.eq("entity_type", filters.entity);
+  }
+
+  if (filters.sort === "oldest") {
+    query = query
+      .order("created_at", { ascending: true })
+      .order("id", { ascending: true });
+  } else {
+    query = query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+  }
+
+  const { data, error, count } = await query.range(
+    offset,
+    offset + PAGE_SIZE - 1,
+  );
 
   if (error) throw error;
 
-  const rows = (data ?? []) as unknown as AuditLogRow[];
-  const hasNextPage = rows.length > PAGE_SIZE;
-  const logs = rows.slice(0, PAGE_SIZE);
-
-  return { logs, hasNextPage };
+  return {
+    logs: (data ?? []) as unknown as AuditLogRow[],
+    totalCount: count ?? 0,
+  };
 }
 
 async function fetchActorNames(
@@ -172,10 +199,13 @@ async function fetchOrganizationTimeZone(
 export default async function AuditLogsPage({
   searchParams,
 }: {
-  readonly searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+  readonly searchParams: Promise<{
+    [key: string]: string | string[] | undefined;
+  }>;
 }) {
   const params = await searchParams;
   const page = parsePageParam(params.page);
+  const filters = parseAuditLogFilters(params);
 
   const context = await requireOrganizationOrRedirect();
 
@@ -191,17 +221,17 @@ export default async function AuditLogsPage({
   const supabase: SupabaseClient = await createServerSupabaseClient();
 
   let logs: AuditLogRow[] = [];
-  let hasNextPage = false;
+  let totalCount = 0;
   let timeZone: string | undefined;
   let errorMessage: string | null = null;
 
   try {
     const [result, organizationTimeZone] = await Promise.all([
-      fetchAuditLogs(supabase, organizationId, page),
+      fetchAuditLogs(supabase, organizationId, page, filters),
       fetchOrganizationTimeZone(supabase, organizationId),
     ]);
     logs = result.logs;
-    hasNextPage = result.hasNextPage;
+    totalCount = result.totalCount;
     timeZone = organizationTimeZone;
   } catch (error) {
     const err = error as { code?: string; message?: string } | undefined;
@@ -212,6 +242,14 @@ export default async function AuditLogsPage({
     errorMessage = "Unable to load audit logs. Please try again.";
   }
 
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  // Keep out-of-range URLs (for example after narrowing a filter) useful by
+  // redirecting to the last page that actually exists.
+  if (!errorMessage && page > totalPages) {
+    redirect(buildAuditLogsHref(totalPages, filters));
+  }
+
   const actorIds = logs
     .map((row) => row.actor_user_id)
     .filter((id): id is string => Boolean(id));
@@ -220,7 +258,7 @@ export default async function AuditLogsPage({
   const displayRows = logs.map((row) => {
     const actorName = !row.actor_user_id
       ? "System"
-      : actorNamesMap.get(row.actor_user_id) ?? "Unknown user";
+      : (actorNamesMap.get(row.actor_user_id) ?? "Unknown user");
     return {
       ...row,
       actor_name: actorName,
@@ -230,38 +268,28 @@ export default async function AuditLogsPage({
 
   const actorNames = Object.fromEntries(actorNamesMap);
 
+  const narrowingFiltersActive =
+    filters.query !== "" || filters.entity !== "all";
+
   const countLabel =
-    logs.length === 0
-      ? "No events on this page"
-      : `${logs.length} ${logs.length === 1 ? "event" : "events"} on this page`;
-  const descriptionParts = [countLabel, `Page ${page}`];
+    totalCount === 0
+      ? narrowingFiltersActive
+        ? "No matching events"
+        : "No events"
+      : `${totalCount} ${totalCount === 1 ? "event" : "events"}`;
+  const descriptionParts = [countLabel, `Page ${page} of ${totalPages}`];
   if (timeZone) {
     descriptionParts.push(`Times in ${timeZone}`);
   }
 
+  const emptyState = narrowingFiltersActive
+    ? "No audit log events match these filters."
+    : page > 1
+      ? "No audit log entries on this page."
+      : "No audit log entries yet.";
+
   return (
-    <div className="mx-auto flex max-w-5xl flex-col px-5 py-6 sm:px-8 sm:py-10">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="min-w-0 flex items-center gap-2">
-          <div
-            aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brand text-[13px] font-bold text-brand-fg"
-          >
-            M
-          </div>
-          <div className="min-w-0 leading-tight">
-            <h2 className="text-sm font-semibold tracking-[-0.02em] text-body">
-              Audit Logs
-            </h2>
-            <p className="hidden text-2xs text-meta sm:block">
-              Organization activity history
-            </p>
-          </div>
-        </div>
-      </div>
-
-      <Separator className="mt-4 mb-8" />
-
+    <div className="mx-auto flex flex-col px-5 py-6 sm:px-8 sm:py-10">
       {errorMessage ? (
         <Card>
           <CardContent className="py-8 text-center">
@@ -269,55 +297,35 @@ export default async function AuditLogsPage({
           </CardContent>
         </Card>
       ) : (
-        <>
-          <Card>
-            <CardHeader>
-              <div className="min-w-0">
-                <CardTitle>Activity</CardTitle>
-                <CardDescription>{descriptionParts.join(" · ")}</CardDescription>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="overflow-x-auto">
-                <DataTable
-                  data={displayRows}
-                  timeZone={timeZone}
-                  actorNames={actorNames}
-                  initialSorting={DEFAULT_SORTING}
-                  enableSorting
-                  emptyState={
-                    page > 1
-                      ? "No audit log entries on this page."
-                      : "No audit log entries yet."
-                  }
-                />
-              </div>
-            </CardContent>
-          </Card>
+        <Card>
+          <CardHeader className="gap-4 border-b">
+            <div className="min-w-0">
+              <CardTitle>Activity</CardTitle>
+              <CardDescription>{descriptionParts.join(" · ")}</CardDescription>
+            </div>
 
-          <div className="mt-6 flex items-center justify-between">
-            {page > 1 ? (
-              <Link
-                href={`/audit-logs?page=${page - 1}`}
-                className="text-xs text-brand-text hover:underline"
-              >
-                ← Previous
-              </Link>
-            ) : (
-              <span />
-            )}
-            {hasNextPage ? (
-              <Link
-                href={`/audit-logs?page=${page + 1}`}
-                className="text-xs text-brand-text hover:underline"
-              >
-                Next →
-              </Link>
-            ) : (
-              <span />
-            )}
-          </div>
-        </>
+            <AuditLogFiltersBar key={filters.query} filters={filters} />
+          </CardHeader>
+
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <DataTable
+                data={displayRows}
+                timeZone={timeZone}
+                actorNames={actorNames}
+                enableSorting={false}
+                emptyState={emptyState}
+              />
+            </div>
+          </CardContent>
+
+          <AuditLogPagination
+            page={page}
+            totalPages={totalPages}
+            totalCount={totalCount}
+            filters={filters}
+          />
+        </Card>
       )}
     </div>
   );

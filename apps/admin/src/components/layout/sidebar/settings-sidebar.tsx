@@ -4,35 +4,100 @@ import * as React from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+
 import {
-  Building2,
-  UserRound,
-  Shield,
-  Bell,
-  Palette,
-  Store,
-  MapPin,
+  Layout,
+  List,
+  DollarSign,
   CreditCard,
+  ShoppingCart,
+  Users,
+  Truck,
+  FileText,
+  MapPin,
+  Grid,
+  Share2,
+  Link as LinkIcon,
+  Sparkles,
+  Bell,
+  Package,
+  Globe,
+  Shield,
   ChevronLeft,
-  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SETTINGS_ITEMS = [
-  { href: "/settings", label: "General", icon: Building2, exact: true },
-  { href: "/settings/profile", label: "Profile", icon: UserRound },
-  { href: "/settings/organization", label: "Organization", icon: Store },
+  { href: "/settings", label: "General", icon: Layout, exact: true },
+  { href: "/settings/plan", label: "Plan", icon: List },
+  { href: "/settings/billing", label: "Billing", icon: DollarSign },
+  { href: "/settings/payments", label: "Payments", icon: CreditCard },
+  { href: "/settings/checkout", label: "Checkout", icon: ShoppingCart },
+  {
+    href: "/settings/customer-accounts",
+    label: "Customer accounts",
+    icon: Users,
+  },
+  {
+    href: "/settings/shipping-and-delivery",
+    label: "Shipping and delivery",
+    icon: Truck,
+  },
+  {
+    href: "/settings/taxes-and-duties",
+    label: "Taxes and duties",
+    icon: FileText,
+  },
   { href: "/settings/locations", label: "Locations", icon: MapPin },
-  { href: "/settings/roles", label: "Roles & Permissions", icon: Shield },
+  { href: "/settings/apps", label: "Apps", icon: Grid },
+  { href: "/settings/sales-channels", label: "Sales channels", icon: Share2 },
+  { href: "/settings/domains", label: "Domains", icon: LinkIcon },
+  {
+    href: "/settings/customer-events",
+    label: "Customer events",
+    icon: Sparkles,
+  },
   { href: "/settings/notifications", label: "Notifications", icon: Bell },
-  { href: "/settings/appearance", label: "Appearance", icon: Palette },
-  { href: "/settings/billing", label: "Billing", icon: CreditCard },
+  {
+    href: "/settings/metafields-and-metaobjects",
+    label: "Metafields and metaobjects",
+    icon: Package,
+  },
+  { href: "/settings/languages", label: "Languages", icon: Globe },
+  {
+    href: "/settings/customer-privacy",
+    label: "Customer privacy",
+    icon: Shield,
+  },
+  { href: "/settings/policies", label: "Policies", icon: FileText },
+  {
+    href: "/settings/organization-details",
+    label: "Organization details",
+    icon: Shield,
+  },
+  {
+    href: "/settings/organization-account",
+    label: "Organization account",
+    icon: Users,
+  },
 ];
 
-export function SettingsSidebar() {
+export function SettingsSidebar({
+  user,
+}: {
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    avatar?: string | null;
+  } | null;
+}) {
   const pathname = usePathname();
   const router = useRouter();
   const [open, setOpen] = React.useState(true);
+
+  const displayName = user?.name?.trim() || "User";
+  const displayEmail = user?.email?.trim() || "";
+  const avatarUrl = user?.avatar?.trim() || null;
 
   return (
     <aside
@@ -77,7 +142,7 @@ export function SettingsSidebar() {
 
       {/* Navigation list */}
       {open ? (
-        <nav className="flex-1 space-y-1 px-2 pb-4">
+        <nav className="flex-1 space-y-0.5 px-2 pb-4">
           {SETTINGS_ITEMS.map((item) => {
             const active = item.exact
               ? pathname === item.href
@@ -93,23 +158,42 @@ export function SettingsSidebar() {
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                   active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
+                    ? "text-sidebar-accent-foreground"
+                    : "text-sidebar-foreground/60 hover:text-sidebar-foreground",
                 )}
               >
                 <div className="flex items-center justify-center size-6 shrink-0 rounded-sm">
-                  <Icon className="size-4 shrink-0" />
+                  <Icon
+                    className={cn(
+                      "size-4 shrink-0",
+                      active && "text-sidebar-accent-foreground",
+                    )}
+                  />
                 </div>
-                <span className="text-xs font-medium">{item.label}</span>
+                <span
+                  className={cn(
+                    "text-xs font-medium",
+                    active && "text-sidebar-accent-foreground",
+                  )}
+                >
+                  {item.label}
+                </span>
               </Link>
             );
           })}
 
-          {/* Bottom section */}
-          <div className="mt-auto border-t border-sidebar-border/50 pt-3">
-            <div className="flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors hover:bg-sidebar-accent/50">
-              <HelpCircle className="size-4 shrink-0" />
-              <span className="text-xs font-medium">Help & Support</span>
+          {/* Bottom section - user profile */}
+          <div className="mt-auto border-t border-sidebar-border/50 pt-3 pb-2">
+            <div className="flex items-start gap-3 rounded-lg px-3 py-2.5 text-sm">
+              <div className="flex shrink-0 items-center justify-center mt-1">
+                <span className="text-muted-foreground/50">|</span>
+              </div>
+              <div className="min-w-0 flex flex-col leading-none">
+                <span className="text-xs font-semibold truncate">{displayName}</span>
+                <span className="text-[10px] text-muted-foreground truncate">
+                  {displayEmail}
+                </span>
+              </div>
             </div>
           </div>
         </nav>

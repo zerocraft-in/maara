@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -64,7 +65,7 @@ export default function OnboardingPage() {
           <p className="mt-2 text-2xs text-meta">
             Your organization is set up. You are the Owner.
           </p>
-          <Button render={<a href="/overview" className="text-sm">Go to dashboard</a>} className="mt-6 w-auto" />
+          <Button render={<Link href="/overview" className="text-sm">Go to dashboard</Link>} className="mt-6 w-auto" />
         </div>
       </div>
     );
@@ -135,12 +136,12 @@ export default function OnboardingPage() {
 
         <p className="mt-6 text-center text-2xs text-meta">
           Already have an account?{" "}
-          <a
+          <Link
             href="/login"
             className="text-brand underline-offset-4 hover:underline"
           >
             Sign in
-          </a>
+          </Link>
         </p>
       </div>
     </div>

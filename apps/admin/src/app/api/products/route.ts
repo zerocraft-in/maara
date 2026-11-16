@@ -2,6 +2,13 @@ import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/session";
 
+type ProductVariantRow = Record<string, unknown> & { product_id: string };
+type ProductImageRow = Record<string, unknown> & { product_id: string };
+type ProductOptionRow = Record<string, unknown> & { product_id: string };
+type CollectionRow = Record<string, unknown> & {
+  product_collections?: { product_id: string }[] | null;
+};
+
 export async function GET(request: Request) {
   try {
     await requirePermission("products.view");
@@ -55,7 +62,7 @@ export async function GET(request: Request) {
 
     // Fetch variants for all products
     const productIds = (products ?? []).map(p => p.id);
-    let variants: any[] = [];
+    let variants: ProductVariantRow[] = [];
     if (productIds.length > 0) {
       const { data: variantsData, error: variantsError } = await supabase
         .from("product_variants")
@@ -93,7 +100,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch images
-    let images: any[] = [];
+    let images: ProductImageRow[] = [];
     if (productIds.length > 0) {
       const { data: imagesData, error: imagesError } = await supabase
         .from("product_images")
@@ -107,7 +114,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch options
-    let options: any[] = [];
+    let options: ProductOptionRow[] = [];
     if (productIds.length > 0) {
       const { data: optionsData, error: optionsError } = await supabase
         .from("product_options")
@@ -121,7 +128,7 @@ export async function GET(request: Request) {
     }
 
     // Fetch collections
-    let collections: any[] = [];
+    let collections: CollectionRow[] = [];
     if (productIds.length > 0) {
       const { data: collectionsData, error: collectionsError } = await supabase
         .from("collections")
@@ -146,30 +153,30 @@ export async function GET(request: Request) {
     }
 
     // Assemble products
-    const variantsByProduct = new Map<string, any[]>();
+    const variantsByProduct = new Map<string, ProductVariantRow[]>();
     for (const variant of variants) {
       const existing = variantsByProduct.get(variant.product_id) ?? [];
       existing.push(variant);
       variantsByProduct.set(variant.product_id, existing);
     }
 
-    const imagesByProduct = new Map<string, any[]>();
+    const imagesByProduct = new Map<string, ProductImageRow[]>();
     for (const image of images) {
       const existing = imagesByProduct.get(image.product_id) ?? [];
       existing.push(image);
       imagesByProduct.set(image.product_id, existing);
     }
 
-    const optionsByProduct = new Map<string, any[]>();
+    const optionsByProduct = new Map<string, ProductOptionRow[]>();
     for (const option of options) {
       const existing = optionsByProduct.get(option.product_id) ?? [];
       existing.push(option);
       optionsByProduct.set(option.product_id, existing);
     }
 
-    const collectionsByProduct = new Map<string, any[]>();
+    const collectionsByProduct = new Map<string, CollectionRow[]>();
     for (const collection of collections) {
-      const productIds = collection.product_collections?.map((pc: any) => pc.product_id) ?? [];
+      const productIds = collection.product_collections?.map((pc) => pc.product_id) ?? [];
       for (const productId of productIds) {
         const existing = collectionsByProduct.get(productId) ?? [];
         existing.push(collection);

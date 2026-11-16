@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -76,7 +77,7 @@ export default function ResetPasswordPage() {
           <p className="mt-2 text-2xs text-meta">
             Your password has been changed. You can now sign in.
           </p>
-<Button render={<a href="/login" className="text-sm">Back to login</a>} variant="outline" className="mt-6 w-auto" />
+<Button render={<Link href="/login" className="text-sm">Back to login</Link>} variant="outline" className="mt-6 w-auto" />
         </div>
       </div>
     );
@@ -161,12 +162,12 @@ export default function ResetPasswordPage() {
 
         <p className="mt-6 text-center text-2xs text-meta">
           Didn&rsquo;t receive a link?{" "}
-          <a
+          <Link
             href="/forgot-password"
             className="text-brand underline-offset-4 hover:underline"
           >
             Request again
-          </a>
+          </Link>
         </p>
       </div>
     </div>

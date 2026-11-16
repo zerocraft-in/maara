@@ -16,7 +16,7 @@ export type ProductResult =
 // ============================================================================
 
 function generateHandle(name: string, existingHandles: string[] = []): string {
-  let handle = slugify(name);
+  const handle = slugify(name);
   let counter = 1;
   let uniqueHandle = handle;
   while (existingHandles.includes(uniqueHandle)) {

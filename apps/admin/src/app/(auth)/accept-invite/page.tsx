@@ -1,6 +1,8 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -15,7 +17,7 @@ const acceptInviteSchema = z.object({
 
 type AcceptInviteFormValues = z.infer<typeof acceptInviteSchema>;
 
-export default function AcceptInvitePage() {
+function AcceptInviteForm() {
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
@@ -24,14 +26,12 @@ export default function AcceptInvitePage() {
 
   const supabase = createBrowserSupabaseClient();
 
-  const searchParams = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : new URLSearchParams();
+  const searchParams = useSearchParams();
   const token = searchParams.get("token") ?? "";
 
   const form = useForm<AcceptInviteFormValues>({
     resolver: zodResolver(acceptInviteSchema),
-    defaultValues: { token: "" },
+    defaultValues: { token },
   });
 
   React.useEffect(() => {
@@ -42,18 +42,6 @@ export default function AcceptInvitePage() {
     }
     checkAuth();
   }, [supabase]);
-
-  // Prefill the token from the URL query parameter when arriving from an
-  // invitation email link. Only set on mount when the field is still pristine
-  // so a user-edited value is never overwritten. The token is never logged.
-  React.useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const urlToken = params.get("token");
-    if (urlToken && !form.formState.isDirty) {
-      form.setValue("token", urlToken);
-    }
-    // Intentional: run once on mount.
-  }, [form]);
 
   async function handleSubmit(values: AcceptInviteFormValues) {
     setError(null);
@@ -91,7 +79,7 @@ export default function AcceptInvitePage() {
           <p className="mt-2 text-2xs text-meta">
             You are now a member of the organization.
           </p>
-          <Button render={<a href="/overview" className="text-sm">Go to dashboard</a>} className="mt-6 w-auto" />
+          <Button render={<Link href="/overview" className="text-sm">Go to dashboard</Link>} className="mt-6 w-auto" />
         </div>
       </div>
     );
@@ -127,7 +115,7 @@ export default function AcceptInvitePage() {
                 Create an account using the same email address that received
                 the invitation.
               </p>
-              <Button render={<a href={`/signup?token=${token}`} className="text-sm">Create account</a>} className="w-full" />
+              <Button render={<Link href={`/signup?token=${token}`} className="text-sm">Create account</Link>} className="w-full" />
             </div>
           </div>
         ) : (
@@ -177,21 +165,29 @@ export default function AcceptInvitePage() {
             {authChecked && !isAuthenticated && !token ? (
               <div className="mt-6 text-center text-2xs text-meta">
                 You need an account to accept an invitation.{" "}
-                <Button render={<a href="/signup" className="text-brand underline-offset-4 hover:underline">Create account</a>} className="inline-flex" />
+                <Button render={<Link href="/signup" className="text-brand underline-offset-4 hover:underline">Create account</Link>} className="inline-flex" />
               </div>
             ) : null}
           </>
         )}
         <p className="mt-6 text-center text-2xs text-meta">
           Don&rsquo;t have an invitation?{" "}
-          <a
+          <Link
             href="/onboarding"
             className="text-brand underline-offset-4 hover:underline"
           >
             Create your business
-          </a>
+          </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function AcceptInvitePage() {
+  return (
+    <React.Suspense fallback={null}>
+      <AcceptInviteForm />
+    </React.Suspense>
   );
 }

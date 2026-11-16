@@ -1,7 +1,8 @@
 "use client";
 
 import * as React from "react";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -16,11 +17,9 @@ const loginSchema = z.object({
 
 type LoginFormValues = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
-  const searchParams = typeof window !== "undefined"
-    ? new URLSearchParams(window.location.search)
-    : new URLSearchParams();
+  const searchParams = useSearchParams();
   const next = searchParams.get("next") || "/overview";
   const token = searchParams.get("token") ?? "";
 
@@ -143,22 +142,30 @@ export default function LoginPage() {
 
         <p className="mt-6 text-center text-2xs text-meta">
           Don&rsquo;t have an account?{" "}
-          <a
+          <Link
             href={token ? `/signup?token=${token}` : "/signup"}
             className="text-brand underline-offset-4 hover:underline"
           >
             Create your account
-          </a>
+          </Link>
         </p>
         <p className="mt-2 text-center text-2xs text-meta">
-          <a
+          <Link
             href="/forgot-password"
             className="text-brand underline-offset-4 hover:underline"
           >
             Forgot password?
-          </a>
+          </Link>
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <React.Suspense fallback={null}>
+      <LoginForm />
+    </React.Suspense>
   );
 }

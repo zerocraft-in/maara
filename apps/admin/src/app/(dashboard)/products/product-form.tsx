@@ -324,31 +324,31 @@ export default function ProductForm({
               className="flex h-full flex-col"
             >
               <TabsList className="flex h-full flex-col bg-transparent">
-                <TabsTrigger value="details" className="data-[state=active]:bg-background data-[state=active]:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger value="details" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
                   <Tag className="size-4" />
                   Details
                 </TabsTrigger>
-                <TabsTrigger value="variants" className="data-[state=active]:bg-background data-[state=active]:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger value="variants" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
                   <Settings className="size-4" />
                   Variants
                 </TabsTrigger>
-                <TabsTrigger value="images" className="data-[state=active]:bg-background data-[state=active]:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger value="images" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
                   <ImageIcon className="size-4" />
                   Images
                 </TabsTrigger>
-                <TabsTrigger value="inventory" className="data-[state=active]:bg-background data-[state=active]:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger value="inventory" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
                   <Truck className="size-4" />
                   Inventory
                 </TabsTrigger>
-                <TabsTrigger value="shipping" className="data-[state=active]:bg-background data-[state=active]:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger value="shipping" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
                   <Truck className="size-4" />
                   Shipping
                 </TabsTrigger>
-                <TabsTrigger value="seo" className="data-[state=active]:bg-background data-[state=active]:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger value="seo" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
                   <Globe className="size-4" />
                   Search engine listing
                 </TabsTrigger>
-                <TabsTrigger value="organization" className="data-[state=active]:bg-background data-[state=active]:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger value="organization" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
                   <Tag className="size-4" />
                   Organization
                 </TabsTrigger>

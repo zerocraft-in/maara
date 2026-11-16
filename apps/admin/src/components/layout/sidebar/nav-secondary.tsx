@@ -1,5 +1,10 @@
-import * as React from "react"
-import { type LucideIcon } from "lucide-react"
+
+"use client";
+
+import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { type LucideIcon } from "lucide-react";
 
 import {
   SidebarGroup,
@@ -7,34 +12,54 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-} from "@/components/ui/sidebar"
+} from "@/components/ui/sidebar";
+
+type NavSecondaryItem = {
+  title: string;
+  url: string;
+  icon?: LucideIcon;
+};
+
+interface NavSecondaryProps
+  extends React.ComponentPropsWithoutRef<typeof SidebarGroup> {
+  items: NavSecondaryItem[];
+}
 
 export function NavSecondary({
   items,
   ...props
-}: {
-  items: {
-    title: string
-    url: string
-    icon?: LucideIcon
-  }[]
-} & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+}: NavSecondaryProps) {
+  const pathname = usePathname();
+
+  const isRouteActive = (url: string) => {
+    return pathname === url || pathname.startsWith(`${url}/`);
+  };
+
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
-          {items.map((item) => (
-            <SidebarMenuItem key={item.title} onClick={() => window.location.assign(item.url)}>
-              <SidebarMenuButton size="sm" asChild >
-                <a href={item.url} className="flex items-center gap-2">
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                </a>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
+          {items.map((item) => {
+            const Icon = item.icon;
+            const isActive = isRouteActive(item.url);
+
+            return (
+              <SidebarMenuItem key={item.title}>
+                <SidebarMenuButton
+                  render={<Link href={item.url} />}
+                  size="sm"
+                  isActive={isActive}
+                  tooltip={item.title}
+                >
+                  {Icon && <Icon className="size-4 shrink-0" />}
+
+                  <span className="truncate">{item.title}</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            );
+          })}
         </SidebarMenu>
       </SidebarGroupContent>
     </SidebarGroup>
-  )
+  );
 }

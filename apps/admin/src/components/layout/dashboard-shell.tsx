@@ -127,7 +127,7 @@ export default function DashboardShell({
 
         {/* Settings secondary nav — only on /settings routes. Sits between the
             condensed global nav and the content, like Shopify Admin. */}
-        {isSettings && <SettingsSidebar />}
+        {isSettings && <SettingsSidebar user={headerUser} />}
 
         {/* SidebarInset is the only scroll container (document never scrolls).
             The header stays fixed above the scroll area, like Shopify. */}

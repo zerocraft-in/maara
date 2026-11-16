@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -71,7 +72,7 @@ export default function ForgotPasswordPage() {
             If an account exists for that email, a password reset link has been
             sent. The link works only once and expires after 1 hour.
           </p>
-<Button render={<a href="/login" className="text-sm">Back to login</a>} variant="outline" className="mt-6 w-auto" />
+<Button render={<Link href="/login" className="text-sm">Back to login</Link>} variant="outline" className="mt-6 w-auto" />
         </div>
       </div>
     );
@@ -137,12 +138,12 @@ export default function ForgotPasswordPage() {
 
         <p className="mt-6 text-center text-2xs text-meta">
           Remember your password?{" "}
-          <a
+          <Link
             href="/login"
             className="text-brand underline-offset-4 hover:underline"
           >
             Back to sign in
-          </a>
+          </Link>
         </p>
       </div>
     </div>
