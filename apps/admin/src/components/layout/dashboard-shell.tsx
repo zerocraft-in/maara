@@ -9,7 +9,7 @@ import { AppSidebar, type AppSidebarData } from "@/components/layout/sidebar";
 import { Header } from "@/components/layout/global-header/header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { GalleryVerticalEnd, LifeBuoy, Send } from "lucide-react";
+import { GalleryVerticalEnd, LifeBuoy, Send, Settings } from "lucide-react";
 import { SettingsSidebar } from "./sidebar/settings-sidebar";
 
 function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
@@ -74,14 +74,9 @@ export default function DashboardShell({
 
     const navSecondary: AppSidebarData["navSecondary"] = [
       {
-        title: "Support",
-        url: "#",
-        icon: LifeBuoy,
-      },
-      {
-        title: "Feedback",
-        url: "#",
-        icon: Send,
+        title: "Settings",
+        url: "/settings",
+        icon: Settings ,
       },
     ];
 
