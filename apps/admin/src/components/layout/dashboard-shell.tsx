@@ -1,28 +1,16 @@
 "use client";
 
 import * as React from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-import { FLAT_NAV_ITEMS, isNavActive, type NavGroup } from "./dashboard-nav";
-import { NAV_GROUPS } from "./dashboard-nav";
-import { AppSidebar, type AppSidebarData } from "@/components/layout/sidebar-07/components";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Separator } from "@/components/ui/separator";
-import {
-  SidebarInset,
-  SidebarProvider,
-  SidebarTrigger,
-  useSidebar,
-} from "@/components/ui/sidebar";
+import { FLAT_NAV_ITEMS, isNavActive, type NavGroup } from "./sidebar/nav";
+import { NAV_GROUPS } from "./sidebar/nav";
+import { AppSidebar, type AppSidebarData } from "@/components/layout/sidebar";
+import { Header } from "@/components/layout/global-header/header";
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GalleryVerticalEnd, LifeBuoy, Send } from "lucide-react";
+import { SettingsSidebar } from "./sidebar/settings-sidebar";
 
 function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
   return {
@@ -53,20 +41,24 @@ export default function DashboardShell({
     roleKey: string;
     status: string;
   }[];
-  readonly activeOrganization?: { id: string; name: string; slug: string } | null;
+  readonly activeOrganization?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
 }) {
   const pathname = usePathname();
-  const router = useRouter();
-
-  const [loading, setLoading] = React.useState(true);
 
   const title =
     FLAT_NAV_ITEMS.find((item) => isNavActive(pathname, item.href))?.label ||
     "Dashboard";
 
-  React.useEffect(() => {
-    setLoading(false);
-  }, []);
+  // Controlled sidebar open state. Shopify Admin auto-condenses the global
+  // nav on Settings routes to make room for the settings secondary sidebar.
+  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  const isSettings =
+    pathname === "/settings" || pathname.startsWith("/settings/");
+  const effectiveSidebarOpen = sidebarOpen && !isSettings;
 
   const sidebarData: AppSidebarData = React.useMemo(() => {
     const teams: AppSidebarData["teams"] = (memberships ?? []).map((m) => ({
@@ -75,9 +67,8 @@ export default function DashboardShell({
       plan: m.roleKey,
     }));
 
-    const navMain: AppSidebarData["navMain"] = NAV_GROUPS.map(
-      navGroupToNavItem
-    );
+    const navMain: AppSidebarData["navMain"] =
+      NAV_GROUPS.map(navGroupToNavItem);
 
     const projects: AppSidebarData["projects"] = [];
 
@@ -95,9 +86,7 @@ export default function DashboardShell({
     ];
 
     const userName =
-      user?.email?.split("@")[0] ??
-      activeOrganization?.name ??
-      "User";
+      user?.email?.split("@")[0] ?? activeOrganization?.name ?? "User";
 
     const fallbackPlan =
       memberships?.[0]?.roleKey ?? activeOrganization?.name ?? "Member";
@@ -106,7 +95,7 @@ export default function DashboardShell({
       user: {
         name: userName,
         email: user?.email ?? "",
-        avatar: `/avatars/${encodeURIComponent(user?.email ?? "default")}.jpg`,
+        avatar: "",
       },
       teams:
         teams.length > 0
@@ -124,61 +113,36 @@ export default function DashboardShell({
     };
   }, [user, memberships, activeOrganization]);
 
-  if (loading) return null;
+  const headerUser = user
+    ? {
+        name: user.email?.split("@")[0] ?? activeOrganization?.name ?? "User",
+        email: user.email ?? "",
+        avatar: null,
+      }
+    : undefined;
 
   return (
     <TooltipProvider>
-      <SidebarProvider>
-        <AppSidebar
-          variant="inset"
-          collapsible="icon"
-          data={sidebarData}
-        />
-        <SidebarKeyboardShortcut />
-        <SidebarInset>
-          <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-            <div className="flex items-center gap-2 px-4">
-              <SidebarTrigger className="-ml-1" />
-              <Separator
-                orientation="vertical"
-                className="mr-2 data-[orientation=vertical]:h-4"
-              />
-              <Breadcrumb>
-                <BreadcrumbList>
-                  <BreadcrumbItem className="hidden md:block">
-                    <BreadcrumbLink href="#">
-                      Build Your Application
-                    </BreadcrumbLink>
-                  </BreadcrumbItem>
-                  <BreadcrumbSeparator className="hidden md:block" />
-                  <BreadcrumbItem>
-                    <BreadcrumbPage>Data Fetching</BreadcrumbPage>
-                  </BreadcrumbItem>
-                </BreadcrumbList>
-              </Breadcrumb>
-            </div>
-          </header>
-          {children}
+      <SidebarProvider
+        open={effectiveSidebarOpen}
+        onOpenChange={setSidebarOpen}
+      >
+        {/* Single persistent global sidebar — no remount flicker between routes. */}
+        <AppSidebar variant="inset" collapsible="icon" data={sidebarData} />
+
+        {/* Settings secondary nav — only on /settings routes. Sits between the
+            condensed global nav and the content, like Shopify Admin. */}
+        {isSettings && <SettingsSidebar />}
+
+        {/* SidebarInset is the only scroll container (document never scrolls).
+            The header stays fixed above the scroll area, like Shopify. */}
+        <SidebarInset className="flex h-auto min-w-0 flex-col overflow-hidden">
+          <Header title={title} user={headerUser} />
+          <div className="min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
+            {children}
+          </div>
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>
   );
-}
-
-function SidebarKeyboardShortcut() {
-  const { toggleSidebar } = useSidebar();
-
-  React.useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "b") {
-        event.preventDefault();
-        toggleSidebar();
-      }
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSidebar]);
-
-  return null;
 }

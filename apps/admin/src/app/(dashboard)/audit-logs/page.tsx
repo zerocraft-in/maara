@@ -14,8 +14,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+
+import { DataTable } from "./data-table";
+import { type AuditLogRow } from "./columns";
+import { DEFAULT_SORTING } from "./data-table-features";
 
 const PAGE_SIZE = 25;
 
@@ -23,226 +26,12 @@ const PAGE_SIZE = 25;
 // keeps the PostgREST offset inside a safe integer range.
 const MAX_PAGE = 10_000;
 
-type AuditLogRow = {
-  id: string;
-  organization_id: string;
-  actor_user_id: string | null;
-  action: string;
-  entity_type: string;
-  entity_id: string | null;
-  metadata: unknown;
-  created_at: string;
-};
-
 type ProfileRow = {
   id: string;
   full_name: string | null;
 };
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerSupabaseClient>>;
-
-const ACTION_LABELS: Record<string, string> = {
-  "organization.settings_changed": "Organization settings changed",
-  "member.invited": "Member invited",
-  "invitation.accepted": "Invitation accepted",
-  "member.role_changed": "Member role changed",
-  "category.created": "Category created",
-  "category.updated": "Category updated",
-  "category.archived": "Category archived",
-  "category.status_changed": "Category status changed",
-  "product.created": "Product created",
-  "product.updated": "Product updated",
-  "product.archived": "Product archived",
-  "product.status_changed": "Product status changed",
-  "variant.created": "Variant created",
-  "variant.updated": "Variant updated",
-  "variant.status_changed": "Variant status changed",
-};
-
-function actionLabel(action: string): string {
-  return ACTION_LABELS[action] ?? action;
-}
-
-function actionVariant(action: string): "default" | "success" | "outline" {
-  switch (action) {
-    case "member.invited":
-    case "invitation.accepted":
-    case "category.created":
-    case "product.created":
-    case "variant.created":
-      return "success";
-    case "category.archived":
-    case "product.archived":
-      return "outline";
-    default:
-      return "default";
-  }
-}
-
-function renderMetadata(action: string, metadata: unknown): React.ReactNode {
-  const m = metadata as Record<string, unknown> | null | undefined;
-  if (!m || typeof m !== "object") {
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "organization.settings_changed") {
-    const columns = m.changed_columns;
-    if (Array.isArray(columns) && columns.length > 0) {
-      return (
-        <span className="text-xs text-body">
-          {String(columns.join(", "))}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "member.invited") {
-    const email = m.email;
-    const role = m.role_key;
-    if (typeof email === "string") {
-      return (
-        <span className="text-xs text-body">
-          {email} as {String(role ?? "—")}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "invitation.accepted") {
-    const email = m.email;
-    if (typeof email === "string") {
-      return <span className="text-xs text-body">{email}</span>;
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "member.role_changed") {
-    const oldRole = m.old_role_key;
-    const newRole = m.new_role_key;
-    if (typeof oldRole === "string" && typeof newRole === "string") {
-      return (
-        <span className="text-xs text-body">
-          {oldRole} → {newRole}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "category.created") {
-    const name = m.name;
-    if (typeof name === "string") {
-      return <span className="text-xs text-body">{name}</span>;
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "category.updated") {
-    const columns = m.changed_columns;
-    if (Array.isArray(columns) && columns.length > 0) {
-      return (
-        <span className="text-xs text-body">
-          {String(columns.join(", "))}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "category.archived") {
-    const status = m.status;
-    if (typeof status === "string") {
-      return <span className="text-xs text-body">{status}</span>;
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "category.status_changed") {
-    const oldStatus = m.old_status;
-    const newStatus = m.new_status;
-    if (typeof oldStatus === "string" && typeof newStatus === "string") {
-      return (
-        <span className="text-xs text-body">
-          {oldStatus} → {newStatus}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "product.created") {
-    const name = m.name;
-    const status = m.status;
-    if (typeof name === "string") {
-      return (
-        <span className="text-xs text-body">
-          {name}
-          {typeof status === "string" ? ` (${status})` : ""}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "product.updated" || action === "variant.updated") {
-    const columns = m.changed_columns;
-    if (Array.isArray(columns) && columns.length > 0) {
-      return (
-        <span className="text-xs text-body">
-          {String(columns.join(", "))}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "product.archived") {
-    const status = m.status;
-    if (typeof status === "string") {
-      return <span className="text-xs text-body">{status}</span>;
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "product.status_changed") {
-    const oldStatus = m.old_status;
-    const newStatus = m.new_status;
-    if (typeof oldStatus === "string" && typeof newStatus === "string") {
-      return (
-        <span className="text-xs text-body">
-          {oldStatus} → {newStatus}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "variant.created") {
-    const sku = m.sku;
-    if (typeof sku === "string") {
-      return <span className="text-xs text-body">{sku}</span>;
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  if (action === "variant.status_changed") {
-    const oldActive = m.old_is_active;
-    const newActive = m.new_is_active;
-    if (typeof oldActive === "boolean" && typeof newActive === "boolean") {
-      const format = (value: boolean) => (value ? "active" : "inactive");
-      return (
-        <span className="text-xs text-body">
-          {format(oldActive)} → {format(newActive)}
-        </span>
-      );
-    }
-    return <span className="text-xs text-muted-foreground">—</span>;
-  }
-
-  return <span className="text-xs text-muted-foreground">—</span>;
-}
 
 /**
  * Parses the `page` query parameter strictly.
@@ -380,26 +169,6 @@ async function fetchOrganizationTimeZone(
   }
 }
 
-function formatEventTime(
-  createdAt: string,
-  timeZone: string | undefined,
-): string {
-  const date = new Date(createdAt);
-  if (Number.isNaN(date.getTime())) {
-    return "—";
-  }
-
-  try {
-    return new Intl.DateTimeFormat("en-GB", {
-      dateStyle: "medium",
-      timeStyle: "short",
-      ...(timeZone ? { timeZone } : {}),
-    }).format(date);
-  } catch {
-    return date.toLocaleString();
-  }
-}
-
 export default async function AuditLogsPage({
   searchParams,
 }: {
@@ -446,7 +215,20 @@ export default async function AuditLogsPage({
   const actorIds = logs
     .map((row) => row.actor_user_id)
     .filter((id): id is string => Boolean(id));
-  const actorNames = await fetchActorNames(supabase, actorIds);
+  const actorNamesMap = await fetchActorNames(supabase, actorIds);
+
+  const displayRows = logs.map((row) => {
+    const actorName = !row.actor_user_id
+      ? "System"
+      : actorNamesMap.get(row.actor_user_id) ?? "Unknown user";
+    return {
+      ...row,
+      actor_name: actorName,
+      actor_initial: (actorName.charAt(0) || "?").toUpperCase(),
+    };
+  });
+
+  const actorNames = Object.fromEntries(actorNamesMap);
 
   const countLabel =
     logs.length === 0
@@ -497,88 +279,18 @@ export default async function AuditLogsPage({
             </CardHeader>
             <CardContent>
               <div className="overflow-x-auto">
-                <table className="w-full min-w-[720px] text-sm">
-                  <thead>
-                    <tr className="text-xs text-muted-foreground border-b">
-                      <th className="text-left pb-3 whitespace-nowrap">Time</th>
-                      <th className="text-left pb-3">Actor</th>
-                      <th className="text-left pb-3">Action</th>
-                      <th className="text-left pb-3">Entity</th>
-                      <th className="text-left pb-3">Entity ID</th>
-                      <th className="text-left pb-3">Details</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {logs.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="py-8 text-center text-muted-foreground"
-                        >
-                          {page > 1
-                            ? "No audit log entries on this page."
-                            : "No audit log entries yet."}
-                        </td>
-                      </tr>
-                    ) : (
-                      logs.map((row: AuditLogRow) => {
-                        // Only a null actor means the event was system
-                        // generated. A missing profile must not be labelled
-                        // as "System".
-                        const actorName = !row.actor_user_id
-                          ? "System"
-                          : actorNames.get(row.actor_user_id) || "Unknown user";
-                        const actorInitial = (
-                          actorName.charAt(0) || "?"
-                        ).toUpperCase();
-                        const time = formatEventTime(row.created_at, timeZone);
-                        const entityId = row.entity_id
-                          ? String(row.entity_id).slice(0, 8) + "…"
-                          : "—";
-
-                        return (
-                          <tr key={row.id} className="border-b">
-                            <td className="py-3 text-muted-foreground whitespace-nowrap">
-                              {time}
-                            </td>
-                            <td className="py-3">
-                              <div className="flex items-center gap-3">
-                                <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-inset text-[10px] font-bold text-body">
-                                  {actorInitial}
-                                </div>
-                                <div className="flex flex-col leading-none">
-                                  <p className="text-sm font-semibold">
-                                    {actorName}
-                                  </p>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-3">
-                              <Badge variant={actionVariant(row.action)}>
-                                {actionLabel(row.action)}
-                              </Badge>
-                            </td>
-                            <td className="py-3 text-muted-foreground">
-                              {row.entity_type}
-                            </td>
-                            <td className="py-3 text-muted-foreground">
-                              {row.entity_id ? (
-                                <span title={String(row.entity_id)}>
-                                  {entityId}
-                                </span>
-                              ) : (
-                                entityId
-                              )}
-                            </td>
-                            <td className="py-3">
-                              {renderMetadata(row.action, row.metadata)}
-                            </td>
-                          </tr>
-                        );
-                      })
-                    )}
-                  </tbody>
-                </table>
+                <DataTable
+                  data={displayRows}
+                  timeZone={timeZone}
+                  actorNames={actorNames}
+                  initialSorting={DEFAULT_SORTING}
+                  enableSorting
+                  emptyState={
+                    page > 1
+                      ? "No audit log entries on this page."
+                      : "No audit log entries yet."
+                  }
+                />
               </div>
             </CardContent>
           </Card>

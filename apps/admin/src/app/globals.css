@@ -43,10 +43,12 @@
   /* status */
   --success: #157f45;
   --success-text: #126b3a;
+  --success-foreground: #126b3a;
   --success-soft: rgba(21, 127, 69, 0.09);
 
   --warning: #a35c08;
   --warning-text: #8f5207;
+  --warning-foreground: #8f5207;
   --warning-soft: rgba(163, 92, 8, 0.1);
 
   --danger: #b3312f;
@@ -134,10 +136,12 @@
 
   --success: #3ea86b;
   --success-text: #6fd394;
+  --success-foreground: #6fd394;
   --success-soft: rgba(62, 168, 107, 0.13);
 
   --warning: #c98a3c;
   --warning-text: #e3b06b;
+  --warning-foreground: #e3b06b;
   --warning-soft: rgba(201, 138, 60, 0.13);
 
   --danger: #d45f5b;
@@ -309,6 +313,7 @@
   button:not(:disabled),
   [role="button"]:not(:disabled) {
     cursor: pointer;
+   
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -322,3 +327,14 @@
     }
   }
 }
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+
