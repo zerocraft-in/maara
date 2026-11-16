@@ -10,11 +10,14 @@ import {
   PieChart,
   Map,
   GalleryVerticalEnd,
+  LifeBuoy,
+  Send,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
 import { NavMain } from "./nav-main"
 import { NavProjects } from "./nav-projects"
+import { NavSecondary } from "./nav-secondary"
 import { NavUser } from "./nav-user"
 import { TeamSwitcher } from "./team-switcher"
 import {
@@ -53,6 +56,7 @@ export type AppSidebarData = {
   }
   teams: Team[]
   navMain: NavItem[]
+  navSecondary: NavItem[]
   projects: Project[]
 }
 
@@ -65,6 +69,8 @@ const ICONS: Record<string, LucideIcon> = {
   PieChart,
   Map,
   GalleryVerticalEnd,
+  LifeBuoy,
+  Send,
 }
 
 function iconFor(name: string | undefined): LucideIcon | undefined {
@@ -112,6 +118,7 @@ export function AppSidebar({
         },
         teams: [],
         navMain: [],
+        navSecondary: [],
         projects: [],
       })
     })()
@@ -131,6 +138,7 @@ export function AppSidebar({
       <SidebarContent>
         <NavMain items={sidebarDataResolved.navMain} />
         <NavProjects projects={sidebarDataResolved.projects} />
+          <NavSecondary items={sidebarDataResolved.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
         <NavUser user={sidebarDataResolved.user} />

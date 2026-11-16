@@ -22,7 +22,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { GalleryVerticalEnd } from "lucide-react";
+import { GalleryVerticalEnd, LifeBuoy, Send } from "lucide-react";
 
 function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
   return {
@@ -81,6 +81,19 @@ export default function DashboardShell({
 
     const projects: AppSidebarData["projects"] = [];
 
+    const navSecondary: AppSidebarData["navSecondary"] = [
+      {
+        title: "Support",
+        url: "#",
+        icon: LifeBuoy,
+      },
+      {
+        title: "Feedback",
+        url: "#",
+        icon: Send,
+      },
+    ];
+
     const userName =
       user?.email?.split("@")[0] ??
       activeOrganization?.name ??
@@ -106,6 +119,7 @@ export default function DashboardShell({
               },
             ],
       navMain,
+      navSecondary,
       projects,
     };
   }, [user, memberships, activeOrganization]);
