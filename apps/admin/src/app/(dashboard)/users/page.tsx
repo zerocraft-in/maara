@@ -421,7 +421,7 @@ function MembersTable({ members }: { members: MemberRow[] }) {
                       </div>
                     </td>
                     <td className="py-3">
-                      <Badge variant={member.role_key === "owner" ? "primary" : "default"}>
+                      <Badge variant={member.role_key === "owner" ? "secondary" : "default"}>
                         {member.role_name || member.role_key || "—"}
                       </Badge>
                     </td>
@@ -472,7 +472,7 @@ function InvitationsTable({ invitations }: { invitations: InvitationRow[] }) {
                 <tr key={invitation.id} className="border-b">
                   <td className="py-3">{invitation.email}</td>
                   <td className="py-3">
-                    <Badge variant={invitation.role_key === "owner" ? "primary" : "default"}>
+                    <Badge variant={invitation.role_key === "owner" ? "secondary" : "default"}>
                       {invitation.role_name || invitation.role_key || "—"}
                     </Badge>
                   </td>

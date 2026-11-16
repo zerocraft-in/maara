@@ -762,7 +762,7 @@ export default function ProductsManager({
                           <span className="font-medium">{totalInventory}</span>
                           <div className="flex gap-1">
                             {hasOutOfStock && (
-                              <Badge variant="danger" className="text-[10px] h-4 px-1.5">
+                              <Badge variant="destructive" className="text-[10px] h-4 px-1.5">
                                 Out of stock
                               </Badge>
                             )}
