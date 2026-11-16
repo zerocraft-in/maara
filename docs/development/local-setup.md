@@ -1,7 +1,7 @@
 # Local Development Setup
 
 Verified on Windows 11 with Node 24.19.0 and pnpm 10.18.3 on 12 November 2026.
-Commands are run from the repository root, `D:\projects\maara-merch`.
+Commands are run from the repository root, `D:\projects\maara`.
 
 ---
 
@@ -13,7 +13,7 @@ Commands are run from the repository root, `D:\projects\maara-merch`.
 | pnpm | 10.18.3 | Declared in `packageManager`; the lockfile is committed |
 | Docker Desktop | required for Supabase | **Not installed in this environment** |
 | Supabase CLI | 3.1.0 | Installed as a root dev dependency |
-| Git | optional | This workspace is not a git repository yet |
+| Git | optional | This workspace is a git repository on `main` |
 
 ### Windows note: pnpm binary blocked
 

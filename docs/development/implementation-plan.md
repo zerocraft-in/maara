@@ -29,19 +29,24 @@ the visual source of truth.
 | pnpm monorepo | `package.json`, `pnpm-workspace.yaml`, `pnpm-lock.yaml` | done |
 | Next.js 16 app | `apps/admin`, Next 16.4.6, React 19.3.0 | done |
 | TypeScript strict | `pnpm typecheck` passes | done |
-| Tailwind CSS 4 | `@tailwindcss/turbopack`, `globals.css` | done |
+| Tailwind CSS 4 | `@tailwindcss/postcss`, `globals.css` | done |
 | Maara design tokens | Light/dark palette, semantic mapping | done |
 | shadcn/ui foundation | Owned primitives in `components/ui` | done |
 | Manrope | `next/font/google` variable font | done |
 | Theme provider | next-themes, class strategy, system option | done |
 | ESLint | `pnpm lint` passes | done |
-| Dependencies pinned | Supabase, Zod, RHF, TanStack Table, Recharts, Sonner, date-fns | done |
+| Dependencies pinned | Supabase, Zod, RHF, TanStack Table, Recharts, Sonner, date-fns, framer-motion | done |
 | Money module | `lib/money.ts` + 19 Vitest cases | done |
 | Vitest | `pnpm test` passes | done |
 | Playwright config + smoke suite | 6 tests pass on desktop and mobile projects | done |
 | Supabase project config | `supabase/config.toml`, `seed.sql` | done |
 | Documentation set | `docs/**`, `README.md`, `SECURITY.md` | done |
 | Production build | `pnpm build` passes | done |
+| Audit Logs module | `apps/admin/src/app/(dashboard)/audit-logs/` | done — server page, TanStack Table, pagination, Owner/Admin only |
+| Settings module | `apps/admin/src/app/(dashboard)/settings/` | done — org settings, timezone, GSTIN, invoice prefix |
+| Locations module | `apps/admin/src/app/(dashboard)/locations/` | done — CRUD, user assignment, address UI fix |
+| Button enhancements | `components/ui/button.tsx`, `button-slide-up.tsx` | done — `asChild` support, slide-up text effect |
+| Settings sidebar header | `components/layout/sidebar/settings-sidebar.tsx` | done — inline slide-up "Settings → Back" with router.back |
 | Local Supabase stack | Docker unavailable | **blocked** |
 
 ### Verification log (actual commands)
@@ -102,6 +107,7 @@ executed tests.
 
 ## Phase 3 — Application shell and design conversion
 
+- [x] Settings sidebar header with inline slide-up "Settings → Back" text and router.back navigation
 - [ ] Sidebar (260 px / 72 px collapsed) with the 16 modules and active states.
 - [ ] Header: breadcrumbs, search/command menu, store switcher, notifications,
       theme switch, profile menu.
