@@ -2,10 +2,10 @@
 
 import * as React from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 
-import { FLAT_NAV_ITEMS, isNavActive } from "./dashboard-nav";
-import { AppSidebar } from "@/components/layout/sidebar-07/components";
+import { FLAT_NAV_ITEMS, isNavActive, type NavGroup } from "./dashboard-nav";
+import { NAV_GROUPS } from "./dashboard-nav";
+import { AppSidebar, type AppSidebarData } from "@/components/layout/sidebar-07/components";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -22,19 +22,41 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { GalleryVerticalEnd } from "lucide-react";
+
+function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
+  return {
+    title: group.label,
+    url: group.children[0]?.href ?? "#",
+    icon: group.icon,
+    isActive: false,
+    items: group.children.map((child) => ({
+      title: child.label,
+      url: child.href,
+    })),
+  };
+}
+
 export default function DashboardShell({
   children,
   permissions,
+  user,
+  memberships,
+  activeOrganization,
 }: {
   readonly children: React.ReactNode;
   readonly permissions: string[];
+  readonly user?: { id: string; email: string | null };
+  readonly memberships?: {
+    organizationId: string;
+    organizationName: string;
+    roleKey: string;
+    status: string;
+  }[];
+  readonly activeOrganization?: { id: string; name: string; slug: string } | null;
 }) {
   const pathname = usePathname();
   const router = useRouter();
-
-  const [user, setUser] = React.useState<{
-    email: string | null;
-  } | null>(null);
 
   const [loading, setLoading] = React.useState(true);
 
@@ -43,41 +65,61 @@ export default function DashboardShell({
     "Dashboard";
 
   React.useEffect(() => {
-    const supabase = createBrowserSupabaseClient();
+    setLoading(false);
+  }, []);
 
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session?.user) {
-        setUser({ email: data.session.user.email ?? null });
-      }
-      setLoading(false);
-    });
+  const sidebarData: AppSidebarData = React.useMemo(() => {
+    const teams: AppSidebarData["teams"] = (memberships ?? []).map((m) => ({
+      name: m.organizationName,
+      logo: GalleryVerticalEnd,
+      plan: m.roleKey,
+    }));
 
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (event === "SIGNED_OUT") {
-          setUser(null);
-          router.replace("/login");
-        } else if (session) {
-          setUser({ email: session.user.email ?? null });
-        }
-      },
+    const navMain: AppSidebarData["navMain"] = NAV_GROUPS.map(
+      navGroupToNavItem
     );
 
-    return () => listener.subscription.unsubscribe();
-  }, [router]);
+    const projects: AppSidebarData["projects"] = [];
 
-  const handleLogout = async () => {
-    const supabase = createBrowserSupabaseClient();
-    await supabase.auth.signOut();
-    router.replace("/login");
-  };
+    const userName =
+      user?.email?.split("@")[0] ??
+      activeOrganization?.name ??
+      "User";
+
+    const fallbackPlan =
+      memberships?.[0]?.roleKey ?? activeOrganization?.name ?? "Member";
+
+    return {
+      user: {
+        name: userName,
+        email: user?.email ?? "",
+        avatar: `/avatars/${encodeURIComponent(user?.email ?? "default")}.jpg`,
+      },
+      teams:
+        teams.length > 0
+          ? teams
+          : [
+              {
+                name: activeOrganization?.name ?? "My Org",
+                logo: GalleryVerticalEnd,
+                plan: fallbackPlan,
+              },
+            ],
+      navMain,
+      projects,
+    };
+  }, [user, memberships, activeOrganization]);
 
   if (loading) return null;
 
   return (
     <TooltipProvider>
       <SidebarProvider>
-        <AppSidebar variant="inset" collapsible="icon" />
+        <AppSidebar
+          variant="inset"
+          collapsible="icon"
+          data={sidebarData}
+        />
         <SidebarKeyboardShortcut />
         <SidebarInset>
           <header className="flex h-16 shrink-0 items-center gap-2 transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">

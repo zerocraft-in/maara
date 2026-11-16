@@ -43,8 +43,7 @@ export function SettingsSidebar() {
         {SETTINGS_ITEMS.map((item) => {
           const active = item.exact
             ? pathname === item.href
-            : pathname === item.href ||
-              pathname.startsWith(`${item.href}/`);
+            : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
           const Icon = item.icon;
 

@@ -2,17 +2,16 @@
 
 import * as React from "react"
 import {
-  AudioWaveform,
-  BookOpen,
-  Bot,
-  Command,
-  Frame,
-  GalleryVerticalEnd,
-  Map,
-  PieChart,
-  Settings2,
   SquareTerminal,
+  Bot,
+  BookOpen,
+  Settings2,
+  Frame,
+  PieChart,
+  Map,
+  GalleryVerticalEnd,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import { NavMain } from "./nav-main"
 import { NavProjects } from "./nav-projects"
@@ -26,149 +25,117 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
-// This is sample data.
-const data = {
-  user: {
-    name: "shadcn",
-    email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
-  },
-  teams: [
-    {
-      name: "Acme Inc",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Acme Corp.",
-      logo: AudioWaveform,
-      plan: "Startup",
-    },
-    {
-      name: "Evil Corp.",
-      logo: Command,
-      plan: "Free",
-    },
-  ],
-  navMain: [
-    {
-      title: "Playground",
-      url: "#",
-      icon: SquareTerminal,
-      isActive: true,
-      items: [
-        {
-          title: "History",
-          url: "#",
-        },
-        {
-          title: "Starred",
-          url: "#",
-        },
-        {
-          title: "Settings",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Models",
-      url: "#",
-      icon: Bot,
-      items: [
-        {
-          title: "Genesis",
-          url: "#",
-        },
-        {
-          title: "Explorer",
-          url: "#",
-        },
-        {
-          title: "Quantum",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Documentation",
-      url: "#",
-      icon: BookOpen,
-      items: [
-        {
-          title: "Introduction",
-          url: "#",
-        },
-        {
-          title: "Get Started",
-          url: "#",
-        },
-        {
-          title: "Tutorials",
-          url: "#",
-        },
-        {
-          title: "Changelog",
-          url: "#",
-        },
-      ],
-    },
-    {
-      title: "Settings",
-      url: "#",
-      icon: Settings2,
-      items: [
-        {
-          title: "General",
-          url: "#",
-        },
-        {
-          title: "Team",
-          url: "#",
-        },
-        {
-          title: "Billing",
-          url: "#",
-        },
-        {
-          title: "Limits",
-          url: "#",
-        },
-      ],
-    },
-  ],
-  projects: [
-    {
-      name: "Design Engineering",
-      url: "#",
-      icon: Frame,
-    },
-    {
-      name: "Sales & Marketing",
-      url: "#",
-      icon: PieChart,
-    },
-    {
-      name: "Travel",
-      url: "#",
-      icon: Map,
-    },
-  ],
+type Team = {
+  name: string
+  logo: LucideIcon
+  plan: string
 }
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+type NavItem = {
+  title: string
+  url: string
+  icon?: LucideIcon
+  isActive?: boolean
+  items?: { title: string; url: string }[]
+}
+
+type Project = {
+  name: string
+  url: string
+  icon: LucideIcon
+}
+
+export type AppSidebarData = {
+  user: {
+    name: string
+    email: string
+    avatar: string
+  }
+  teams: Team[]
+  navMain: NavItem[]
+  projects: Project[]
+}
+
+const ICONS: Record<string, LucideIcon> = {
+  SquareTerminal,
+  Bot,
+  BookOpen,
+  Settings2,
+  Frame,
+  PieChart,
+  Map,
+  GalleryVerticalEnd,
+}
+
+function iconFor(name: string | undefined): LucideIcon | undefined {
+  if (!name) return undefined
+  return (ICONS[name] ?? SquareTerminal) as LucideIcon
+}
+
+export function AppSidebar({
+  data,
+  ...sidebarProps
+}: React.ComponentProps<typeof Sidebar> & {
+  data?: AppSidebarData
+}) {
+  const [sidebarData, setSidebarData] = React.useState<AppSidebarData | null>(
+    null
+  )
+
+  React.useEffect(() => {
+    if (data) {
+      setSidebarData(data)
+      return
+    }
+
+    // Fall back to fetching user session client-side when no server data is
+    // provided (e.g. used directly outside DashboardShell).
+    ;(async () => {
+      const { createBrowserSupabaseClient } = await import(
+        "@/lib/supabase/client"
+      )
+      const supabase = createBrowserSupabaseClient()
+      const { data: sessionData } = await supabase.auth.getSession()
+      const user = sessionData?.session?.user
+      if (!user) {
+        return
+      }
+      setSidebarData({
+        user: {
+          name:
+            user.user_metadata?.full_name ??
+            user.email?.split("@")[0] ??
+            "User",
+          email: user.email ?? "",
+          avatar:
+            user.user_metadata?.avatar_url ?? "/avatars/default.jpg",
+        },
+        teams: [],
+        navMain: [],
+        projects: [],
+      })
+    })()
+  }, [data])
+
+  const sidebarDataResolved = sidebarData ?? data
+
+  if (!sidebarDataResolved) {
+    return null
+  }
+
   return (
-    <Sidebar collapsible="icon" {...props}>
+    <Sidebar collapsible="icon" {...sidebarProps}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher teams={sidebarDataResolved.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
-        <NavProjects projects={data.projects} />
+        <NavMain items={sidebarDataResolved.navMain} />
+        <NavProjects projects={sidebarDataResolved.projects} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser user={sidebarDataResolved.user} />
       </SidebarFooter>
+      <SidebarRail />
     </Sidebar>
   )
 }

@@ -17,7 +17,11 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group";
 import { Kbd } from "@/components/ui/kbd";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import {
   NAV_GROUPS,
@@ -72,7 +76,10 @@ export function GlobalSidebar({
     const next = new Set<string>();
     for (const group of NAV_GROUPS) {
       const visible = filterChildren(group, permissions);
-      if (visible.length > 1 && visible.some((c) => isNavActive(pathname, c.href))) {
+      if (
+        visible.length > 1 &&
+        visible.some((c) => isNavActive(pathname, c.href))
+      ) {
         next.add(group.id);
       }
     }

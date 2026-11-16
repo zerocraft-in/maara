@@ -10,7 +10,12 @@ export default async function DashboardLayout({
 
   return (
    <div className="bg-background">
-     <DashboardShell permissions={Array.from(context.permissions)}>
+      <DashboardShell
+        permissions={Array.from(context.permissions)}
+        user={context.user}
+        memberships={context.memberships}
+        activeOrganization={context.activeOrganization}
+      >
       {children}
     </DashboardShell>
    </div>
