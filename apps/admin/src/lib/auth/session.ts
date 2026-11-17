@@ -157,6 +157,34 @@ export async function requirePermission(permission: PermissionKey) {
 }
 
 /**
+ * Requires the user's active organization membership role to be one of the
+ * allowed role keys (e.g. "admin", "owner", "manager"). Throws otherwise.
+ *
+ * Use this for admin-area routes where access should be gated by role rather
+ * than by a granular permission key.
+ */
+export async function requireRoles(...allowedRoles: PermissionKey[]) {
+  const context = await requireOrganization();
+
+  if (!context.activeOrganization) {
+    throw new Error("Forbidden");
+  }
+
+  const activeOrganizationId = context.activeOrganization.id;
+
+  const membership = context.memberships.find(
+    (m) => m.organizationId === activeOrganizationId
+  );
+  const roleKey = membership?.roleKey;
+
+  if (!roleKey || !allowedRoles.includes(roleKey)) {
+    throw new Error("Forbidden");
+  }
+
+  return context;
+}
+
+/**
  * Resolves the permission keys for a role key from the database.
  *
  * Fails closed: the database is the only source of truth. If the lookup

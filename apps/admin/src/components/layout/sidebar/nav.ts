@@ -13,6 +13,7 @@ import {
   MapPin,
   ShieldCheck,
   Settings,
+  File,
   type LucideIcon,
 } from "lucide-react";
 
@@ -184,6 +185,19 @@ export const NAV_GROUPS: NavGroup[] = [
         label: "Audit Logs",
         icon: ShieldCheck,
         permission: "audit_logs.view",
+      },
+    ],
+  },
+  {
+    id: "content",
+    label: "Content",
+    icon: File,
+    children: [
+      {
+        href: "/content/files",
+        label: "Files",
+        icon: File,
+        permission: "media.view",
       },
     ],
   },

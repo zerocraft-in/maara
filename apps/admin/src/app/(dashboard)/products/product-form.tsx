@@ -22,8 +22,17 @@ import {
   ChevronUp,
 } from "lucide-react";
 
-import { createProduct, updateProduct, createProductOption, deleteProductOption } from "./actions";
+import {
+  createProduct,
+  updateProduct,
+  createProductOption,
+  deleteProductOption,
+  createProductImage,
+  deleteProductImage,
+  updateProductImage,
+} from "./actions";
 import { Button } from "@/components/ui/button";
+import { MediaPicker } from "@/components/media-picker/media-picker";
 import {
   Card,
   CardContent,
@@ -44,15 +53,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs";
-import { formatPaise, paise, rupeesToPaise, paiseToInputValue } from "@/lib/money";
+  formatPaise,
+  paise,
+  rupeesToPaise,
+  paiseToInputValue,
+} from "@/lib/money";
 import { toast } from "sonner";
-import { slugify } from "@/lib/utils";
+import { cn, slugify } from "@/lib/utils";
 import type { CategoryOption } from "./types";
 
 type ProductFormMode = "create" | "edit";
@@ -88,6 +97,16 @@ interface ProductFormProps {
       values: string[];
     }>;
   };
+  images?: Array<{
+    id: string;
+    product_id?: string;
+    variant_ids: string[];
+    src: string;
+    alt: string | null;
+    position: number;
+    width: number | null;
+    height: number | null;
+  }>;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -100,7 +119,10 @@ const productSchema = z.object({
   product_type: z.string().trim().max(100).optional().or(z.literal("")),
   tags: z.array(z.string()).default([]),
   category_id: z.string().uuid().nullable(),
-  tax_rate_percent: z.string().regex(/^\d{1,3}(\.\d{1,2})?$/).refine(v => Number(v) <= 100),
+  tax_rate_percent: z
+    .string()
+    .regex(/^\d{1,3}(\.\d{1,2})?$/)
+    .refine((v) => Number(v) <= 100),
   is_tax_inclusive: z.boolean(),
   requires_shipping: z.boolean(),
   weight_grams: z.string().optional().or(z.literal("")),
@@ -111,10 +133,15 @@ const productSchema = z.object({
   seo_description: z.string().trim().max(320).optional().or(z.literal("")),
   published_scope: z.enum(["web", "global"]).default("web"),
   status: z.enum(["draft", "active"]),
-  options: z.array(z.object({
-    name: z.string().trim().min(1).max(50),
-    values: z.array(z.string().trim().min(1).max(50)),
-  })).max(3).default([]),
+  options: z
+    .array(
+      z.object({
+        name: z.string().trim().min(1).max(50),
+        values: z.array(z.string().trim().min(1).max(50)),
+      }),
+    )
+    .max(3)
+    .default([]),
 });
 
 const optionSchema = z.object({
@@ -132,6 +159,7 @@ export default function ProductForm({
   organizationId,
   categories,
   product,
+  images: imagesProp,
   onSuccess,
   onClose,
 }: ProductFormProps) {
@@ -140,11 +168,48 @@ export default function ProductForm({
   const [isSubmitting, setIsSubmitting] = React.useState(false);
   const [activeTab, setActiveTab] = React.useState("details");
   const [tagInput, setTagInput] = React.useState("");
+  const [pickerOpen, setPickerOpen] = React.useState(false);
+  const [pickerMulti, setPickerMulti] = React.useState(false);
 
-  const defaultOptions = product?.product_options.map(opt => ({
-    name: opt.name,
-    values: opt.values,
-  })) ?? [];
+  type WorkingImage = {
+    id: string;
+    src: string;
+    alt: string | null;
+    position: number;
+    featured: boolean;
+    isNew: boolean;
+  };
+
+  // Working set of product images. New (unsaved) images use a negative temp id.
+  const [images, setImages] = React.useState<WorkingImage[]>([]);
+
+  const originalImages = React.useMemo(() => {
+    return (imagesProp ?? []).map((img) => ({
+      id: img.id,
+      src: img.src,
+      alt: img.alt ?? null,
+      position: img.position,
+      featured: img.position === 1,
+      isNew: false,
+    }));
+  }, [imagesProp]);
+
+  // Seed working set from existing images on mount.
+  React.useEffect(() => {
+    setImages(
+      originalImages.map((img, i) => ({
+        ...img,
+        id: img.id || `new-${i}`,
+        featured: img.featured || i === 0,
+      })),
+    );
+  }, [originalImages]);
+
+  const defaultOptions =
+    product?.product_options.map((opt) => ({
+      name: opt.name,
+      values: opt.values,
+    })) ?? [];
 
   const form = useForm({
     resolver: zodResolver(productSchema),
@@ -167,11 +232,20 @@ export default function ProductForm({
       seo_description: product?.seo_description ?? "",
       published_scope: product?.published_scope ?? "web",
       status: product?.status === "active" ? "active" : "draft",
-      options: product?.product_options.map(opt => ({ name: opt.name, values: opt.values })) ?? [],
+      options:
+        product?.product_options.map((opt) => ({
+          name: opt.name,
+          values: opt.values,
+        })) ?? [],
     },
   });
 
-  const { fields: optionsFields, append: appendOption, remove: removeOption, move: moveOption } = useFieldArray({
+  const {
+    fields: optionsFields,
+    append: appendOption,
+    remove: removeOption,
+    move: moveOption,
+  } = useFieldArray({
     control: form.control,
     name: "options",
   });
@@ -183,11 +257,17 @@ export default function ProductForm({
       if (tag) {
         const currentTags = form.getValues("tags") ?? [];
         if (!currentTags.includes(tag)) {
-          form.setValue("tags", [...currentTags, tag], { shouldValidate: true });
+          form.setValue("tags", [...currentTags, tag], {
+            shouldValidate: true,
+          });
         }
         setTagInput("");
       }
-    } else if (e.key === "Backspace" && !tagInput && (form.getValues("tags") ?? []).length > 0) {
+    } else if (
+      e.key === "Backspace" &&
+      !tagInput &&
+      (form.getValues("tags") ?? []).length > 0
+    ) {
       const currentTags = [...(form.getValues("tags") ?? [])];
       currentTags.pop();
       form.setValue("tags", currentTags, { shouldValidate: true });
@@ -195,7 +275,97 @@ export default function ProductForm({
   };
 
   const handleTagRemove = (tag: string) => {
-    form.setValue("tags", (form.getValues("tags") ?? []).filter(t => t !== tag), { shouldValidate: true });
+    form.setValue(
+      "tags",
+      (form.getValues("tags") ?? []).filter((t) => t !== tag),
+      { shouldValidate: true },
+    );
+  };
+
+  // ---- Image management ----
+
+  const nextTempId = React.useMemo(() => {
+    let n = 0;
+    return () => `new-${--n}`;
+  }, []);
+
+  const handleOpenPicker = () => {
+    setPickerMulti(true);
+    setPickerOpen(true);
+  };
+
+  const handlePickerConfirm = (picked: Array<{
+    id: string;
+    key: string;
+    name: string;
+    url: string;
+    contentType: string | null;
+    size: number;
+    organizationId: string;
+  }>) => {
+    setImages((prev) => {
+      const next = [...prev];
+      for (const p of picked) {
+        // Avoid duplicates by src.
+        if (next.some((img) => img.src === p.url)) continue;
+        next.push({
+          id: nextTempId(),
+          src: p.url,
+          alt: p.name,
+          position: next.length + 1,
+          featured: next.length === 0,
+          isNew: true,
+        });
+      }
+      // Re-index positions and ensure only one featured.
+      return reindexImages(next);
+    });
+    setPickerOpen(false);
+  };
+
+  const reindexImages = (list: WorkingImage[]) => {
+    let featuredSet = false;
+    return list.map((img, i) => {
+      const isFeatured = img.featured && !featuredSet;
+      if (isFeatured) featuredSet = true;
+      return { ...img, position: i + 1, featured: isFeatured };
+    });
+  };
+
+  const handleImageRemove = (id: string) => {
+    setImages((prev) => {
+      const next = prev.filter((img) => img.id !== id);
+      return reindexImages(next);
+    });
+  };
+
+  const handleImageMove = (id: string, direction: -1 | 1) => {
+    setImages((prev) => {
+      const idx = prev.findIndex((img) => img.id === id);
+      if (idx === -1) return prev;
+      const target = idx + direction;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[idx], next[target]] = [next[target], next[idx]];
+      return reindexImages(next);
+    });
+  };
+
+  const handleFeaturedToggle = (id: string) => {
+    setImages((prev) =>
+      prev.map((img) => ({
+        ...img,
+        featured: img.id === id,
+      })),
+    );
+  };
+
+  const handleImageAltChange = (id: string, alt: string) => {
+    setImages((prev) =>
+      prev.map((img) =>
+        img.id === id ? { ...img, alt: alt || null } : img,
+      ),
+    );
   };
 
   const addOptionValue = (optionIndex: number) => {
@@ -213,17 +383,25 @@ export default function ProductForm({
     const newOptions = [...currentOptions];
     newOptions[optionIndex] = {
       ...newOptions[optionIndex],
-      values: (newOptions[optionIndex].values ?? []).filter((_: string, i: number) => i !== valueIndex),
+      values: (newOptions[optionIndex].values ?? []).filter(
+        (_: string, i: number) => i !== valueIndex,
+      ),
     };
     form.setValue("options", newOptions);
   };
 
-  const updateOptionValue = (optionIndex: number, valueIndex: number, value: string) => {
+  const updateOptionValue = (
+    optionIndex: number,
+    valueIndex: number,
+    value: string,
+  ) => {
     const currentOptions = form.getValues("options") ?? [];
     const newOptions = [...currentOptions];
     newOptions[optionIndex] = {
       ...newOptions[optionIndex],
-      values: (newOptions[optionIndex].values ?? []).map((v: string, i: number) => i === valueIndex ? value : v),
+      values: (newOptions[optionIndex].values ?? []).map(
+        (v: string, i: number) => (i === valueIndex ? value : v),
+      ),
     };
     form.setValue("options", newOptions);
   };
@@ -237,7 +415,9 @@ export default function ProductForm({
 
   React.useEffect(() => {
     if (!watchHandle && watchName) {
-      form.setValue("handle", generateHandle(watchName), { shouldDirty: false });
+      form.setValue("handle", generateHandle(watchName), {
+        shouldDirty: false,
+      });
     }
   }, [watchName, watchHandle, form]);
 
@@ -246,7 +426,9 @@ export default function ProductForm({
     setIsSubmitting(true);
 
     const taxRateBps = Math.round(Number(values.tax_rate_percent) * 100);
-    const weightGrams = values.weight_grams ? parseInt(values.weight_grams) : null;
+    const weightGrams = values.weight_grams
+      ? parseInt(values.weight_grams)
+      : null;
 
     const payload = {
       name: values.name,
@@ -267,7 +449,7 @@ export default function ProductForm({
       seo_description: values.seo_description || null,
       published_scope: values.published_scope,
       status: values.status,
-      options: values.options.filter(o => o.name && o.values.some(v => v)),
+      options: values.options.filter((o) => o.name && o.values.some((v) => v)),
     };
 
     try {
@@ -275,11 +457,66 @@ export default function ProductForm({
         ? await updateProduct({ ...payload, id: product!.id })
         : await createProduct(payload);
 
-      if (result.ok) {
-        onSuccess();
-      } else {
+      if (!result.ok) {
         setSubmitError(result.error);
+        setIsSubmitting(false);
+        return;
       }
+
+      const productId = isEdit
+        ? product!.id
+        : (result.id as string);
+
+      // Persist image changes. Do not report success if image associations fail.
+      const originalIds = new Set(originalImages.map((img) => img.id));
+      const removed = originalImages.filter(
+        (img) => !images.some((c) => c.id === img.id),
+      );
+      const toCreate = images.filter((img) => img.isNew);
+      const toUpdate = images.filter(
+        (img) =>
+          !img.isNew &&
+          originalImages.some(
+            (o) =>
+              o.id === img.id &&
+              (o.position !== img.position || o.alt !== img.alt),
+          ),
+      );
+
+      let imageError: string | null = null;
+
+      for (const img of removed) {
+        const r = await deleteProductImage({ id: img.id });
+        if (!r.ok) imageError = r.error;
+      }
+
+      for (const img of toCreate) {
+        const r = await createProductImage({
+          product_id: productId,
+          variant_ids: [],
+          src: img.src,
+          alt: img.alt,
+          position: img.position,
+        });
+        if (!r.ok) imageError = r.error;
+      }
+
+      for (const img of toUpdate) {
+        const r = await updateProductImage({
+          id: img.id,
+          position: img.position,
+          alt: img.alt,
+        });
+        if (!r.ok) imageError = r.error;
+      }
+
+      if (imageError) {
+        setSubmitError(imageError);
+        setIsSubmitting(false);
+        return;
+      }
+
+      onSuccess();
     } catch {
       setSubmitError("An unexpected error occurred. Please try again.");
     } finally {
@@ -324,31 +561,52 @@ export default function ProductForm({
               className="flex h-full flex-col"
             >
               <TabsList className="flex h-full flex-col bg-transparent">
-                <TabsTrigger value="details" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger
+                  value="details"
+                  className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5"
+                >
                   <Tag className="size-4" />
                   Details
                 </TabsTrigger>
-                <TabsTrigger value="variants" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger
+                  value="variants"
+                  className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5"
+                >
                   <Settings className="size-4" />
                   Variants
                 </TabsTrigger>
-                <TabsTrigger value="images" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger
+                  value="images"
+                  className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5"
+                >
                   <ImageIcon className="size-4" />
                   Images
                 </TabsTrigger>
-                <TabsTrigger value="inventory" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger
+                  value="inventory"
+                  className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5"
+                >
                   <Truck className="size-4" />
                   Inventory
                 </TabsTrigger>
-                <TabsTrigger value="shipping" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger
+                  value="shipping"
+                  className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5"
+                >
                   <Truck className="size-4" />
                   Shipping
                 </TabsTrigger>
-                <TabsTrigger value="seo" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger
+                  value="seo"
+                  className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5"
+                >
                   <Globe className="size-4" />
                   Search engine listing
                 </TabsTrigger>
-                <TabsTrigger value="organization" className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5">
+                <TabsTrigger
+                  value="organization"
+                  className="data-active:bg-background data-active:shadow-sm justify-start gap-3 px-3 py-2.5"
+                >
                   <Tag className="size-4" />
                   Organization
                 </TabsTrigger>
@@ -357,13 +615,23 @@ export default function ProductForm({
           </div>
 
           {/* Main Content */}
-          <form id="product-form" onSubmit={form.handleSubmit(onSubmit)} className="flex-1 overflow-y-auto p-6 lg:pl-8">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full">
+          <form
+            id="product-form"
+            onSubmit={form.handleSubmit(onSubmit)}
+            className="flex-1 overflow-y-auto p-6 lg:pl-8"
+          >
+            <Tabs
+              value={activeTab}
+              onValueChange={setActiveTab}
+              className="h-full"
+            >
               {/* Details Tab */}
               <TabsContent value="details" className="h-full space-y-6">
                 <div className="space-y-6">
                   <div className="space-y-2">
-                    <Label htmlFor="name">Title <span className="text-destructive">*</span></Label>
+                    <Label htmlFor="name">
+                      Title <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       id="name"
                       {...form.register("name")}
@@ -371,7 +639,9 @@ export default function ProductForm({
                       className="text-lg"
                     />
                     {form.formState.errors.name && (
-                      <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.name.message}
+                      </p>
                     )}
                   </div>
 
@@ -385,7 +655,9 @@ export default function ProductForm({
                       className="min-h-[120px]"
                     />
                     {form.formState.errors.description && (
-                      <p className="text-sm text-destructive">{form.formState.errors.description.message}</p>
+                      <p className="text-sm text-destructive">
+                        {form.formState.errors.description.message}
+                      </p>
                     )}
                   </div>
 
@@ -410,12 +682,16 @@ export default function ProductForm({
                         list="product-types"
                       />
                       <datalist id="product-types">
-                        {categories.map(c => <option key={c.id} value={c.name} />)}
+                        {categories.map((c) => (
+                          <option key={c.id} value={c.name} />
+                        ))}
                       </datalist>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="tax_rate_percent">Tax rate (%) <span className="text-destructive">*</span></Label>
+                      <Label htmlFor="tax_rate_percent">
+                        Tax rate (%) <span className="text-destructive">*</span>
+                      </Label>
                       <Input
                         id="tax_rate_percent"
                         type="number"
@@ -426,7 +702,9 @@ export default function ProductForm({
                         placeholder="0"
                       />
                       {form.formState.errors.tax_rate_percent && (
-                        <p className="text-sm text-destructive">{form.formState.errors.tax_rate_percent.message}</p>
+                        <p className="text-sm text-destructive">
+                          {form.formState.errors.tax_rate_percent.message}
+                        </p>
                       )}
                     </div>
 
@@ -434,7 +712,9 @@ export default function ProductForm({
                       <Label htmlFor="status">Product status</Label>
                       <Select
                         value={form.watch("status")}
-                        onValueChange={v => form.setValue("status", v as "draft" | "active")}
+                        onValueChange={(v) =>
+                          form.setValue("status", v as "draft" | "active")
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
@@ -467,7 +747,7 @@ export default function ProductForm({
                       ))}
                       <Input
                         value={tagInput}
-                        onChange={e => setTagInput(e.target.value)}
+                        onChange={(e) => setTagInput(e.target.value)}
                         onKeyDown={handleTagKeyDown}
                         placeholder="Add tag (press Enter)"
                         className="w-auto min-w-[150px]"
@@ -475,7 +755,8 @@ export default function ProductForm({
                       />
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      Press Enter or comma to add tags. Used for filtering and organization.
+                      Press Enter or comma to add tags. Used for filtering and
+                      organization.
                     </p>
                   </div>
                 </div>
@@ -487,8 +768,9 @@ export default function ProductForm({
                   <div>
                     <h3 className="font-medium mb-4">Product Options</h3>
                     <p className="text-sm text-muted-foreground mb-4">
-                      Define up to 3 options (e.g., Size, Color, Material). Each combination creates a variant.
-                      Maximum 100 variants per product.
+                      Define up to 3 options (e.g., Size, Color, Material). Each
+                      combination creates a variant. Maximum 100 variants per
+                      product.
                     </p>
 
                     {optionsFields.length === 0 ? (
@@ -531,20 +813,36 @@ export default function ProductForm({
                             </div>
 
                             <div className="flex flex-wrap gap-2">
-                              {(form.getValues(`options.${index}.values`) ?? []).map((value, valueIndex) => (
-                                <div key={valueIndex} className="flex items-center gap-1">
+                              {(
+                                form.getValues(`options.${index}.values`) ?? []
+                              ).map((value, valueIndex) => (
+                                <div
+                                  key={valueIndex}
+                                  className="flex items-center gap-1"
+                                >
                                   <Input
                                     value={value}
-                                    onChange={e => updateOptionValue(index, valueIndex, e.target.value)}
+                                    onChange={(e) =>
+                                      updateOptionValue(
+                                        index,
+                                        valueIndex,
+                                        e.target.value,
+                                      )
+                                    }
                                     placeholder={`Value ${valueIndex + 1}`}
                                     className="w-auto min-w-[120px]"
                                   />
-                                  {(form.getValues(`options.${index}.values`) ?? []).length > 1 && (
+                                  {(
+                                    form.getValues(`options.${index}.values`) ??
+                                    []
+                                  ).length > 1 && (
                                     <Button
                                       type="button"
                                       variant="ghost"
                                       size="icon"
-                                      onClick={() => removeOptionValue(index, valueIndex)}
+                                      onClick={() =>
+                                        removeOptionValue(index, valueIndex)
+                                      }
                                     >
                                       <X className="size-3.5" />
                                     </Button>
@@ -569,7 +867,9 @@ export default function ProductForm({
                           <Button
                             type="button"
                             variant="outline"
-                            onClick={() => appendOption({ name: "", values: [""] })}
+                            onClick={() =>
+                              appendOption({ name: "", values: [""] })
+                            }
                             className="w-fit"
                           >
                             <Plus className="size-4 mr-2" />
@@ -587,25 +887,135 @@ export default function ProductForm({
                 <div className="space-y-6">
                   <div className="flex items-center justify-between">
                     <h3 className="font-medium">Media</h3>
-                    <Button variant="outline" size="sm">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleOpenPicker}
+                      disabled={isSubmitting}
+                    >
                       <Plus className="size-4 mr-2" />
-                      Add media
+                      Add images
                     </Button>
                   </div>
                   <p className="text-sm text-muted-foreground">
-                    Drag and drop images, or click to upload. The first image will be used as the featured image.
+                    Select images from the media library or upload new ones.
+                    Drag to reorder. The first image is the featured image.
                   </p>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 min-h-[200px]">
-                    <div className="col-span-full flex items-center justify-center border-2 border-dashed border-border rounded-lg p-8 text-center text-muted-foreground">
+
+                  {images.length === 0 ? (
+                    <div className="flex items-center justify-center border-2 border-dashed border-border rounded-lg p-12 text-center text-muted-foreground">
                       <ImageIcon className="size-12 mb-2" />
                       <p>No images added yet</p>
-                      <Button variant="outline" className="mt-2" size="sm">
-                        <Plus className="size-4 mr-2" />
-                        Add images
-                      </Button>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
+                      {images.map((img) => {
+                        const isFeatured = img.featured;
+                        return (
+                          <div
+                            key={img.id}
+                            className="relative flex flex-col gap-2"
+                          >
+                            <div className="aspect-video overflow-hidden rounded-lg border bg-muted">
+                              <img
+                                src={img.src}
+                                alt={img.alt ?? ""}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                                decoding="async"
+                              />
+                              {isFeatured && (
+                                <div className="absolute top-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
+                                  Featured
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex flex-col">
+                                <span className="text-sm font-medium truncate w-20" title={img.alt ?? img.src}>
+                                  {img.alt ?? img.src.split("/").pop() ?? "Image"}
+                                </span>
+                                <span className="text-xs text-muted-foreground">
+                                  Position {img.position}
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-1">
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() => handleImageMove(img.id, -1)}
+                                  disabled={img.position === 1}
+                                  className="h-8 w-8 p-0"
+                                  aria-label="Move image up"
+                                >
+                                  <span className="size-4">▲</span>
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handleImageMove(img.id, 1)
+                                  }
+                                  disabled={
+                                    img.position === images.length
+                                  }
+                                  className="h-8 w-8 p-0"
+                                  aria-label="Move image down"
+                                >
+                                  <span className="size-4">▼</span>
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="outline"
+                                  onClick={() => handleFeaturedToggle(img.id)}
+                                  className={cn(
+                                    "h-8 w-8 p-0",
+                                    isFeatured
+                                      ? "bg-primary text-primary-foreground"
+                                      : "",
+                                  )}
+                                  aria-label={isFeatured ? "Unset featured" : "Set featured"}
+                                >
+                                  <span className="size-4">★</span>
+                                </Button>
+                                <Button
+                                  size="icon"
+                                  variant="destructive"
+                                  onClick={() => handleImageRemove(img.id)}
+                                  className="h-8 w-8 p-0"
+                                  aria-label="Remove image"
+                                >
+                                  <X className="size-4" />
+                                </Button>
+                              </div>
+                            </div>
+                            {img.alt !== null && (
+                              <Input
+                                value={img.alt ?? ""}
+                                onChange={(e) =>
+                                  handleImageAltChange(img.id, e.target.value)
+                                }
+                                placeholder="Alt text"
+                                className="text-xs w-full"
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
+
+                <MediaPicker
+                  open={pickerOpen}
+                  onOpenChange={setPickerOpen}
+                  multiple
+                  maxSelection={10}
+                  acceptedTypes={["image"]}
+                  folder="products"
+                  onConfirm={handlePickerConfirm}
+                  onCancel={() => setPickerOpen(false)}
+                />
               </TabsContent>
 
               {/* Inventory Tab */}
@@ -613,21 +1023,28 @@ export default function ProductForm({
                 <div className="space-y-6">
                   <h3 className="font-medium">Inventory Policy</h3>
                   <p className="text-sm text-muted-foreground">
-                    Inventory is managed per variant in the Variants tab. This section shows an overview.
+                    Inventory is managed per variant in the Variants tab. This
+                    section shows an overview.
                   </p>
                   <Card>
                     <CardContent className="pt-6">
                       <div className="grid gap-4 sm:grid-cols-3">
                         <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">Tracked variants</p>
+                          <p className="text-sm text-muted-foreground">
+                            Tracked variants
+                          </p>
                           <p className="text-2xl font-bold">—</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">Total quantity</p>
+                          <p className="text-sm text-muted-foreground">
+                            Total quantity
+                          </p>
                           <p className="text-2xl font-bold">—</p>
                         </div>
                         <div className="space-y-1">
-                          <p className="text-sm text-muted-foreground">Low stock</p>
+                          <p className="text-sm text-muted-foreground">
+                            Low stock
+                          </p>
                           <p className="text-2xl font-bold text-warning">—</p>
                         </div>
                       </div>
@@ -654,11 +1071,19 @@ export default function ProductForm({
                       <span className="ml-2">This is a physical product</span>
                     </Label>
                     <p className="text-sm text-muted-foreground ml-6">
-                      Uncheck for digital products or services that don&apos;t require shipping.
+                      Uncheck for digital products or services that don&apos;t
+                      require shipping.
                     </p>
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-2" style={{ display: form.watch("requires_shipping") ? "grid" : "none" }}>
+                  <div
+                    className="grid gap-4 sm:grid-cols-2"
+                    style={{
+                      display: form.watch("requires_shipping")
+                        ? "grid"
+                        : "none",
+                    }}
+                  >
                     <div className="space-y-2">
                       <Label htmlFor="weight_grams">Weight</Label>
                       <div className="flex gap-2">
@@ -670,7 +1095,12 @@ export default function ProductForm({
                           {...form.register("weight_grams")}
                           placeholder="0"
                         />
-                        <Select value={form.watch("weight_unit")} onValueChange={v => form.setValue("weight_unit", v ?? undefined)}>
+                        <Select
+                          value={form.watch("weight_unit")}
+                          onValueChange={(v) =>
+                            form.setValue("weight_unit", v ?? undefined)
+                          }
+                        >
                           <SelectTrigger className="w-[80px]">
                             <SelectValue />
                           </SelectTrigger>
@@ -685,18 +1115,24 @@ export default function ProductForm({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="hs_code">HS (Harmonized System) code</Label>
+                      <Label htmlFor="hs_code">
+                        HS (Harmonized System) code
+                      </Label>
                       <Input
                         id="hs_code"
                         {...form.register("hs_code")}
                         placeholder="e.g., 6109.10"
                         maxLength={20}
                       />
-                      <p className="text-xs text-muted-foreground">Used for international shipping customs.</p>
+                      <p className="text-xs text-muted-foreground">
+                        Used for international shipping customs.
+                      </p>
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="country_of_origin">Country/Region of origin</Label>
+                      <Label htmlFor="country_of_origin">
+                        Country/Region of origin
+                      </Label>
                       <Input
                         id="country_of_origin"
                         {...form.register("country_of_origin")}
@@ -704,7 +1140,9 @@ export default function ProductForm({
                         maxLength={2}
                         style={{ textTransform: "uppercase" }}
                       />
-                      <p className="text-xs text-muted-foreground">ISO 3166-1 alpha-2 code.</p>
+                      <p className="text-xs text-muted-foreground">
+                        ISO 3166-1 alpha-2 code.
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -714,17 +1152,25 @@ export default function ProductForm({
               <TabsContent value="seo" className="h-full space-y-6">
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-medium mb-2">Search engine listing preview</h3>
+                    <h3 className="font-medium mb-2">
+                      Search engine listing preview
+                    </h3>
                     <Card className="p-4 border-border/50 bg-muted/30">
                       <div className="space-y-2 font-mono text-sm">
                         <p className="text-brand">
-                          {form.watch("handle") ? `yourstore.com/products/${form.watch("handle")}` : "yourstore.com/products/..."}
+                          {form.watch("handle")
+                            ? `yourstore.com/products/${form.watch("handle")}`
+                            : "yourstore.com/products/..."}
                         </p>
                         <p className="text-body font-medium truncate max-w-[400px]">
-                          {form.watch("seo_title") || form.watch("name") || "Product title"}
+                          {form.watch("seo_title") ||
+                            form.watch("name") ||
+                            "Product title"}
                         </p>
                         <p className="text-muted-foreground line-clamp-2 max-w-[400px]">
-                          {form.watch("seo_description") || form.watch("description") || "Product description will appear here..."}
+                          {form.watch("seo_description") ||
+                            form.watch("description") ||
+                            "Product description will appear here..."}
                         </p>
                       </div>
                     </Card>
@@ -734,7 +1180,12 @@ export default function ProductForm({
 
                   <div className="space-y-6">
                     <div className="space-y-2">
-                      <Label htmlFor="seo_title">Page title <span className="text-muted-foreground">(max 70 characters)</span></Label>
+                      <Label htmlFor="seo_title">
+                        Page title{" "}
+                        <span className="text-muted-foreground">
+                          (max 70 characters)
+                        </span>
+                      </Label>
                       <Input
                         id="seo_title"
                         {...form.register("seo_title")}
@@ -747,7 +1198,12 @@ export default function ProductForm({
                     </div>
 
                     <div className="space-y-2">
-                      <Label htmlFor="seo_description">Meta description <span className="text-muted-foreground">(max 320 characters)</span></Label>
+                      <Label htmlFor="seo_description">
+                        Meta description{" "}
+                        <span className="text-muted-foreground">
+                          (max 320 characters)
+                        </span>
+                      </Label>
                       <Textarea
                         id="seo_description"
                         {...form.register("seo_description")}
@@ -763,7 +1219,9 @@ export default function ProductForm({
                     <div className="space-y-2">
                       <Label htmlFor="handle">URL handle</Label>
                       <div className="flex items-center gap-2">
-                        <span className="text-muted-foreground">yourstore.com/products/</span>
+                        <span className="text-muted-foreground">
+                          yourstore.com/products/
+                        </span>
                         <Input
                           id="handle"
                           {...form.register("handle")}
@@ -771,7 +1229,8 @@ export default function ProductForm({
                         />
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Auto-generated from title. Changing this will change the product URL.
+                        Auto-generated from title. Changing this will change the
+                        product URL.
                       </p>
                     </div>
                   </div>
@@ -786,7 +1245,9 @@ export default function ProductForm({
                       <Label htmlFor="category_id">Category</Label>
                       <Select
                         value={form.watch("category_id") || ""}
-                        onValueChange={v => form.setValue("category_id", v || null)}
+                        onValueChange={(v) =>
+                          form.setValue("category_id", v || null)
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue placeholder="Select category" />
@@ -794,7 +1255,11 @@ export default function ProductForm({
                         <SelectContent>
                           <SelectItem value="">No category</SelectItem>
                           {categories.map((category) => (
-                            <SelectItem key={category.id} value={category.id} disabled={category.status !== "active"}>
+                            <SelectItem
+                              key={category.id}
+                              value={category.id}
+                              disabled={category.status !== "active"}
+                            >
                               {category.name}
                               {category.status !== "active" && " (inactive)"}
                             </SelectItem>
@@ -807,14 +1272,21 @@ export default function ProductForm({
                       <Label htmlFor="published_scope">Sales channels</Label>
                       <Select
                         value={form.watch("published_scope")}
-                        onValueChange={v => form.setValue("published_scope", v as "web" | "global")}
+                        onValueChange={(v) =>
+                          form.setValue(
+                            "published_scope",
+                            v as "web" | "global",
+                          )
+                        }
                       >
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="web">Online store</SelectItem>
-                          <SelectItem value="global">All sales channels</SelectItem>
+                          <SelectItem value="global">
+                            All sales channels
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                       <p className="text-sm text-muted-foreground">
@@ -829,11 +1301,20 @@ export default function ProductForm({
             {/* Sticky Footer inside form */}
             <div className="fixed bottom-0 left-0 right-0 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 px-6 py-4 lg:pl-56">
               <div className="mx-auto flex max-w-4xl items-center justify-end gap-3">
-                <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Saving..." : isEdit ? "Save" : "Create product"}
+                  {isSubmitting
+                    ? "Saving..."
+                    : isEdit
+                      ? "Save"
+                      : "Create product"}
                 </Button>
               </div>
             </div>

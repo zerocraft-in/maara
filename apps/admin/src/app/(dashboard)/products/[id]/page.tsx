@@ -39,6 +39,16 @@ type ProductData = {
     position: 1 | 2 | 3;
     values: string[];
   }>;
+  images: Array<{
+    id: string;
+    product_id?: string;
+    variant_ids: string[];
+    src: string;
+    alt: string | null;
+    position: number;
+    width: number | null;
+    height: number | null;
+  }>;
 };
 
 export default function EditProductPage() {
@@ -77,29 +87,56 @@ export default function EditProductPage() {
       setOrganizationId(orgId);
 
       // Load categories and product in parallel
-      const [categoriesResult, productResult, optionsResult] = await Promise.all([
-        supabase
-          .from("categories")
-          .select("id, name, status")
-          .eq("organization_id", orgId)
-          .order("name", { ascending: true }),
-        supabase
-          .from("products")
-          .select(
-            "id, name, category_id, description, handle, vendor, product_type, tags, " +
-            "tax_rate_bps, is_tax_inclusive, requires_shipping, weight_grams, weight_unit, " +
-            "hs_code, country_of_origin, seo_title, seo_description, published_scope, status"
-          )
-          .eq("organization_id", orgId)
-          .eq("id", productId)
-          .maybeSingle(),
-        supabase
-          .from("product_options")
-          .select("id, name, position, values")
-          .eq("organization_id", orgId)
-          .eq("product_id", productId)
-          .order("position", { ascending: true }),
-      ]);
+      const [categoriesResult, productResult, optionsResult, imagesResult] =
+        await Promise.all([
+          supabase
+            .from("categories")
+            .select("id, name, status")
+            .eq("organization_id", orgId)
+            .order("name", { ascending: true }),
+          supabase
+            .from("products")
+            .select(
+              "id, name, category_id, description, handle, vendor, product_type, tags, " +
+                "tax_rate_bps, is_tax_inclusive, requires_shipping, weight_grams, weight_unit, " +
+                "hs_code, country_of_origin, seo_title, seo_description, published_scope, status"
+            )
+            .eq("organization_id", orgId)
+            .eq("id", productId)
+            .maybeSingle(),
+          supabase
+            .from("product_options")
+            .select("id, name, position, values")
+            .eq("organization_id", orgId)
+            .eq("product_id", productId)
+            .order("position", { ascending: true }),
+          supabase
+            .from("product_images")
+            .select(
+              "id, product_id, variant_ids, src, alt, position, width, height, created_at, updated_at",
+            )
+            .eq("organization_id", orgId)
+            .eq("product_id", productId)
+            .order("position", { ascending: true }),
+        ]);
+
+      if (imagesResult.error) {
+        console.error("Failed to load product images:", imagesResult.error);
+      } else {
+        const images = (imagesResult.data ?? []).map((img) => ({
+          id: img.id,
+          product_id: img.product_id,
+          variant_ids: img.variant_ids ?? [],
+          src: img.src,
+          alt: img.alt ?? null,
+          position: img.position,
+          width: img.width ?? null,
+          height: img.height ?? null,
+        }));
+        setProduct((prev) =>
+          prev ? { ...prev, images } : null,
+        );
+      }
 
       if (categoriesResult.error) {
         console.error("Failed to load categories:", categoriesResult.error);
@@ -161,6 +198,7 @@ export default function EditProductPage() {
       organizationId={organizationId!}
       categories={categories}
       product={product}
+      images={product.images ?? []}
       onSuccess={handleSuccess}
       onClose={handleClose}
     />
