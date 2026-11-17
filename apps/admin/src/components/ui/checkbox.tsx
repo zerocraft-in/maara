@@ -17,7 +17,7 @@ interface CheckboxProps
 const Checkbox = React.forwardRef<
   React.ElementRef<typeof CheckboxPrimitive.Root>,
   CheckboxProps
->(({ className, checked, defaultChecked, onChange, onCheckedChange, disabled, ...props }, ref) => {
+>(({ className, checked, defaultChecked, onChange, onCheckedChange, disabled, indeterminate, ...props }, ref) => {
   const handleCheckedChange: CheckboxOnCheckedChange = (nextChecked, eventDetails) => {
     onCheckedChange?.(nextChecked, eventDetails)
     onChange?.(nextChecked)
@@ -30,8 +30,9 @@ const Checkbox = React.forwardRef<
       defaultChecked={defaultChecked}
       onCheckedChange={handleCheckedChange}
       disabled={disabled}
+      indeterminate={indeterminate}
       className={cn(
-        "grid place-content-center peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-checked:bg-primary data-checked:text-primary-foreground",
+        "grid place-content-center peer h-4 w-4 shrink-0 rounded-sm border border-primary shadow focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 data-checked:bg-primary data-checked:text-primary-foreground data-indeterminate:bg-primary data-indeterminate:text-primary-foreground",
         className
       )}
       {...props}

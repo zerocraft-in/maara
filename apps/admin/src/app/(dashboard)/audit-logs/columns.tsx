@@ -255,10 +255,13 @@ export function buildColumns(ctx: AuditLogColumnCtx) {
     columnHelper.accessor("created_at", {
       header: "Time",
       cell: ({ getValue }) => (
-        <span className="text-muted-foreground whitespace-nowrap">
+        <span className="text-muted-foreground whitespace-nowrap shrink-0">
           {formatEventTime(getValue(), timeZone)}
         </span>
       ),
+      size: 140,
+      minSize: 120,
+      maxSize: 180,
     }),
     columnHelper.accessor("actor_user_id", {
       header: "Actor",
@@ -269,30 +272,41 @@ export function buildColumns(ctx: AuditLogColumnCtx) {
         const actorInitial = (actorName.charAt(0) || "?").toUpperCase();
 
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <div className="flex size-5 shrink-0 items-center justify-center rounded-full bg-inset text-[10px] font-bold text-body">
               {actorInitial}
             </div>
-            <div className="flex flex-col leading-none">
-              <p className="text-sm font-semibold">{actorName}</p>
+            <div className="flex flex-col leading-none min-w-0">
+              <p className="text-sm font-semibold truncate">{actorName}</p>
             </div>
           </div>
         );
       },
+      size: 150,
+      minSize: 100,
+      maxSize: 220,
     }),
     columnHelper.accessor("action", {
       header: "Action",
       cell: ({ getValue }) => (
-        <Badge variant={actionVariant(getValue())}>
+        <Badge variant={actionVariant(getValue())} className="shrink-0">
           {actionLabel(getValue())}
         </Badge>
       ),
+      size: 140,
+      minSize: 100,
+      maxSize: 200,
     }),
     columnHelper.accessor("entity_type", {
       header: "Entity",
       cell: ({ getValue }) => (
-        <span className="text-muted-foreground">{getValue()}</span>
+        <span className="min-w-0 block overflow-hidden overflow-ellipsis whitespace-nowrap text-muted-foreground shrink-0">
+          {getValue()}
+        </span>
       ),
+      size: 100,
+      minSize: 80,
+      maxSize: 140,
     }),
     columnHelper.accessor("entity_id", {
       header: "Entity ID",
@@ -300,22 +314,28 @@ export function buildColumns(ctx: AuditLogColumnCtx) {
         const entityId = row.original.entity_id;
         const truncated = entityId ? `${String(entityId).slice(0, 8)}…` : "—";
         return entityId ? (
-          <span title={String(entityId)} className="text-muted-foreground">
+          <span title={String(entityId)} className="text-muted-foreground shrink-0 whitespace-nowrap">
             {truncated}
           </span>
         ) : (
-          <span className="text-muted-foreground">{truncated}</span>
+          <span className="text-muted-foreground shrink-0 whitespace-nowrap">{truncated}</span>
         );
       },
+      size: 100,
+      minSize: 80,
+      maxSize: 140,
     }),
     columnHelper.accessor("action", {
       id: "details",
       header: "Details",
       cell: ({ row }) => (
-        <span className="text-xs">
+        <span className="text-xs min-w-0 block overflow-hidden overflow-ellipsis whitespace-nowrap">
           {renderMetadata(row.original.action, row.original.metadata)}
         </span>
       ),
+      size: 200,
+      minSize: 150,
+      maxSize: Number.MAX_SAFE_INTEGER,
     }),
   ];
 }

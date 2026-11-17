@@ -132,7 +132,7 @@ export default function DashboardShell({
         {/* SidebarInset is the only scroll container (document never scrolls).
             The header stays fixed above the scroll area, like Shopify. */}
         <SidebarInset className="flex h-auto min-w-0 flex-col overflow-hidden">
-          <Header title={title} user={headerUser} />
+         
           <div className="min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
             {children}
           </div>

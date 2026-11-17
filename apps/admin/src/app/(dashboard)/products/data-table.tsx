@@ -33,7 +33,10 @@ interface DataTableProps<TData> {
   enableSorting?: boolean;
   enablePagination?: boolean;
   className?: string;
+  selectedProducts?: string[];
   emptyState?: React.ReactNode;
+  /** Optional toolbar rendered at the top of the table (e.g. bulk-selection bar). */
+  toolbar?: React.ReactNode;
 }
 
 export function DataTable<TData>({
@@ -46,10 +49,12 @@ export function DataTable<TData>({
   pageSizeOptions = [10, 25, 50, 100],
   enableSorting = true,
   enablePagination = true,
+  selectedProducts = [],
   className,
   emptyState = (
     <div className="text-muted-foreground text-center py-8">No data found.</div>
   ),
+  toolbar,
 }: DataTableProps<TData>) {
   const table = useReactTable<TData>({
     columns,
@@ -84,45 +89,58 @@ export function DataTable<TData>({
   };
 
   const totalRows = data.length;
-  const pageCount = Math.max(1, Math.ceil(totalRows / pagination.pageSize));
-  const canPrevious = pagination.pageIndex > 0;
-  const canNext = (pagination.pageIndex + 1) * pagination.pageSize < totalRows;
+  const visibleLeafColumns = table.getVisibleLeafColumns();
 
   return (
     <div className={className}>
       <Table>
         <TableHeader>
-          {table.getHeaderGroups().map((headerGroup) => (
-            <TableRow key={headerGroup.id}>
-              {headerGroup.headers.map((header) => {
-                return (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder ? null : (
-                      <div className="flex items-center gap-2">
-                        {flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
-                        {enableSorting && header.column.getCanSort() ? (
-                          <button
-                            onClick={(event) => {
-                              header.column.getToggleSortingHandler()?.(event);
-                            }}
-                            aria-label={`Sort by ${header.id}`}
-                            disabled={!header.column.getCanSort()}
-                            className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full text-xs text-muted-foreground transition-colors hover:text-body focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
-                          >
-                            {renderSortIndicator(header.id)}
-                          </button>
-                        ) : null}
-                      </div>
-                    )}
-                  </TableHead>
-                );
-              })}
+          {selectedProducts.length > 0 ? (
+            <TableRow>
+              <TableHead colSpan={visibleLeafColumns.length}>
+                {toolbar}
+              </TableHead>
             </TableRow>
-          ))}
+          ) : (
+            <>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      style={{ width: header.column.getSize() }}
+                    >
+                      {header.isPlaceholder ? null : (
+                        <div className="flex items-center gap-2">
+                          {flexRender(
+                            header.column.columnDef.header,
+                            header.getContext(),
+                          )}
+
+                          {enableSorting && header.column.getCanSort() ? (
+                            <button
+                              onClick={(event) => {
+                                header.column.getToggleSortingHandler()?.(
+                                  event,
+                                );
+                              }}
+                              aria-label={`Sort by ${header.id}`}
+                              disabled={!header.column.getCanSort()}
+                              className="ml-2 inline-flex h-4 w-4 items-center justify-center rounded-full text-xs text-muted-foreground transition-colors hover:text-body focus:outline-none focus:ring-1 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
+                            >
+                              {renderSortIndicator(header.id)}
+                            </button>
+                          ) : null}
+                        </div>
+                      )}
+                    </TableHead>
+                  ))}
+                </TableRow>
+              ))}
+            </>
+          )}
         </TableHeader>
+
         <TableBody>
           {table.getRowModel().rows.length === 0 ? (
             <TableRow>
@@ -137,7 +155,10 @@ export function DataTable<TData>({
             table.getRowModel().rows.map((row) => (
               <TableRow key={row.id}>
                 {row.getVisibleCells().map((cell) => (
-                  <TableCell key={cell.id}>
+                  <TableCell
+                    key={cell.id}
+                    style={{ width: cell.column.getSize() }}
+                  >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
@@ -146,73 +167,6 @@ export function DataTable<TData>({
           )}
         </TableBody>
       </Table>
-
-      {enablePagination && totalRows > 0 && (
-        <div className="mt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-muted-foreground">
-              {Math.min(
-                pagination.pageIndex * pagination.pageSize + 1,
-                totalRows,
-              )}
-            </span>
-            <span className="text-muted-foreground"> to </span>
-            <span className="text-muted-foreground">
-              {Math.min(
-                (pagination.pageIndex + 1) * pagination.pageSize,
-                totalRows,
-              )}
-            </span>
-            <span className="text-muted-foreground"> of </span>
-            <span className="text-muted-foreground">{totalRows}</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() =>
-                onPaginationChange({
-                  pageIndex: Math.max(0, pagination.pageIndex - 1),
-                  pageSize: pagination.pageSize,
-                })
-              }
-              disabled={!canPrevious}
-              className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1 text-sm font-medium ring-offset-background transition-colors hover:bg-muted hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-            >
-              Previous
-            </button>
-            <button
-              onClick={() =>
-                onPaginationChange({
-                  pageIndex: pagination.pageIndex + 1,
-                  pageSize: pagination.pageSize,
-                })
-              }
-              disabled={!canNext}
-              className="inline-flex items-center rounded-md border border-input bg-background px-3 py-1 text-sm font-medium ring-offset-background transition-colors hover:bg-muted hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
-            >
-              Next
-            </button>
-            <span className="text-xs text-muted-foreground">
-              Page {pagination.pageIndex + 1} of {pageCount}
-            </span>
-            <select
-              value={pagination.pageSize}
-              onChange={(e) =>
-                onPaginationChange({
-                  pageIndex: 0,
-                  pageSize: Number(e.target.value),
-                })
-              }
-              className="border bg-background px-2 py-1 text-sm rounded"
-            >
-              {pageSizeOptions.map((size) => (
-                <option key={size} value={size}>
-                  {size} / page
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
