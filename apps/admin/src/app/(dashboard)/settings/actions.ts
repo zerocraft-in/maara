@@ -119,3 +119,111 @@ export async function updateOrganization(
 
   return { ok: true }
 }
+
+export type UpdateBusinessDetailsResult =
+  | { ok: true }
+  | { ok: false; error: string }
+
+const updateBusinessDetailsSchema = z.object({
+  organizationId: z.string().min(1, "Organization is required"),
+  name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
+  email: z.string().email("Enter a valid email address").max(254),
+  phone: z.string().trim().max(30, "Phone is too long").optional().or(z.literal("")),
+  address: z
+    .object({
+      street: z.string().trim().min(1, "Street is required"),
+      apartment: z.string().trim().max(100).optional().or(z.literal("")),
+      city: z.string().trim().min(1, "City is required").max(100),
+      state: z.string().trim().min(1, "State is required").max(100),
+      zip: z.string().trim().min(1, "PIN code is required").max(20),
+    })
+    .strip(),
+  businessType: z.string().trim().min(1, "Business type is required"),
+  nationality: z.string().trim().min(1, "Nationality is required"),
+  dateOfBirth: z.string().datetime({ offset: true }),
+})
+
+export async function updateBusinessDetails(
+  input: unknown,
+): Promise<UpdateBusinessDetailsResult> {
+  // 1. Require authenticated caller with settings.manage permission.
+  const context = await requirePermission("settings.manage")
+
+  // 2. Resolve organization exclusively from the verified session.
+  const organization = context.activeOrganization
+  if (!organization) {
+    return { ok: false, error: "No active organization." }
+  }
+
+  // 3. Validate input.
+  const parseResult = updateBusinessDetailsSchema.safeParse(input)
+  if (!parseResult.success) {
+    return {
+      ok: false,
+      error: parseResult.error.issues[0]?.message ?? "Invalid business details.",
+    }
+  }
+
+  const {
+    name,
+    email,
+    phone,
+    address,
+    businessType,
+    nationality,
+    dateOfBirth,
+  } = parseResult.data
+
+  // 4. Call the authenticated Supabase client.
+  const supabase = await createServerSupabaseClient()
+
+  // 5. Update the columns that exist on the organizations table today.
+  //    businessType, nationality and dateOfBirth are validated on the frontend
+  //    and sent to the API; persist them once the matching columns exist
+  //    (see backend guide).
+  const { data, error } = await supabase
+    .from("organizations")
+    .update({
+      name,
+      email,
+      phone: phone || null,
+      address: {
+        ...address,
+        businessType,
+        nationality,
+        dateOfBirth,
+      } as Record<string, unknown>,
+    })
+    .eq("id", organization.id)
+    .select("id")
+    .maybeSingle()
+
+  if (error) {
+    console.error("Business details update failed.", {
+      code: error.code,
+      message: error.message,
+    })
+
+    if (error.code === "42501") {
+      return {
+        ok: false,
+        error: "Your account is not allowed to update business details. Contact your administrator.",
+      }
+    }
+
+    return { ok: false, error: "Unable to save business details. Please try again." }
+  }
+
+  if (!data) {
+    console.error("Business details update wrote no row.", {
+      organizationId: organization.id,
+    })
+    return { ok: false, error: "Unable to save business details. Please try again." }
+  }
+
+  // Re-render /settings so the page immediately shows the saved values.
+  const { revalidatePath } = await import("next/cache")
+  revalidatePath("/settings")
+
+  return { ok: true }
+}

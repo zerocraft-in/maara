@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { SettingsRow } from "./settings-row";
+import { BusinessDetailsRow } from "./business-details-row";
 
 type OrganizationRow = {
   id: string;
@@ -80,7 +81,10 @@ async function requireOrganizationOrRedirect() {
   try {
     return await requireOrganization();
   } catch (error) {
-    if (error instanceof Error && error.message === NO_ACTIVE_MEMBERSHIP_ERROR) {
+    if (
+      error instanceof Error &&
+      error.message === NO_ACTIVE_MEMBERSHIP_ERROR
+    ) {
       redirect("/onboarding");
     }
     throw error;
@@ -107,7 +111,13 @@ export default async function GeneralPage() {
   }
 
   const address = org.address as
-    | { raw?: string; street?: string; city?: string; state?: string; zip?: string }
+    | {
+        raw?: string;
+        street?: string;
+        city?: string;
+        state?: string;
+        zip?: string;
+      }
     | null
     | undefined;
 
@@ -131,27 +141,12 @@ export default async function GeneralPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center justify-between py-3">
-            <div className="flex items-center gap-3">
-              <div className="flex shrink-0 items-center justify-center size-5 rounded-full border border-input">
-                <img
-                  src="https://flagcdn.com/w40/in.png"
-                  alt="India flag"
-                  className="size-4 rounded-full object-cover"
-                />
-              </div>
-              <div className="min-w-0 flex flex-col leading-none">
-                <span className="font-medium text-foreground">
-                  {org.name ?? "Maran R"}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {org.country ?? "India"}
-                </span>
-              </div>
-            </div>
-          </div>
+          <BusinessDetailsRow org={org} />
           <p className="mt-3 text-xs text-muted-foreground">
-            Manage entities in <Link href="/settings/organization-details">Organization settings</Link>
+            Manage entities in{" "}
+            <Link href="/settings/organization-details">
+              Organization settings
+            </Link>
           </p>
         </CardContent>
       </Card>
@@ -171,7 +166,9 @@ export default async function GeneralPage() {
           <SettingsRow
             icon="MapPin"
             label="Store address"
-            description={addressLines.length > 0 ? addressLines.join(", ") : "India"}
+            description={
+              addressLines.length > 0 ? addressLines.join(", ") : "India"
+            }
             href="/settings/organization-details"
           />
         </CardContent>
@@ -187,17 +184,9 @@ export default async function GeneralPage() {
             icon="DollarSign"
             label="Currency display"
             description="To manage the currencies customers see, go to Markets"
-            badge={
-              <Badge variant="outline">
-                Indian Rupee (INR ₹)
-              </Badge>
-            }
+            badge={<Badge variant="outline">Indian Rupee (INR ₹)</Badge>}
           />
-          <SettingsRow
-            icon="Globe"
-            label="Backup Region"
-            description="India"
-          />
+          <SettingsRow icon="Globe" label="Backup Region" description="India" />
           <div className="grid grid-cols-2 gap-4 pt-3">
             <SettingsRow
               icon="Scale"
@@ -239,7 +228,9 @@ export default async function GeneralPage() {
         <CardContent>
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-medium text-foreground">Prefix</label>
+              <label className="text-xs font-medium text-foreground">
+                Prefix
+              </label>
               <input
                 type="text"
                 value="#"
@@ -248,7 +239,9 @@ export default async function GeneralPage() {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-xs font-medium text-foreground">Suffix</label>
+              <label className="text-xs font-medium text-foreground">
+                Suffix
+              </label>
               <input
                 type="text"
                 value=""
@@ -286,7 +279,9 @@ export default async function GeneralPage() {
               </label>
               <label className="flex items-center gap-2 text-sm text-foreground cursor-pointer">
                 <input type="radio" name="fulfillment" defaultChecked />
-                <span>Don't fulfill any of the order's line items automatically</span>
+                <span>
+                  Don't fulfill any of the order's line items automatically
+                </span>
               </label>
             </div>
           </div>
@@ -334,27 +329,11 @@ export default async function GeneralPage() {
           <CardTitle>Resources</CardTitle>
         </CardHeader>
         <CardContent>
-          <SettingsRow
-            icon="BookOpen"
-            label="Change log"
-            href="/audit-logs"
-          />
-          <SettingsRow
-            icon="Headphones"
-            label="Shopify Help Center"
-            href="#"
-          />
-          <SettingsRow
-            icon="Code"
-            label="Hire a Shopify Partner"
-            href="#"
-          />
+          <SettingsRow icon="BookOpen" label="Change log" href="/audit-logs" />
+          <SettingsRow icon="Headphones" label="Shopify Help Center" href="#" />
+          <SettingsRow icon="Code" label="Hire a Shopify Partner" href="#" />
           <Separator className="my-3" />
-          <SettingsRow
-            icon="Activity"
-            label="Keyboard shortcuts"
-            href="#"
-          />
+          <SettingsRow icon="Activity" label="Keyboard shortcuts" href="#" />
           <SettingsRow
             icon="Activity"
             label="Store activity log"
@@ -372,7 +351,10 @@ export default async function GeneralPage() {
                 Move this store into an organization or transfer to an external
                 owner.
               </p>
-              <Link href="#" className="text-xs text-primary underline underline-offset-4 hover:underline">
+              <Link
+                href="#"
+                className="text-xs text-primary underline underline-offset-4 hover:underline"
+              >
                 Learn more
               </Link>
             </div>
