@@ -120,7 +120,7 @@ export function SettingsSidebar({
       <div className="flex flex-col gap-1 p-4">
         <button
           onClick={router.back}
-          className="flex items-center gap-2 min-w-0 text-sidebar-foreground hover:text-sidebar-foreground transition-colors"
+          className="flex items-center gap-2 min-w-0 text-primary-foreground"
           aria-label="Back"
         >
           <ChevronLeft className="size-5 shrink-0" />
@@ -158,8 +158,8 @@ export function SettingsSidebar({
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
                   active
-                    ? "text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground/60 hover:text-sidebar-foreground",
+                    ? "text-primary-accent-foreground"
+                    : "text-primary-foreground/60 hover:text-primary-foreground",
                 )}
               >
                 <div className="flex items-center justify-center size-6 shrink-0 rounded-sm">
@@ -189,7 +189,7 @@ export function SettingsSidebar({
                 <span className="text-muted-foreground/50">|</span>
               </div>
               <div className="min-w-0 flex flex-col leading-none">
-                <span className="text-xs font-semibold truncate">{displayName}</span>
+                <span className="text-xs font-semibold truncate text-primary-foreground">{displayName}</span>
                 <span className="text-[10px] text-muted-foreground truncate">
                   {displayEmail}
                 </span>
@@ -214,8 +214,8 @@ export function SettingsSidebar({
                 className={cn(
                   "flex h-9 items-center justify-center rounded-md p-1.5 transition-colors",
                   active
-                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                    : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
+                    ? "bg-sidebar-accent text-primary-accent-foreground"
+                    : "text-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 )}
               >
                 <Icon className="size-4 shrink-0" />

@@ -10,7 +10,10 @@ async function requireOrganizationOrRedirect() {
   try {
     return await requireOrganization();
   } catch (error) {
-    if (error instanceof Error && error.message === NO_ACTIVE_MEMBERSHIP_ERROR) {
+    if (
+      error instanceof Error &&
+      error.message === NO_ACTIVE_MEMBERSHIP_ERROR
+    ) {
       redirect("/onboarding");
     }
     throw error;

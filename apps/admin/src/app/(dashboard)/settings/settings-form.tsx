@@ -6,8 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import { updateOrganization } from "./actions";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSettingsDirtyForm } from "./dirty-provider";
 
 // Mirrors the server-side checks in ./actions.ts.
 const GSTIN_PATTERN = /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z]{1}[0-9A-Z]{1}[Z]{1}[0-9A-Z]{1}$/;
@@ -101,6 +101,7 @@ export default function SettingsForm({ org, canManage }: SettingsFormProps) {
         return;
       }
 
+      form.reset(values);
       setSuccess("Organization settings saved.");
     } catch {
       setError("Unable to save organization settings. Please try again.");
@@ -108,6 +109,17 @@ export default function SettingsForm({ org, canManage }: SettingsFormProps) {
       setLoading(false);
     }
   }
+
+  useSettingsDirtyForm({
+    dirty: form.formState.isDirty,
+    saving: loading,
+    onDiscard: () => {
+      form.reset();
+      setError(null);
+      setSuccess(null);
+    },
+    onSave: () => void form.handleSubmit(handleSubmit)(),
+  });
 
   return (
     <div className="mx-auto flex max-w-5xl flex-col px-5 py-6 sm:px-8 sm:py-10">
@@ -312,13 +324,6 @@ export default function SettingsForm({ org, canManage }: SettingsFormProps) {
         </Card>
 
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {canManage && (
-              <Button type="submit" disabled={!canManage || loading} className="w-auto">
-                {loading ? "Saving..." : "Save Changes"}
-              </Button>
-            )}
-          </div>
           {error && (
             <div
               role="alert"

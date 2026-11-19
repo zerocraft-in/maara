@@ -14,6 +14,11 @@ import {
   ShieldCheck,
   Settings,
   File,
+  TrendingUp,
+  BadgePercent,
+  Globe2,
+  Store,
+  AppWindow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -36,6 +41,7 @@ export type NavGroup = {
   label: string;
   icon: LucideIcon;
   children: NavChild[];
+  section?: string;
 };
 
 /** Items anchored below the scrollable navigation list (bottom sidebar). */
@@ -50,32 +56,39 @@ export const FOOTER_ITEMS: NavChild[] = [
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    id: "overview",
-    label: "Overview",
+    id: "home",
+    label: "Home",
     icon: LayoutDashboard,
     children: [
       {
         href: "/overview",
-        label: "Overview",
+        label: "Home",
         icon: LayoutDashboard,
         permission: "dashboard.view",
       },
     ],
   },
   {
-    id: "catalog",
-    label: "Catalog",
+    id: "orders",
+    label: "Orders",
+    icon: Receipt,
+    children: [
+      {
+        href: "/sales",
+        label: "Orders",
+        icon: Receipt,
+        permission: "sales.view",
+      },
+    ],
+  },
+  {
+    id: "products",
+    label: "Products",
     icon: Package,
     children: [
       {
-        href: "/products",
-        label: "Products",
-        icon: Package,
-        permission: "products.view",
-      },
-      {
         href: "/categories",
-        label: "Categories",
+        label: "Collections",
         icon: Tags,
         permission: "categories.view",
       },
@@ -85,38 +98,31 @@ export const NAV_GROUPS: NavGroup[] = [
         icon: Boxes,
         permission: "inventory.view",
       },
-    ],
-  },
-  {
-    id: "purchasing",
-    label: "Purchasing",
-    icon: Truck,
-    children: [
-      {
-        href: "/suppliers",
-        label: "Suppliers",
-        icon: Truck,
-        permission: "suppliers.view",
-      },
       {
         href: "/purchases",
-        label: "Purchases",
+        label: "Purchase orders",
         icon: ShoppingCart,
         permission: "purchases.view",
       },
+      {
+        href: "/locations",
+        label: "Transfers",
+        icon: Truck,
+        permission: "locations.view",
+      },
+      {
+        href: "/products",
+        label: "Gift cards",
+        icon: Package,
+        permission: "products.view",
+      },
     ],
   },
   {
-    id: "sales",
-    label: "Sales",
-    icon: Receipt,
+    id: "customers",
+    label: "Customers",
+    icon: Users,
     children: [
-      {
-        href: "/sales",
-        label: "Sales",
-        icon: Receipt,
-        permission: "sales.view",
-      },
       {
         href: "/customers",
         label: "Customers",
@@ -126,65 +132,28 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    id: "finance",
-    label: "Finance",
-    icon: Wallet,
-    children: [
-      {
-        href: "/expenses",
-        label: "Expenses",
-        icon: Wallet,
-        permission: "expenses.view",
-      },
-      {
-        href: "/finance",
-        label: "Finance",
-        icon: Wallet,
-        permission: "finance.view",
-      },
-    ],
-  },
-  {
-    id: "insights",
-    label: "Insights",
-    icon: ChartNoAxesCombined,
+    id: "growth",
+    label: "Growth",
+    icon: TrendingUp,
     children: [
       {
         href: "/analytics",
-        label: "Analytics",
-        icon: ChartNoAxesCombined,
+        label: "Growth",
+        icon: TrendingUp,
         permission: "analytics.view",
-      },
-      {
-        href: "/reports",
-        label: "Reports",
-        icon: FileBarChart,
-        permission: "reports.view",
       },
     ],
   },
   {
-    id: "operations",
-    label: "Operations",
-    icon: MapPin,
+    id: "discounts",
+    label: "Discounts",
+    icon: BadgePercent,
     children: [
       {
-        href: "/locations",
-        label: "Locations",
-        icon: MapPin,
-        permission: "locations.view",
-      },
-      {
-        href: "/users",
-        label: "Users & Roles",
-        icon: ShieldCheck,
-        permission: "users.view",
-      },
-      {
-        href: "/audit-logs",
-        label: "Audit Logs",
-        icon: ShieldCheck,
-        permission: "audit_logs.view",
+        href: "/reports",
+        label: "Discounts",
+        icon: BadgePercent,
+        permission: "reports.view",
       },
     ],
   },
@@ -195,11 +164,63 @@ export const NAV_GROUPS: NavGroup[] = [
     children: [
       {
         href: "/content/files",
-        label: "Files",
+        label: "Content",
         icon: File,
         permission: "media.view",
       },
     ],
+  },
+  {
+    id: "markets",
+    label: "Markets",
+    icon: Globe2,
+    children: [
+      {
+        href: "/finance",
+        label: "Markets",
+        icon: Globe2,
+        permission: "finance.view",
+      },
+    ],
+  },
+  {
+    id: "analytics",
+    label: "Analytics",
+    icon: ChartNoAxesCombined,
+    children: [
+      {
+        href: "/analytics",
+        label: "Analytics",
+        icon: ChartNoAxesCombined,
+        permission: "analytics.view",
+      },
+    ],
+  },
+  {
+    id: "online-store",
+    label: "Online Store",
+    icon: Store,
+    section: "Sales channels",
+    children: [{ href: "/content/files", label: "Online Store", icon: Store, permission: "media.view" }],
+  },
+  {
+    id: "agentic",
+    label: "Agentic",
+    icon: AppWindow,
+    children: [{ href: "/overview", label: "Agentic", icon: AppWindow, permission: "dashboard.view" }],
+  },
+  {
+    id: "point-of-sale",
+    label: "Point of Sale",
+    icon: Receipt,
+    children: [{ href: "/sales", label: "Point of Sale", icon: Receipt, permission: "sales.view" }],
+  },
+  {
+    id: "checkout-blocks",
+    label: "Checkout Blocks",
+    icon: AppWindow,
+    section: "Apps",
+    children: [{ href: "/products", label: "Checkout Blocks", icon: AppWindow, permission: "products.view" }],
   },
 ];
 

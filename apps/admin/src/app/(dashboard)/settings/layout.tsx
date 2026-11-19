@@ -1,5 +1,6 @@
-
 import type { ReactNode } from "react";
+import { SettingsDirtyProvider } from "./dirty-provider";
+import { SettingsLayoutClient } from "./settings-layout-client";
 
 /**
  * Settings page layout.
@@ -9,14 +10,12 @@ import type { ReactNode } from "react";
  * /settings routes, the settings nav stays anchored, and only the page
  * content scrolls inside `SidebarInset`.
  */
-export default function SettingsLayout({
-  children,
-}: {
-  children: ReactNode;
-}) {
+export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex w-full max-w-5xl min-w-0 flex-col px-5 py-6 sm:px-8 sm:py-10">
-      {children}
-    </div>
+    <SettingsDirtyProvider>
+      <div className="mx-auto flex w-full min-w-0 flex-col">
+        <SettingsLayoutClient>{children}</SettingsLayoutClient>
+      </div>
+    </SettingsDirtyProvider>
   );
 }

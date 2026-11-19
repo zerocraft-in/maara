@@ -116,6 +116,7 @@ export async function updateOrganization(
   // Re-render /settings so the page immediately shows the saved values.
   const { revalidatePath } = await import("next/cache")
   revalidatePath("/settings")
+  revalidatePath("/settings/general")
 
   return { ok: true }
 }
@@ -127,7 +128,7 @@ export type UpdateBusinessDetailsResult =
 const updateBusinessDetailsSchema = z.object({
   organizationId: z.string().min(1, "Organization is required"),
   name: z.string().trim().min(2, "Name must be at least 2 characters").max(120),
-  email: z.string().email("Enter a valid email address").max(254),
+  email: z.string().trim().email("Enter a valid email address").max(254).optional().or(z.literal("")),
   phone: z.string().trim().max(30, "Phone is too long").optional().or(z.literal("")),
   address: z
     .object({
@@ -141,6 +142,14 @@ const updateBusinessDetailsSchema = z.object({
   businessType: z.string().trim().min(1, "Business type is required"),
   nationality: z.string().trim().min(1, "Nationality is required"),
   dateOfBirth: z.string().datetime({ offset: true }),
+  legalBusinessName: z.string().trim().max(120).optional().or(z.literal("")),
+  businessAddress: z.string().trim().max(200).optional().or(z.literal("")),
+  businessApartment: z.string().trim().max(100).optional().or(z.literal("")),
+  businessCity: z.string().trim().max(100).optional().or(z.literal("")),
+  businessState: z.string().trim().max(100).optional().or(z.literal("")),
+  businessPinCode: z.string().trim().max(20).optional().or(z.literal("")),
+  businessPhoneCountry: z.string().trim().max(4).optional().or(z.literal("")),
+  businessPhone: z.string().trim().max(30).optional().or(z.literal("")),
 })
 
 export async function updateBusinessDetails(
@@ -172,26 +181,54 @@ export async function updateBusinessDetails(
     businessType,
     nationality,
     dateOfBirth,
+    legalBusinessName,
+    businessAddress,
+    businessApartment,
+    businessCity,
+    businessState,
+    businessPinCode,
+    businessPhoneCountry,
+    businessPhone,
   } = parseResult.data
 
   // 4. Call the authenticated Supabase client.
   const supabase = await createServerSupabaseClient()
 
-  // 5. Update the columns that exist on the organizations table today.
-  //    businessType, nationality and dateOfBirth are validated on the frontend
-  //    and sent to the API; persist them once the matching columns exist
-  //    (see backend guide).
+  // Keep the business profile in the existing organization address JSON until
+  // dedicated business-profile columns are introduced. Read/merge first so
+  // store-address edits never erase the business profile.
+  const { data: existing, error: existingError } = await supabase
+    .from("organizations")
+    .select("address")
+    .eq("id", organization.id)
+    .maybeSingle()
+
+  if (existingError) {
+    return { ok: false, error: "Unable to load current business details. Please try again." }
+  }
+
+  const currentAddress = (existing?.address ?? {}) as Record<string, unknown>
+
   const { data, error } = await supabase
     .from("organizations")
     .update({
       name,
-      email,
+      email: email || null,
       phone: phone || null,
       address: {
+        ...currentAddress,
         ...address,
         businessType,
         nationality,
         dateOfBirth,
+        legalBusinessName: legalBusinessName || "",
+        businessAddress: businessAddress || "",
+        businessApartment: businessApartment || "",
+        businessCity: businessCity || "",
+        businessState: businessState || "",
+        businessPinCode: businessPinCode || "",
+        businessPhoneCountry: businessPhoneCountry || "IN",
+        businessPhone: businessPhone || "",
       } as Record<string, unknown>,
     })
     .eq("id", organization.id)
@@ -224,6 +261,59 @@ export async function updateBusinessDetails(
   // Re-render /settings so the page immediately shows the saved values.
   const { revalidatePath } = await import("next/cache")
   revalidatePath("/settings")
+  revalidatePath("/settings/general")
 
   return { ok: true }
+}
+
+const storeContactSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  email: z.string().email().max(254),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
+});
+
+export async function updateStoreContact(input: unknown): Promise<UpdateOrganizationResult> {
+  const context = await requirePermission("settings.manage");
+  const parsed = storeContactSchema.safeParse(input);
+  if (!parsed.success || !context.activeOrganization) return { ok: false, error: parsed.success ? "No active organization." : parsed.error.issues[0]?.message ?? "Invalid store contact details." };
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.from("organizations").update(parsed.data).eq("id", context.activeOrganization.id).select("id").maybeSingle();
+  if (error || !data) return { ok: false, error: "Unable to save store contact details. Please try again." };
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+const storeAddressSchema = z.object({
+  street: z.string().trim().min(1, "Address is required").max(200),
+  apartment: z.string().trim().max(100).optional().or(z.literal("")),
+  city: z.string().trim().min(1, "City is required").max(100),
+  state: z.string().trim().min(1, "State is required").max(100),
+  zip: z.string().trim().min(1, "PIN code is required").max(20),
+  country: z.string().trim().min(1).max(80),
+});
+
+export async function updateStoreAddress(input: unknown): Promise<UpdateOrganizationResult> {
+  const context = await requirePermission("settings.manage");
+  const parsed = storeAddressSchema.safeParse(input);
+  if (!parsed.success || !context.activeOrganization) return { ok: false, error: parsed.success ? "No active organization." : parsed.error.issues[0]?.message ?? "Invalid store address." };
+  const supabase = await createServerSupabaseClient();
+  const { data: existing } = await supabase.from("organizations").select("address").eq("id", context.activeOrganization.id).maybeSingle();
+  const currentAddress = (existing?.address ?? {}) as Record<string, unknown>;
+  const { data, error } = await supabase.from("organizations").update({ address: { ...currentAddress, ...parsed.data }, country: parsed.data.country }).eq("id", context.activeOrganization.id).select("id").maybeSingle();
+  if (error || !data) return { ok: false, error: "Unable to save store address. Please try again." };
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/settings");
+  return { ok: true };
+}
+
+export async function updateStoreCurrency(currency: string): Promise<UpdateOrganizationResult> {
+  const context = await requirePermission("settings.manage");
+  if (!context.activeOrganization || !currency.trim()) return { ok: false, error: "Select a currency." };
+  const supabase = await createServerSupabaseClient();
+  const { data, error } = await supabase.from("organizations").update({ currency }).eq("id", context.activeOrganization.id).select("id").maybeSingle();
+  if (error || !data) return { ok: false, error: "Unable to save store currency. Please try again." };
+  const { revalidatePath } = await import("next/cache");
+  revalidatePath("/settings");
+  return { ok: true };
 }

@@ -15,7 +15,7 @@ const manrope = Manrope({
 
 export const metadata: Metadata = {
   title: {
-    default: "Maara Merch",
+    default: "MAARA MERCH",
     template: "%s · Maara Merch",
   },
   description:
@@ -40,16 +40,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={manrope.variable}>
-      <body className="relative min-h-dvh bg-background font-sans overscroll-none text-foreground antialiased">
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          {children}
-          <Toaster position="bottom-right" richColors closeButton />
-        </ThemeProvider>
+      <body className="relative min-h-dvh bg-black! font-sans overscroll-none text-foreground antialiased">
+        {children}
+        <Toaster position="bottom-right" richColors closeButton />
       </body>
     </html>
   );

@@ -2,18 +2,20 @@
 
 import * as React from "react";
 import type { LucideIcon } from "lucide-react";
+import { Bell, ShoppingBag } from "lucide-react";
 
 import { NavMain } from "./nav-main";
 import { NavProjects } from "./nav-projects";
 import { NavSecondary } from "./nav-secondary";
 import { SearchForm } from "./search-form";
 import { NavUser } from "./nav-user";
-import { TeamSwitcher } from "./team-switcher";
 import {
   Sidebar,
   SidebarContent,
   SidebarFooter,
   SidebarHeader,
+  SidebarTrigger,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 type Team = {
@@ -27,6 +29,7 @@ type NavItem = {
   url: string;
   icon?: LucideIcon;
   isActive?: boolean;
+  section?: string;
   items?: { title: string; url: string }[];
 };
 
@@ -54,6 +57,7 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & {
   data?: AppSidebarData;
 }) {
+  const { state, toggleSidebar } = useSidebar();
   const [fallbackData, setFallbackData] =
     React.useState<AppSidebarData | null>(null);
 
@@ -106,13 +110,29 @@ export function AppSidebar({
 
   return (
     <Sidebar collapsible="icon" {...sidebarProps}>
-      <SidebarHeader>
-        <TeamSwitcher teams={sidebarData.teams} />
+      <SidebarHeader className="px-2 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <button
+            type="button"
+            onClick={() => state === "collapsed" && toggleSidebar()}
+            aria-label={state === "collapsed" ? "Expand sidebar" : "Shopify admin"}
+            className="flex size-8 shrink-0 items-center justify-center rounded-md text-[#95bf47] transition-colors hover:bg-sidebar-accent"
+          >
+            <span className="relative flex size-7 items-center justify-center">
+              <ShoppingBag className="size-7 fill-[#95bf47] stroke-[#95bf47]" />
+              <span className="absolute inset-0 flex items-center justify-center pt-1 text-[12px] font-black text-white">S</span>
+            </span>
+          </button>
+          <SidebarTrigger
+            aria-label="Collapse sidebar"
+            className="size-8 text-white/70 hover:bg-white/10 hover:text-white group-data-[collapsible=icon]:hidden"
+          />
+        </div>
       </SidebarHeader>
       <SidebarContent className="pt-2">
         <SearchForm />
         <NavMain items={sidebarData.navMain} />
-        <NavProjects projects={sidebarData.projects} />
+        {sidebarData.projects.length > 0 && <NavProjects projects={sidebarData.projects} />}
 
         <NavSecondary
           items={sidebarData.navSecondary}
@@ -120,7 +140,10 @@ export function AppSidebar({
         />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={sidebarData.user} />
+        <div className="relative">
+          <NavUser user={sidebarData.user} />
+          <Bell className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-white/60 group-data-[collapsible=icon]:hidden" />
+        </div>
       </SidebarFooter>
       {/* not set a sidebar rail */}
       {/* <SidebarRail /> */}

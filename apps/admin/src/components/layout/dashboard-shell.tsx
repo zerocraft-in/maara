@@ -17,6 +17,7 @@ function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
     title: group.label,
     url: group.children[0]?.href ?? "#",
     icon: group.icon,
+    section: group.section,
     isActive: false,
     items: group.children.map((child) => ({
       title: child.label,
@@ -88,7 +89,7 @@ export default function DashboardShell({
 
     return {
       user: {
-        name: userName,
+        name: activeOrganization?.name ?? userName,
         email: user?.email ?? "",
         avatar: "",
       },

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 
 type IconName =
   | "Mail"
@@ -83,27 +84,29 @@ export function SettingsRow({
     onClick?.();
   };
 
-  return (
-    <div
-      className={cn(
-        "flex items-center justify-between py-3 text-sm transition-colors rounded-lg cursor-pointer",
-        href || onClick ? undefined : "cursor-default",
-      )}
-      onClick={href || onClick ? handleClick : undefined}
-    >
+  const content = (
+    <>
       <div className="flex items-center gap-3">
-        <div className="flex shrink-0 items-center justify-center size-5 rounded-sm bg-muted text-muted-foreground">
-          <Icon className="size-4" />
-        </div>
-        <div className="min-w-0 flex flex-col leading-none">
-          <span className="font-medium text-foreground">{label}</span>
-          {description && (
-            <span className="text-xs text-muted-foreground">{description}</span>
-          )}
-        </div>
+        <div className="flex shrink-0 items-center justify-center size-5 rounded-sm bg-muted text-muted-foreground"><Icon className="size-4" /></div>
+        <div className="min-w-0 flex flex-col leading-tight"><span className="font-medium text-foreground">{label}</span>{description && <span className="text-sm text-muted-foreground">{description}</span>}</div>
       </div>
       {badge && <span className="text-xs">{badge}</span>}
       {(href || onClick) && <ChevronRight className="size-4 text-muted-foreground shrink-0" />}
+    </>
+  );
+  const className = cn(
+    "flex items-center justify-between gap-4 py-4 text-sm transition-colors rounded-lg",
+    href || onClick ? "cursor-pointer hover:bg-muted/50" : "cursor-default",
+  );
+  if (href) return <Link href={href} className={className}>{content}</Link>;
+  return (
+    <div
+      className={cn(
+        className,
+      )}
+      onClick={onClick ? handleClick : undefined}
+    >
+      {content}
     </div>
   );
 }

@@ -11,17 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import {
-  Select,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-  SelectLabel,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { useSettingsDirtyForm } from "../dirty-provider";
 import { Label } from "@/components/ui/label";
 import {
   Palette,
@@ -89,16 +80,25 @@ const DENSITY_OPTIONS: { value: Density; label: string; description: string }[] 
 ];
 
 export default function AppearancePage() {
-  const [themeMode, setThemeMode] = React.useState<ThemeMode>("system");
-  const [accentColor, setAccentColor] = React.useState<AccentColor>("brand");
-  const [borderRadius, setBorderRadius] = React.useState<BorderRadius>("md");
-  const [fontSize, setFontSize] = React.useState<FontSizeScale>("base");
-  const [density, setDensity] = React.useState<Density>("comfortable");
-  const [animationsEnabled, setAnimationsEnabled] = React.useState(true);
-  const [highContrast, setHighContrast] = React.useState(false);
-  const [reduceMotion, setReduceMotion] = React.useState(false);
-  const [compactSidebar, setCompactSidebar] = React.useState(false);
+  const defaults = React.useMemo(() => ({ themeMode: "system" as ThemeMode, accentColor: "brand" as AccentColor, borderRadius: "md" as BorderRadius, fontSize: "base" as FontSizeScale, density: "comfortable" as Density, animationsEnabled: true, highContrast: false, reduceMotion: false, compactSidebar: false }), []);
+  const [themeMode, setThemeMode] = React.useState<ThemeMode>(defaults.themeMode);
+  const [accentColor, setAccentColor] = React.useState<AccentColor>(defaults.accentColor);
+  const [borderRadius, setBorderRadius] = React.useState<BorderRadius>(defaults.borderRadius);
+  const [fontSize, setFontSize] = React.useState<FontSizeScale>(defaults.fontSize);
+  const [density, setDensity] = React.useState<Density>(defaults.density);
+  const [animationsEnabled, setAnimationsEnabled] = React.useState(defaults.animationsEnabled);
+  const [highContrast, setHighContrast] = React.useState(defaults.highContrast);
+  const [reduceMotion, setReduceMotion] = React.useState(defaults.reduceMotion);
+  const [compactSidebar, setCompactSidebar] = React.useState(defaults.compactSidebar);
+  const [saved, setSaved] = React.useState(defaults);
   const [saving, setSaving] = React.useState(false);
+  const current = { themeMode, accentColor, borderRadius, fontSize, density, animationsEnabled, highContrast, reduceMotion, compactSidebar };
+  const dirty = Object.keys(defaults).some((key) => current[key as keyof typeof current] !== saved[key as keyof typeof saved]);
+
+  function discardChanges() {
+    setThemeMode(saved.themeMode); setAccentColor(saved.accentColor); setBorderRadius(saved.borderRadius); setFontSize(saved.fontSize); setDensity(saved.density);
+    setAnimationsEnabled(saved.animationsEnabled); setHighContrast(saved.highContrast); setReduceMotion(saved.reduceMotion); setCompactSidebar(saved.compactSidebar);
+  }
 
   // Apply theme mode to document root immediately
   React.useEffect(() => {
@@ -120,8 +120,7 @@ export default function AppearancePage() {
     }
   }, [accentColor]);
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = async () => {
     setSaving(true);
     try {
       const supabase = createBrowserSupabaseClient();
@@ -147,35 +146,14 @@ export default function AppearancePage() {
       }));
     } finally {
       setSaving(false);
+      setSaved({ ...current });
     }
   };
 
+  useSettingsDirtyForm({ dirty, saving, onDiscard: discardChanges, onSave: () => void handleSave() });
+
   return (
     <div className="mx-auto flex max-w-5xl flex-col px-5 py-6 sm:px-8 sm:py-10">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="min-w-0 flex items-center gap-2">
-          <div
-            aria-hidden="true"
-            className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brand text-[13px] font-bold text-brand-fg"
-          >
-            M
-          </div>
-          <div className="min-w-0 leading-tight">
-            <h2 className="text-sm font-semibold tracking-[-0.02em] text-body">
-              Appearance
-            </h2>
-            <p className="hidden text-2xs text-meta sm:block">
-              Customize the look and feel of your workspace
-            </p>
-          </div>
-        </div>
-        <form onSubmit={handleSave} className="flex items-center gap-2">
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving..." : "Save Changes"}
-          </Button>
-        </form>
-      </div>
-
       <Separator className="mt-4 mb-8" />
 
       {/* Theme */}
@@ -278,24 +256,9 @@ export default function AppearancePage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 pt-0">
-          <Select
-            value={borderRadius}
-            onValueChange={(value) => setBorderRadius(value as BorderRadius)}
-          >
-            <SelectTrigger>
-              <SelectValue placeholder="Select border radius" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                <SelectLabel>Border Radius</SelectLabel>
-                {BORDER_RADIUS_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
+          <select value={borderRadius} onChange={(event) => setBorderRadius(event.target.value as BorderRadius)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+            {BORDER_RADIUS_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+          </select>
         </CardContent>
       </Card>
 
@@ -312,42 +275,12 @@ export default function AppearancePage() {
         </CardHeader>
         <CardContent className="p-4 pt-0">
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-            <Select
-              value={fontSize}
-              onValueChange={(value) => setFontSize(value as FontSizeScale)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Font size" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Font Size</SelectLabel>
-                  {FONT_SIZE_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-            <Select
-              value={density}
-              onValueChange={(value) => setDensity(value as Density)}
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Density" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  <SelectLabel>Content Density</SelectLabel>
-                  {DENSITY_OPTIONS.map((option) => (
-                    <SelectItem key={option.value} value={option.value}>
-                      {option.label}
-                    </SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
+            <select value={fontSize} onChange={(event) => setFontSize(event.target.value as FontSizeScale)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              {FONT_SIZE_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
+            <select value={density} onChange={(event) => setDensity(event.target.value as Density)} className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm">
+              {DENSITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+            </select>
           </div>
           <div className="mt-4 flex items-center gap-4">
             <Checkbox

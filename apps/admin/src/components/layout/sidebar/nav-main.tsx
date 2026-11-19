@@ -21,6 +21,7 @@ import {
   SidebarMenuSub,
   SidebarMenuSubButton,
   SidebarMenuSubItem,
+  useSidebar,
 } from "@/components/ui/sidebar";
 
 type NavSubItem = {
@@ -33,6 +34,7 @@ type NavItem = {
   url: string;
   icon?: LucideIcon;
   isActive?: boolean;
+  section?: string;
   items?: NavSubItem[];
 };
 
@@ -51,8 +53,8 @@ export function NavMain({ items }: NavMainProps) {
   );
 
   return (
-    <SidebarGroup>
-      <SidebarGroupLabel>Platform</SidebarGroupLabel>
+    <SidebarGroup className="px-2">
+      <SidebarGroupLabel className="sr-only">Main navigation</SidebarGroupLabel>
 
       <SidebarMenu>
         {items.map((item) => {
@@ -72,49 +74,68 @@ export function NavMain({ items }: NavMainProps) {
             const childIsActive = isRouteActive(child.url);
 
             return (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  render={<Link href={child.url} />}
-                  isActive={childIsActive}
-                  tooltip={item.title}
-                >
-                  {Icon && <Icon />}
-                  <span>{child.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <React.Fragment key={item.title}>
+                {item.section && <NavSectionLabel>{item.section}</NavSectionLabel>}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    render={<Link href={child.url} aria-current={childIsActive ? "page" : undefined} />}
+                    isActive={childIsActive}
+                    tooltip={item.title}
+                    className="text-white/85 data-active:bg-white/12 data-active:text-white data-active:font-semibold hover:bg-white/8 hover:text-white"
+                  >
+                    {Icon && <Icon />}
+                    <span>{child.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </React.Fragment>
             );
           }
 
           // No children: Regular navigation.
           if (!hasSubItems) {
             return (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  render={<Link href={item.url} />}
-                  isActive={isRouteActive(item.url)}
-                  tooltip={item.title}
-                >
-                  {Icon && <Icon />}
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              <React.Fragment key={item.title}>
+                {item.section && <NavSectionLabel>{item.section}</NavSectionLabel>}
+                <SidebarMenuItem>
+                  <SidebarMenuButton
+                    render={<Link href={item.url} aria-current={isRouteActive(item.url) ? "page" : undefined} />}
+                    isActive={isRouteActive(item.url)}
+                    tooltip={item.title}
+                    className="text-white/85 data-active:bg-white/12 data-active:text-white data-active:font-semibold hover:bg-white/8 hover:text-white"
+                  >
+                    {Icon && <Icon />}
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              </React.Fragment>
             );
           }
 
           // Multiple children: Controlled Collapsible.
           return (
-            <NavCollapsibleItem
-              key={item.title}
-              item={item}
-              isActive={isActive}
-              isChildActive={Boolean(isChildActive)}
-              Icon={Icon}
-              isRouteActive={isRouteActive}
-            />
+            <React.Fragment key={item.title}>
+              {item.section && <NavSectionLabel>{item.section}</NavSectionLabel>}
+              <NavCollapsibleItem
+                item={item}
+                isActive={isActive}
+                isChildActive={Boolean(isChildActive)}
+                Icon={Icon}
+                isRouteActive={isRouteActive}
+              />
+            </React.Fragment>
           );
         })}
       </SidebarMenu>
     </SidebarGroup>
+  );
+}
+
+function NavSectionLabel({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="mt-4 flex h-7 items-center px-2 text-xs font-medium text-white/55 first:mt-1 group-data-[collapsible=icon]:hidden">
+      <span>{children}</span>
+      <ChevronRight className="ml-1 size-3.5" />
+    </li>
   );
 }
 
@@ -133,6 +154,7 @@ function NavCollapsibleItem({
   Icon,
   isRouteActive,
 }: NavCollapsibleItemProps) {
+  const { state, toggleSidebar } = useSidebar();
   const [open, setOpen] = React.useState(
     () => Boolean(item.isActive || isChildActive)
   );
@@ -156,6 +178,13 @@ function NavCollapsibleItem({
             <SidebarMenuButton
               tooltip={item.title}
               isActive={isActive}
+              className="text-white/85 data-active:bg-white/12 data-active:text-white data-active:font-semibold hover:bg-white/8 hover:text-white"
+              onClick={(event) => {
+                if (state === "collapsed") {
+                  event.preventDefault();
+                  toggleSidebar();
+                }
+              }}
             >
               {Icon && <Icon />}
 
@@ -166,6 +195,7 @@ function NavCollapsibleItem({
                   ml-auto
                   size-4
                   shrink-0
+                  group-data-[collapsible=icon]:hidden
                   transition-transform
                   duration-200
                   group-data-open/collapsible:rotate-90
@@ -176,16 +206,17 @@ function NavCollapsibleItem({
         />
 
         <CollapsibleContent>
-          <SidebarMenuSub>
+          <SidebarMenuSub className="mx-0 translate-x-0 border-l-0 px-0 py-0.5 pl-6">
             {item.items?.map((subItem) => {
               const subItemIsActive = isRouteActive(subItem.url);
 
               return (
                 <SidebarMenuSubItem key={subItem.title}>
                   <SidebarMenuSubButton
-                    render={<Link href={subItem.url} />}
+                    render={<Link href={subItem.url} aria-current={subItemIsActive ? "page" : undefined} />}
                     isActive={subItemIsActive}
                     size="sm"
+                    className="text-white/65 data-active:bg-white/10 data-active:text-white hover:bg-white/8 hover:text-white"
                   >
                     <span className="truncate">
                       {subItem.title}

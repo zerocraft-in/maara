@@ -40,9 +40,9 @@ export function TeamSwitcher({
 }: TeamSwitcherProps) {
   const { isMobile } = useSidebar();
 
-  const [selectedTeamName, setSelectedTeamName] = React.useState<
-    string | null
-  >(() => teams[0]?.name ?? null);
+  const [selectedTeamName, setSelectedTeamName] = React.useState<string | null>(
+    () => teams[0]?.name ?? null,
+  );
 
   const activeTeam =
     teams.find((team) => team.name === selectedTeamName) ?? teams[0];
@@ -66,12 +66,9 @@ export function TeamSwitcher({
             render={
               <SidebarMenuButton
                 size="lg"
-                className="
-                  data-[popup-open]:bg-sidebar-accent
-                  data-[popup-open]:text-sidebar-accent-foreground
-                "
+        
               >
-                <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
+                <div className="flex aspect-square size-8 items-center justify-center">
                   <ActiveTeamLogo className="size-4" />
                 </div>
 
@@ -115,16 +112,12 @@ export function TeamSwitcher({
                       <TeamLogo className="size-3.5 shrink-0" />
                     </div>
 
-                    <span className="flex-1 truncate">
-                      {team.name}
-                    </span>
+                    <span className="flex-1 truncate">{team.name}</span>
 
                     {isActive ? (
                       <Check className="size-4 text-muted-foreground" />
                     ) : (
-                      <DropdownMenuShortcut>
-                        ⌘{index + 1}
-                      </DropdownMenuShortcut>
+                      <DropdownMenuShortcut>⌘{index + 1}</DropdownMenuShortcut>
                     )}
                   </DropdownMenuItem>
                 );

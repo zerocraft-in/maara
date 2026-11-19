@@ -74,9 +74,7 @@ export function NavUser({
             render={
               <SidebarMenuButton
                 size="lg"
-                className="
-                  data-[popup-open]:bg-sidebar-accent
-                  data-[popup-open]:text-sidebar-accent-foreground
+                className=" text-white
                 "
               >
                 <Avatar className="h-8 w-8 rounded-lg">
@@ -89,9 +87,7 @@ export function NavUser({
                 </Avatar>
 
                 <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">
-                    {displayName}
-                  </span>
+                  <span className="truncate font-semibold">{displayName}</span>
 
                   <span className="truncate text-xs text-muted-foreground">
                     {displayEmail}
