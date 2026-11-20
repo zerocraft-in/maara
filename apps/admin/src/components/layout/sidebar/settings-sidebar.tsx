@@ -5,81 +5,30 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
-import {
-  Layout,
-  List,
-  DollarSign,
-  CreditCard,
-  ShoppingCart,
-  Users,
-  Truck,
-  FileText,
-  MapPin,
-  Grid,
-  Share2,
-  Link as LinkIcon,
-  Sparkles,
-  Bell,
-  Package,
-  Globe,
-  Shield,
-  ChevronLeft,
-} from "lucide-react";
+import { ChevronLeft, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const SETTINGS_ITEMS = [
-  { href: "/settings", label: "General", icon: Layout, exact: true },
-  { href: "/settings/plan", label: "Plan", icon: List },
-  { href: "/settings/billing", label: "Billing", icon: DollarSign },
-  { href: "/settings/payments", label: "Payments", icon: CreditCard },
-  { href: "/settings/checkout", label: "Checkout", icon: ShoppingCart },
-  {
-    href: "/settings/customer-accounts",
-    label: "Customer accounts",
-    icon: Users,
-  },
-  {
-    href: "/settings/shipping-and-delivery",
-    label: "Shipping and delivery",
-    icon: Truck,
-  },
-  {
-    href: "/settings/taxes-and-duties",
-    label: "Taxes and duties",
-    icon: FileText,
-  },
-  { href: "/settings/locations", label: "Locations", icon: MapPin },
-  { href: "/settings/apps", label: "Apps", icon: Grid },
-  { href: "/settings/sales-channels", label: "Sales channels", icon: Share2 },
-  { href: "/settings/domains", label: "Domains", icon: LinkIcon },
-  {
-    href: "/settings/customer-events",
-    label: "Customer events",
-    icon: Sparkles,
-  },
-  { href: "/settings/notifications", label: "Notifications", icon: Bell },
-  {
-    href: "/settings/metafields-and-metaobjects",
-    label: "Metafields and metaobjects",
-    icon: Package,
-  },
-  { href: "/settings/languages", label: "Languages", icon: Globe },
-  {
-    href: "/settings/customer-privacy",
-    label: "Customer privacy",
-    icon: Shield,
-  },
-  { href: "/settings/policies", label: "Policies", icon: FileText },
-  {
-    href: "/settings/organization-details",
-    label: "Organization details",
-    icon: Shield,
-  },
-  {
-    href: "/settings/organization-account",
-    label: "Organization account",
-    icon: Users,
-  },
+  { href: "/settings/general", label: "General", exact: true },
+  { href: "/settings/plan", label: "Plan" },
+  { href: "/settings/billing", label: "Billing" },
+  { href: "/settings/payments", label: "Payments" },
+  { href: "/settings/checkout", label: "Checkout" },
+  { href: "/settings/customer-accounts", label: "Customer accounts" },
+  { href: "/settings/shipping-and-delivery", label: "Shipping and delivery" },
+  { href: "/settings/taxes-and-duties", label: "Taxes and duties" },
+  { href: "/settings/locations", label: "Locations" },
+  { href: "/settings/apps", label: "Apps" },
+  { href: "/settings/sales-channels", label: "Sales channels" },
+  { href: "/settings/domains", label: "Domains" },
+  { href: "/settings/customer-events", label: "Customer events" },
+  { href: "/settings/notifications", label: "Notifications" },
+  { href: "/settings/metafields-and-metaobjects", label: "Metafields and metaobjects" },
+  { href: "/settings/languages", label: "Languages" },
+  { href: "/settings/customer-privacy", label: "Customer privacy" },
+  { href: "/settings/policies", label: "Policies" },
+  { href: "/settings/organization-details", label: "Organization details" },
+  { href: "/settings/organization-account", label: "Organization account" },
 ];
 
 export function SettingsSidebar({
@@ -97,13 +46,11 @@ export function SettingsSidebar({
 
   const displayName = user?.name?.trim() || "User";
   const displayEmail = user?.email?.trim() || "";
-  const avatarUrl = user?.avatar?.trim() || null;
-
   return (
     <aside
       className={cn(
         "shrink-0 flex flex-col transition-all duration-300 ease-in-out",
-        "border-l border-border",
+        "border-r border-[#303030] bg-[#0a0a0a] text-[#dcdcdc]",
         open ? "lg:w-60" : "lg:w-14 overflow-hidden",
       )}
     >
@@ -117,10 +64,10 @@ export function SettingsSidebar({
       </button>
 
       {/* Header section */}
-      <div className="flex flex-col gap-1 p-4">
+      <div className="flex flex-col gap-2 border-b border-[#303030] px-3 py-3">
         <button
           onClick={router.back}
-          className="flex items-center gap-2 min-w-0 text-primary-foreground"
+          className="flex min-h-7 items-center gap-2 text-left text-[13px] font-medium text-[#f7f7f7]"
           aria-label="Back"
         >
           <ChevronLeft className="size-5 shrink-0" />
@@ -138,17 +85,21 @@ export function SettingsSidebar({
             </span>
           </span>
         </button>
+        <div className="px-2 text-[12px] font-medium text-[#a7a7a7]">Shop settings</div>
+        <label className="relative block">
+          <span className="sr-only">Search settings</span>
+          <Search className="pointer-events-none absolute left-2 top-1/2 size-3.5 -translate-y-1/2 text-[#a7a7a7]" />
+          <input className="h-8 w-full rounded-lg border border-[#454545] bg-[#1a1a1a] pl-8 pr-2 text-[13px] text-white outline-none placeholder:text-[#a7a7a7] focus:border-[#8c8c8c]" placeholder="Search settings" />
+        </label>
       </div>
 
       {/* Navigation list */}
       {open ? (
-        <nav className="flex-1 space-y-0.5 px-2 pb-4">
+        <nav className="flex-1 space-y-0.5 overflow-y-auto px-2 py-3 pb-4">
           {SETTINGS_ITEMS.map((item) => {
             const active = item.exact
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
-
-            const Icon = item.icon;
 
             return (
               <Link
@@ -156,28 +107,13 @@ export function SettingsSidebar({
                 href={item.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                  "flex h-7 items-center rounded-lg px-4 text-[13px] leading-5 transition-colors",
                   active
-                    ? "text-primary-accent-foreground"
-                    : "text-primary-foreground/60 hover:text-primary-foreground",
+                    ? "bg-[#303030] text-[#fcfcfc]"
+                    : "text-[#dcdcdc] hover:bg-[#1f1f1f] hover:text-white",
                 )}
               >
-                <div className="flex items-center justify-center size-6 shrink-0 rounded-sm">
-                  <Icon
-                    className={cn(
-                      "size-4 shrink-0",
-                      active && "text-sidebar-accent-foreground",
-                    )}
-                  />
-                </div>
-                <span
-                  className={cn(
-                    "text-xs font-medium",
-                    active && "text-sidebar-accent-foreground",
-                  )}
-                >
-                  {item.label}
-                </span>
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
@@ -204,8 +140,6 @@ export function SettingsSidebar({
               ? pathname === item.href
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
 
-            const Icon = item.icon;
-
             return (
               <Link
                 key={item.href}
@@ -218,7 +152,7 @@ export function SettingsSidebar({
                     : "text-primary-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
                 )}
               >
-                <Icon className="size-4 shrink-0" />
+                <span className="sr-only">{item.label}</span>
               </Link>
             );
           })}

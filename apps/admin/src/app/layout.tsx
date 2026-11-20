@@ -2,7 +2,6 @@ import type { Metadata, Viewport } from "next";
 import type * as React from "react";
 import { Manrope } from "next/font/google";
 
-import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 import "./globals.css";
@@ -40,7 +39,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning className={manrope.variable}>
-      <body className="relative min-h-dvh bg-black! font-sans overscroll-none text-foreground antialiased">
+      <body className="relative min-h-dvh bg-background font-sans text-[13px] leading-5 overscroll-none text-foreground antialiased">
         {children}
         <Toaster position="bottom-right" richColors closeButton />
       </body>

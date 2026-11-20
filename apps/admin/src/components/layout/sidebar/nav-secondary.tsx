@@ -48,10 +48,11 @@ export function NavSecondary({
                 <SidebarMenuButton
                   render={<Link href={item.url} />}
                   size="sm"
+                  className="hover:bg-primary-foreground/10 text-secondary!"
                   isActive={isActive}
                   tooltip={item.title}
                 >
-                  {Icon && <Icon className="size-4 shrink-0" />}
+                  {Icon && <Icon className="size-4 shrink-0 text-secondary/50!" />}
 
                   <span className="truncate">{item.title}</span>
                 </SidebarMenuButton>

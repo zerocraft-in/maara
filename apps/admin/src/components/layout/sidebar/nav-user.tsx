@@ -34,6 +34,7 @@ interface NavUserProps {
     email: string;
     avatar: string;
   };
+  state: string;
   onUpgrade?: () => void;
   onAccount?: () => void;
   onBilling?: () => void;
@@ -60,6 +61,7 @@ export function NavUser({
   onBilling,
   onNotifications,
   onLogout,
+  state,
 }: NavUserProps) {
   const { isMobile } = useSidebar();
   const displayName = user.name?.trim() || "User";
@@ -74,27 +76,22 @@ export function NavUser({
             render={
               <SidebarMenuButton
                 size="lg"
-                className=" text-white
+                className=" text-white items-center justify-center hover:bg-primary-foreground/10 py-0 h-auto! w-max gap-0 px-0.5!
                 "
               >
-                <Avatar className="h-8 w-8 rounded-lg">
+                <Avatar className="size-6 rounded">
                   {user.avatar ? (
                     <AvatarImage src={user.avatar} alt={displayName} />
                   ) : null}
-                  <AvatarFallback className="rounded-lg">
+                  <AvatarFallback className="rounded text-foreground">
                     {initials}
                   </AvatarFallback>
                 </Avatar>
-
-                <div className="grid flex-1 text-left text-sm leading-tight">
-                  <span className="truncate font-semibold">{displayName}</span>
-
-                  <span className="truncate text-xs text-muted-foreground">
-                    {displayEmail}
+                {state !== "collapsed" && (
+                  <span className="text-left text-sm leading-tight p-2 truncate font-semibold text-primary-foreground">
+                    {displayName}
                   </span>
-                </div>
-
-                <ChevronsUpDown className="ml-auto size-4 shrink-0 opacity-60" />
+                )}
               </SidebarMenuButton>
             }
           />

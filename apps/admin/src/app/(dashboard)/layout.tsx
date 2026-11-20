@@ -9,9 +9,8 @@ export default async function DashboardLayout({
   const context = await requireOrganization();
 
   return (
-   <div className="bg-background min-h-dvh">
+   <div className="min-h-dvh bg-background">
       <DashboardShell
-        permissions={Array.from(context.permissions)}
         user={context.user}
         memberships={context.memberships}
         activeOrganization={context.activeOrganization}

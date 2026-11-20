@@ -3,13 +3,11 @@
 import * as React from "react";
 import { usePathname } from "next/navigation";
 
-import { FLAT_NAV_ITEMS, isNavActive, type NavGroup } from "./sidebar/nav";
-import { NAV_GROUPS } from "./sidebar/nav";
+import { type NavGroup, NAV_GROUPS } from "./sidebar/nav";
 import { AppSidebar, type AppSidebarData } from "@/components/layout/sidebar";
-import { Header } from "@/components/layout/global-header/header";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { GalleryVerticalEnd, LifeBuoy, Send, Settings } from "lucide-react";
+import { GalleryVerticalEnd, Settings } from "lucide-react";
 import { SettingsSidebar } from "./sidebar/settings-sidebar";
 
 function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
@@ -28,13 +26,11 @@ function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
 
 export default function DashboardShell({
   children,
-  permissions,
   user,
   memberships,
   activeOrganization,
 }: {
   readonly children: React.ReactNode;
-  readonly permissions: string[];
   readonly user?: { id: string; email: string | null };
   readonly memberships?: {
     organizationId: string;
@@ -49,10 +45,6 @@ export default function DashboardShell({
   } | null;
 }) {
   const pathname = usePathname();
-
-  const title =
-    FLAT_NAV_ITEMS.find((item) => isNavActive(pathname, item.href))?.label ||
-    "Dashboard";
 
   // Controlled sidebar open state. Shopify Admin auto-condenses the global
   // nav on Settings routes to make room for the settings secondary sidebar.
@@ -124,7 +116,7 @@ export default function DashboardShell({
         onOpenChange={setSidebarOpen}
       >
         {/* Single persistent global sidebar — no remount flicker between routes. */}
-        <AppSidebar variant="inset" collapsible="icon" data={sidebarData} />
+        <AppSidebar variant="sidebar" collapsible="icon" data={sidebarData} />
 
         {/* Settings secondary nav — only on /settings routes. Sits between the
             condensed global nav and the content, like Shopify Admin. */}

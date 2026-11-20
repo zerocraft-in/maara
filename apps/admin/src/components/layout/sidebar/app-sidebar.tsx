@@ -17,6 +17,7 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { cn } from "@/lib/utils";
 
 type Team = {
   name: string;
@@ -58,8 +59,9 @@ export function AppSidebar({
   data?: AppSidebarData;
 }) {
   const { state, toggleSidebar } = useSidebar();
-  const [fallbackData, setFallbackData] =
-    React.useState<AppSidebarData | null>(null);
+  const [fallbackData, setFallbackData] = React.useState<AppSidebarData | null>(
+    null,
+  );
 
   React.useEffect(() => {
     if (data) {
@@ -115,12 +117,16 @@ export function AppSidebar({
           <button
             type="button"
             onClick={() => state === "collapsed" && toggleSidebar()}
-            aria-label={state === "collapsed" ? "Expand sidebar" : "Shopify admin"}
+            aria-label={
+              state === "collapsed" ? "Expand sidebar" : "Shopify admin"
+            }
             className="flex size-8 shrink-0 items-center justify-center rounded-md text-[#95bf47] transition-colors hover:bg-sidebar-accent"
           >
             <span className="relative flex size-7 items-center justify-center">
               <ShoppingBag className="size-7 fill-[#95bf47] stroke-[#95bf47]" />
-              <span className="absolute inset-0 flex items-center justify-center pt-1 text-[12px] font-black text-white">S</span>
+              <span className="absolute inset-0 flex items-center justify-center pt-1 text-[12px] font-black text-white">
+                S
+              </span>
             </span>
           </button>
           <SidebarTrigger
@@ -132,17 +138,23 @@ export function AppSidebar({
       <SidebarContent className="pt-2">
         <SearchForm />
         <NavMain items={sidebarData.navMain} />
-        {sidebarData.projects.length > 0 && <NavProjects projects={sidebarData.projects} />}
+        {sidebarData.projects.length > 0 && (
+          <NavProjects projects={sidebarData.projects} />
+        )}
 
-        <NavSecondary
-          items={sidebarData.navSecondary}
-          className="mt-auto"
-        />
+        <NavSecondary items={sidebarData.navSecondary} className="mt-auto" />
       </SidebarContent>
       <SidebarFooter>
-        <div className="relative">
-          <NavUser user={sidebarData.user} />
-          <Bell className="pointer-events-none absolute right-2 top-1/2 size-4 -translate-y-1/2 text-white/60 group-data-[collapsible=icon]:hidden" />
+        <div
+          className={cn(
+            "relative flex items-center justify-between gap-2 flex-row ",
+            state === "collapsed" && " flex-col-reverse",
+          )}
+        >
+          <NavUser user={sidebarData.user} state={state} />
+          <button className="hover:bg-primary-foreground/10 p-2 rounded-lg">
+            <Bell className="size-4  text-secondary/50" />
+          </button>
         </div>
       </SidebarFooter>
       {/* not set a sidebar rail */}
