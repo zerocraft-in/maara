@@ -28,14 +28,34 @@ import {
   InputGroupInput,
 } from "@/components/ui/input-group"
 
+type CompatibleSelectProps<T extends object, M extends "single" | "multiple"> =
+  Omit<SelectProps<T, M>, "selectedKey" | "defaultSelectedKey" | "onSelectionChange"> & {
+    value?: string
+    defaultValue?: string
+    onValueChange?: (value: string | undefined) => void
+    items?: readonly unknown[]
+    onSelectionChange?: SelectProps<T, M>["onSelectionChange"]
+  }
+
 function Select<T extends object, M extends "single" | "multiple" = "single">({
   className,
+  value,
+  defaultValue,
+  onValueChange,
+  items: _items,
+  onSelectionChange,
   ...props
-}: SelectProps<T, M>) {
+}: CompatibleSelectProps<T, M>) {
   return (
     <SelectPrimitive
       data-slot="select"
       className={cn("w-fit", className)}
+      selectedKey={value}
+      defaultSelectedKey={defaultValue}
+      onSelectionChange={(key) => {
+        onSelectionChange?.(key)
+        onValueChange?.(key == null ? undefined : String(key))
+      }}
       {...props}
     />
   )
@@ -57,8 +77,9 @@ function SelectGroup<T extends object>({
 function SelectValue<T extends object>({
   className,
   children,
+  placeholder,
   ...props
-}: SelectValueProps<T>) {
+}: SelectValueProps<T> & { placeholder?: React.ReactNode }) {
   return (
     <SelectValuePrimitive
       data-slot="select-value"
@@ -71,7 +92,9 @@ function SelectValue<T extends object>({
       {typeof children === "function"
         ? children
         : ({ selectedItems, selectedText, defaultChildren }) =>
-            selectedItems.length > 1 ? selectedText : defaultChildren}
+            selectedItems.length > 1
+              ? selectedText
+              : children ?? placeholder ?? defaultChildren}
     </SelectValuePrimitive>
   )
 }
@@ -104,6 +127,7 @@ function SelectTrigger({
 function SelectContent({
   className,
   children,
+  align,
   placement = "bottom",
   offset = 4,
   crossOffset = 0,
@@ -114,11 +138,12 @@ function SelectContent({
 > & {
   className?: string
   children?: React.ReactNode
+  align?: "start" | "center" | "end"
 }) {
   return (
     <SelectPopover
       className={className}
-      placement={placement}
+      placement={align === "center" ? "bottom" : align ? `bottom ${align}` : placement}
       offset={offset}
       crossOffset={crossOffset}
       {...props}
@@ -209,11 +234,14 @@ function SelectLabel({
 function SelectItem({
   className,
   children,
+  disabled,
+  isDisabled,
   ...props
-}: React.ComponentProps<typeof ListBoxItemPrimitive>) {
+}: React.ComponentProps<typeof ListBoxItemPrimitive> & { disabled?: boolean }) {
   return (
     <ListBoxItemPrimitive
       data-slot="select-item"
+      isDisabled={isDisabled ?? disabled}
       textValue={typeof children === "string" ? children : undefined}
       className={cn(
         "relative flex w-full cursor-default items-center gap-1.5 rounded-md py-1 pr-8 pl-1.5 text-sm outline-hidden select-none focus:bg-accent focus:text-accent-foreground not-data-[variant=destructive]:focus:**:text-accent-foreground data-focused:bg-accent data-focused:text-accent-foreground data-disabled:pointer-events-none data-disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4 *:[span]:last:flex *:[span]:last:items-center *:[span]:last:gap-2",

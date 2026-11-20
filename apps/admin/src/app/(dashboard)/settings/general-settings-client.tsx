@@ -13,20 +13,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+
 import { SettingsRow } from "./settings-row";
 import { BusinessDetailsRow } from "./business-details-row";
 import { EditStoreAddressDialog } from "./edit-store-address-dialog";
 import { ChangeCurrencyDialog } from "./change-currency-dialog";
-import { useSettingsDirtyForm } from "../dirty-provider";
-import { updateOrganization } from "../actions";
+import { useSettingsDirtyForm } from "@/components/providers/dirty-provider";
+import { updateOrganization } from "./actions";
 
 type Org = {
   id: string;
@@ -163,8 +156,7 @@ export function GeneralSettingsClient({
           </CardHeader>
         </div>
         <BusinessDetailsRow org={org} />
-     
-       
+
         <Card className="mb-6 overflow-hidden">
           <CardHeader>
             <CardTitle>Store contact details</CardTitle>
@@ -174,7 +166,7 @@ export function GeneralSettingsClient({
               icon="Mail"
               label={org.name || "Maara"}
               description={`${org.email || "No email"} · ${org.phone || "No phone number"}`}
-              href="/settings/general/store-contact-details"
+              href="/settings/store-contact-details"
             />
             <SettingsRow
               icon="MapPin"

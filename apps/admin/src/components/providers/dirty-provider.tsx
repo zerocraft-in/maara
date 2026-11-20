@@ -1,22 +1,23 @@
 "use client";
 
 import * as React from "react";
-import { SettingsDirtyBar } from "./general/settings-dirty-bar";
+import { DirtyBar } from "./dirty-bar";
 
-type DirtyForm = {
+export type DirtyForm = {
   dirty: boolean;
   saving: boolean;
+  label?: string;
   onDiscard: () => void;
   onSave: () => void;
 };
 
-type SettingsDirtyContextValue = {
+type DirtyContextValue = {
   register: (source: string, form: DirtyForm | null) => void;
 };
 
-const SettingsDirtyContext = React.createContext<SettingsDirtyContextValue | null>(null);
+const DirtyContext = React.createContext<DirtyContextValue | null>(null);
 
-export function SettingsDirtyProvider({ children }: { children: React.ReactNode }) {
+export function DirtyProvider({ children }: { children: React.ReactNode }) {
   const [form, setForm] = React.useState<DirtyForm | null>(null);
   const registrations = React.useRef(new Map<string, DirtyForm>());
 
@@ -25,24 +26,23 @@ export function SettingsDirtyProvider({ children }: { children: React.ReactNode 
     else registrations.current.delete(source);
     setForm(Array.from(registrations.current.values()).at(-1) ?? null);
   }, []);
+
   const contextValue = React.useMemo(() => ({ register }), [register]);
 
   return (
-    <SettingsDirtyContext.Provider value={contextValue}>
+    <DirtyContext.Provider value={contextValue}>
       <div className="relative min-w-0">
-        {form && <SettingsDirtyBar {...form} />}
+        {form && <DirtyBar {...form} />}
         {children}
       </div>
-    </SettingsDirtyContext.Provider>
+    </DirtyContext.Provider>
   );
 }
 
-export function useSettingsDirtyForm(form: DirtyForm, enabled = true) {
-  const context = React.useContext(SettingsDirtyContext);
-  if (!context) throw new Error("useSettingsDirtyForm must be used inside SettingsDirtyProvider");
+export function useDirtyForm(form: DirtyForm, enabled = true) {
+  const context = React.useContext(DirtyContext);
+  if (!context) throw new Error("useDirtyForm must be used inside DirtyProvider");
 
-  const callbacks = React.useRef({ onDiscard: form.onDiscard, onSave: form.onSave });
-  callbacks.current = { onDiscard: form.onDiscard, onSave: form.onSave };
   const source = React.useId();
 
   React.useEffect(() => {
@@ -50,12 +50,17 @@ export function useSettingsDirtyForm(form: DirtyForm, enabled = true) {
       context.register(source, null);
       return;
     }
+
     context.register(source, {
       dirty: form.dirty,
       saving: form.saving,
-      onDiscard: () => callbacks.current.onDiscard(),
-      onSave: () => callbacks.current.onSave(),
+      label: form.label,
+      onDiscard: form.onDiscard,
+      onSave: form.onSave,
     });
     return () => context.register(source, null);
-  }, [context, enabled, form.dirty, form.saving, source]);
+  }, [context, enabled, form.dirty, form.label, form.onDiscard, form.onSave, form.saving, source]);
 }
+
+// Backwards-compatible name for existing settings forms.
+export const useSettingsDirtyForm = useDirtyForm;

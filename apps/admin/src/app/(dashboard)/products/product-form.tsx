@@ -33,6 +33,7 @@ import {
 } from "./actions";
 import { Button } from "@/components/ui/button";
 import { MediaPicker } from "@/components/media-picker/media-picker";
+import { useDirtyForm } from "@/components/providers/dirty-provider";
 import {
   Card,
   CardContent,
@@ -523,6 +524,27 @@ export default function ProductForm({
       setIsSubmitting(false);
     }
   };
+
+  const imagesDirty = React.useMemo(
+    () => JSON.stringify(images) !== JSON.stringify(originalImages),
+    [images, originalImages],
+  );
+
+  useDirtyForm({
+    dirty: form.formState.isDirty || imagesDirty,
+    saving: isSubmitting,
+    label: isEdit ? "Unsaved changes" : "Unsaved product",
+    onDiscard: () => {
+      form.reset();
+      setImages(originalImages);
+      onClose();
+    },
+    onSave: () => {
+      void form.handleSubmit(onSubmit, () => {
+        toast.error("Review the highlighted fields before saving.");
+      })();
+    },
+  });
 
   return (
     <Card className="fixed inset-0 z-50 mx-auto max-w-4xl flex h-[calc(100vh-2rem)] flex-col overflow-hidden">
@@ -1098,7 +1120,10 @@ export default function ProductForm({
                         <Select
                           value={form.watch("weight_unit")}
                           onValueChange={(v) =>
-                            form.setValue("weight_unit", v ?? undefined)
+                            form.setValue(
+                              "weight_unit",
+                              v as "g" | "kg" | "oz" | "lb" | undefined,
+                            )
                           }
                         >
                           <SelectTrigger className="w-[80px]">

@@ -1,5 +1,6 @@
 ﻿import { requireOrganization } from "@/lib/auth/session";
 import DashboardShell from "@/components/layout/dashboard-shell";
+import { DirtyProvider } from "@/components/providers/dirty-provider";
 
 export default async function DashboardLayout({
   children,
@@ -9,14 +10,14 @@ export default async function DashboardLayout({
   const context = await requireOrganization();
 
   return (
-   <div className="min-h-dvh bg-background">
+    <DirtyProvider>
       <DashboardShell
         user={context.user}
         memberships={context.memberships}
         activeOrganization={context.activeOrganization}
       >
-      {children}
-    </DashboardShell>
-   </div>
+        {children}
+      </DashboardShell>
+    </DirtyProvider>
   );
 }

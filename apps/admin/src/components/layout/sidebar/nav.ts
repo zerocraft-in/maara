@@ -1,241 +1,142 @@
 import {
-  LayoutDashboard,
-  Package,
-  Tags,
-  Boxes,
-  Truck,
-  ShoppingCart,
-  Receipt,
-  Users,
-  Wallet,
-  ChartNoAxesCombined,
-  FileBarChart,
-  MapPin,
-  ShieldCheck,
-  Settings,
-  File,
-  TrendingUp,
   BadgePercent,
-  Globe2,
+  Box,
+  Boxes,
+  ChartNoAxesColumn,
+  Gauge,
+  Globe,
+  House,
+  Image,
+  Inbox,
+  LayoutGrid,
+  Settings,
   Store,
-  AppWindow,
+  Tag,
+  Truck,
+  Users,
+  Package,
+  Receipt,
   type LucideIcon,
 } from "lucide-react";
 
-/** A leaf navigation destination. */
 export type NavChild = {
   href: string;
   label: string;
   icon: LucideIcon;
   permission: string;
 };
-
-/**
- * A sidebar navigation group.
- *
- * Groups with a single child render as direct links (no disclosure control).
- * Groups with multiple children render as expandable parent items.
- */
 export type NavGroup = {
   id: string;
   label: string;
+  href: string;
   icon: LucideIcon;
   children: NavChild[];
   section?: string;
 };
-
-/** Items anchored below the scrollable navigation list (bottom sidebar). */
-export const FOOTER_ITEMS: NavChild[] = [
-  {
-    href: "/settings",
-    label: "Settings",
-    icon: Settings,
-    permission: "settings.view",
-  },
-];
+const leaf = (href: string, label: string, icon: LucideIcon): NavChild => ({
+  href,
+  label,
+  icon,
+  permission: "dashboard.view",
+});
 
 export const NAV_GROUPS: NavGroup[] = [
-  {
-    id: "home",
-    label: "Home",
-    icon: LayoutDashboard,
-    children: [
-      {
-        href: "/overview",
-        label: "Home",
-        icon: LayoutDashboard,
-        permission: "dashboard.view",
-      },
-    ],
-  },
-  {
-    id: "orders",
-    label: "Orders",
-    icon: Receipt,
-    children: [
-      {
-        href: "/sales",
-        label: "Orders",
-        icon: Receipt,
-        permission: "sales.view",
-      },
-    ],
-  },
+  { id: "home", label: "Home", href: "/overview", icon: House, children: [] },
+  { id: "orders", label: "Orders", href: "/sales", icon: Inbox, children: [] },
   {
     id: "products",
     label: "Products",
-    icon: Package,
+    href: "/products",
+    icon: Tag,
     children: [
-      {
-        href: "/categories",
-        label: "Collections",
-        icon: Tags,
-        permission: "categories.view",
-      },
-      {
-        href: "/inventory",
-        label: "Inventory",
-        icon: Boxes,
-        permission: "inventory.view",
-      },
-      {
-        href: "/purchases",
-        label: "Purchase orders",
-        icon: ShoppingCart,
-        permission: "purchases.view",
-      },
-      {
-        href: "/locations",
-        label: "Transfers",
-        icon: Truck,
-        permission: "locations.view",
-      },
-      {
-        href: "/products",
-        label: "Gift cards",
-        icon: Package,
-        permission: "products.view",
-      },
+      leaf("/categories", "Collections", Tag),
+      leaf("/inventory", "Inventory", Boxes),
+      leaf("/purchases", "Purchase orders", Inbox),
+      leaf("/locations", "Transfers", Truck),
+      leaf("/products/gift-cards", "Gift cards", Package),
     ],
   },
   {
     id: "customers",
     label: "Customers",
+    href: "/customers",
     icon: Users,
-    children: [
-      {
-        href: "/customers",
-        label: "Customers",
-        icon: Users,
-        permission: "customers.view",
-      },
-    ],
+    children: [],
   },
   {
     id: "growth",
     label: "Growth",
-    icon: TrendingUp,
-    children: [
-      {
-        href: "/analytics",
-        label: "Growth",
-        icon: TrendingUp,
-        permission: "analytics.view",
-      },
-    ],
+    href: "/analytics",
+    icon: Gauge,
+    children: [],
   },
   {
     id: "discounts",
     label: "Discounts",
+    href: "/reports",
     icon: BadgePercent,
-    children: [
-      {
-        href: "/reports",
-        label: "Discounts",
-        icon: BadgePercent,
-        permission: "reports.view",
-      },
-    ],
+    children: [],
   },
   {
     id: "content",
     label: "Content",
-    icon: File,
-    children: [
-      {
-        href: "/content/files",
-        label: "Content",
-        icon: File,
-        permission: "media.view",
-      },
-    ],
+    href: "/content/files",
+    icon: Image,
+    children: [],
   },
   {
     id: "markets",
     label: "Markets",
-    icon: Globe2,
-    children: [
-      {
-        href: "/finance",
-        label: "Markets",
-        icon: Globe2,
-        permission: "finance.view",
-      },
-    ],
+    href: "/finance",
+    icon: Globe,
+    children: [],
   },
   {
     id: "analytics",
     label: "Analytics",
-    icon: ChartNoAxesCombined,
-    children: [
-      {
-        href: "/analytics",
-        label: "Analytics",
-        icon: ChartNoAxesCombined,
-        permission: "analytics.view",
-      },
-    ],
+    href: "/analytics",
+    icon: ChartNoAxesColumn,
+    children: [],
   },
   {
     id: "online-store",
     label: "Online Store",
+    href: "/content/files",
     icon: Store,
     section: "Sales channels",
-    children: [{ href: "/content/files", label: "Online Store", icon: Store, permission: "media.view" }],
+    children: [],
   },
   {
     id: "agentic",
     label: "Agentic",
-    icon: AppWindow,
-    children: [{ href: "/overview", label: "Agentic", icon: AppWindow, permission: "dashboard.view" }],
+    href: "/overview",
+    icon: LayoutGrid,
+    section: "Sales channels",
+    children: [],
   },
   {
     id: "point-of-sale",
     label: "Point of Sale",
+    href: "/sales",
     icon: Receipt,
-    children: [{ href: "/sales", label: "Point of Sale", icon: Receipt, permission: "sales.view" }],
+    section: "Sales channels",
+    children: [],
   },
   {
     id: "checkout-blocks",
     label: "Checkout Blocks",
-    icon: AppWindow,
+    href: "/products",
+    icon: Box,
     section: "Apps",
-    children: [{ href: "/products", label: "Checkout Blocks", icon: AppWindow, permission: "products.view" }],
+    children: [],
   },
 ];
 
-/** Every leaf destination, flattened — used for header titles and the mobile drawer. */
+export const FOOTER_ITEMS: NavChild[] = [
+  leaf("/settings", "Settings", Settings),
+];
 export const FLAT_NAV_ITEMS: NavChild[] = [
-  ...NAV_GROUPS.flatMap((g) => g.children),
+  ...NAV_GROUPS.flatMap((group) => group.children),
   ...FOOTER_ITEMS,
 ];
-
-/** True when `pathname` points at (or under) `href`. */
-export function isNavActive(pathname: string, href: string): boolean {
-  if (href === "/overview" || href === "/settings") {
-    return pathname === href || pathname.startsWith(`${href}/`);
-  }
-  return pathname === href || pathname.startsWith(`${href}/`);
-}
-
 export type DashboardNavItem = NavChild;

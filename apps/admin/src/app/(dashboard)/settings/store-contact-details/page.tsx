@@ -18,17 +18,19 @@ async function getOrganization(supabase: SupabaseClient, id: string) {
 }
 
 export default async function StoreContactDetailsPage() {
+  let org: Awaited<ReturnType<typeof getOrganization>> = null;
+
   try {
     const context = await requireOrganization();
     const id = context.activeOrganization?.id;
-    if (!id || !context.permissions.has("settings.view"))
-      redirect("/settings/general");
-    const org = await getOrganization(await createServerSupabaseClient(), id);
-    if (!org) redirect("/settings/general");
-    return <StoreContactDetailsClient org={org} />;
+    if (!id || !context.permissions.has("settings.view")) redirect("/settings");
+    org = await getOrganization(await createServerSupabaseClient(), id);
   } catch (error) {
     if (error instanceof Error && error.message === NO_ACTIVE_MEMBERSHIP_ERROR)
       redirect("/onboarding");
     throw error;
   }
+
+  if (!org) redirect("/settings");
+  return <StoreContactDetailsClient org={org} />;
 }

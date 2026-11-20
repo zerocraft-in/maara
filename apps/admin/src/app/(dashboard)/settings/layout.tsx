@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { SettingsDirtyProvider } from "./dirty-provider";
 import { SettingsLayoutClient } from "./settings-layout-client";
 
 /**
@@ -12,10 +11,8 @@ import { SettingsLayoutClient } from "./settings-layout-client";
  */
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
-    <SettingsDirtyProvider>
-      <div className="mx-auto flex w-full min-w-0 flex-col">
-        <SettingsLayoutClient>{children}</SettingsLayoutClient>
-      </div>
-    </SettingsDirtyProvider>
+    <div className="mx-auto flex w-full min-w-0 flex-col">
+      <SettingsLayoutClient>{children}</SettingsLayoutClient>
+    </div>
   );
 }

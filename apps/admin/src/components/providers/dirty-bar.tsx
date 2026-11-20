@@ -5,51 +5,42 @@ import { Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
-type SettingsDirtyBarProps = {
+export type DirtyBarProps = {
   dirty: boolean;
   saving?: boolean;
+  label?: string;
   onDiscard: () => void;
   onSave: () => void;
 };
 
-export function SettingsDirtyBar({
+export function DirtyBar({
   dirty,
   saving = false,
+  label = "Unsaved changes",
   onDiscard,
   onSave,
-}: SettingsDirtyBarProps) {
+}: DirtyBarProps) {
   const [shake, setShake] = React.useState(false);
   const guardActive = React.useRef(false);
 
   React.useEffect(() => {
     if (!dirty) {
-      if (guardActive.current) {
-        guardActive.current = false;
-        window.history.back();
-      }
+      // The owner decides where to go after discard/save. Do not call
+      // history.back() here; that races with router navigation and can return
+      // the user to the dirty form after it has already been reset.
+      guardActive.current = false;
       return;
     }
 
-    // Add a same-page history entry while dirty. The browser Back button then
-    // lands on this guard entry instead of leaving the settings page.
-    window.history.pushState(
-      { settingsDirtyGuard: true },
-      "",
-      window.location.href,
-    );
+    window.history.pushState({ dirtyGuard: true }, "", window.location.href);
     guardActive.current = true;
 
     const handlePopState = () => {
       setShake(true);
       window.setTimeout(() => setShake(false), 460);
-      // Restore the guard entry without changing the URL or remounting the
-      // form, so the user's unsaved values remain intact.
-      window.history.pushState(
-        { settingsDirtyGuard: true },
-        "",
-        window.location.href,
-      );
+      window.history.pushState({ dirtyGuard: true }, "", window.location.href);
     };
+
     window.addEventListener("popstate", handlePopState);
     return () => window.removeEventListener("popstate", handlePopState);
   }, [dirty]);
@@ -62,11 +53,9 @@ export function SettingsDirtyBar({
           aria-live="polite"
           animate={shake ? { x: [0, -7, 7, -5, 5, 0] } : { x: 0 }}
           transition={{ duration: 0.42, ease: "easeInOut" }}
-          className="pointer-events-auto relative top-1 flex h-10 w-full max-w-[280px] items-center justify-between rounded-full bg-primary px-1 shadow-lg"
+          className="pointer-events-auto relative top-1 flex h-10 w-full max-w-[280px] items-center justify-between rounded-full bg-foreground px-1 shadow-lg"
         >
-          <span className="text-[13px] px-2 text-primary-foreground">
-            Unsaved changes
-          </span>
+          <span className="px-2 text-[13px] text-primary-foreground">{label}</span>
           <div className="flex items-center gap-0.5">
             <Button
               type="button"
@@ -83,7 +72,7 @@ export function SettingsDirtyBar({
               variant="secondary"
               onClick={onSave}
               disabled={saving}
-              className="h-8 px-3 rounded-xl"
+              className="h-8 rounded-xl px-3"
             >
               {saving ? <Loader2 className="size-3.5 animate-spin" /> : "Save"}
             </Button>

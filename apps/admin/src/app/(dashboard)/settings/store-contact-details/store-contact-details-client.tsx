@@ -11,8 +11,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { updateStoreContact } from "../../actions";
-import { useSettingsDirtyForm } from "../../dirty-provider";
+import { updateStoreContact } from "../actions";
+import { useSettingsDirtyForm } from "@/components/providers/dirty-provider";
 
 type Org = {
   id: string;

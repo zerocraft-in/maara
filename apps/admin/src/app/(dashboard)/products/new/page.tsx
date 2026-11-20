@@ -4,7 +4,6 @@ import * as React from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -12,7 +11,12 @@ import {
   NativeSelectOptGroup,
   NativeSelectOption,
 } from "@/components/ui/native-select";
-import { createProduct } from "../actions";
+import { createProduct, createProductImage } from "../actions";
+import {
+  MediaPicker,
+  type PickedMedia,
+} from "@/components/media-picker/media-picker";
+import { useDirtyForm } from "@/components/providers/dirty-provider";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -34,7 +38,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { cn, slugify } from "@/lib/utils";
+import { slugify } from "@/lib/utils";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import {
   DropdownMenu,
@@ -45,14 +49,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import {
   Collapsible,
   CollapsibleTrigger,
@@ -83,7 +79,6 @@ import {
   ArrowDown,
   CirclePlus,
   ChevronsUpDown,
-  ArrowLeft,
   AlertTriangle,
   IndianRupee,
 } from "lucide-react";
@@ -152,13 +147,12 @@ export default function NewProductPage() {
   const [packedL, setPackedL] = React.useState("0.0");
   const [packedW, setPackedW] = React.useState("0.0");
   const [packedH, setPackedH] = React.useState("0.0");
-  const [priceOpen, setPriceOpen] = React.useState(true);
+  const [priceOpen, setPriceOpen] = React.useState(false);
   const [unitPriceOpen, setUnitPriceOpen] = React.useState(false);
   const [totalAmount, setTotalAmount] = React.useState("0");
   const [baseMeasure, setBaseMeasure] = React.useState("1");
-  const [isScrolled, setIsScrolled] = React.useState(false);
-  const [discardOpen, setDiscardOpen] = React.useState(false);
-  const pageContainerRef = React.useRef<HTMLDivElement>(null);
+  const [mediaPickerOpen, setMediaPickerOpen] = React.useState(false);
+  const [selectedMedia, setSelectedMedia] = React.useState<PickedMedia[]>([]);
 
   const form = useForm({
     resolver: zodResolver(productSchema),
@@ -238,38 +232,6 @@ export default function NewProductPage() {
     loadData();
   }, [router]);
 
-  React.useEffect(() => {
-    // Find the nearest scrollable ancestor (DashboardShell uses
-    // div.overflow-y-auto as its scroll container, not window).
-    let scrollContainer: HTMLElement | Window = window;
-    if (pageContainerRef.current) {
-      let el: HTMLElement | null = pageContainerRef.current;
-      while (el && el !== document.documentElement) {
-        const style = window.getComputedStyle(el);
-        if (style.overflowY === "auto" || style.overflowY === "scroll") {
-          scrollContainer = el;
-          break;
-        }
-        el = el.parentElement;
-      }
-    }
-
-    const handleScroll = () => {
-      if (scrollContainer === window) {
-        const scrollTop = window.scrollY ?? window.pageYOffset ?? 0;
-        setIsScrolled(scrollTop > 40);
-      } else {
-        setIsScrolled((scrollContainer as HTMLElement).scrollTop > 40);
-      }
-    };
-
-    handleScroll();
-    scrollContainer.addEventListener("scroll", handleScroll, { passive: true });
-    return () => {
-      scrollContainer.removeEventListener("scroll", handleScroll);
-    };
-  }, [pageContainerRef]);
-
   const onSubmit = async (values: z.infer<typeof productSchema>) => {
     setIsSubmitting(true);
     try {
@@ -307,6 +269,21 @@ export default function NewProductPage() {
       const result = await createProduct(payload);
 
       if (result.ok) {
+        if (selectedMedia.length > 0 && result.id) {
+          for (const [index, media] of selectedMedia.entries()) {
+            const imageResult = await createProductImage({
+              product_id: result.id as string,
+              variant_ids: [],
+              src: media.url,
+              alt: media.name,
+              position: index + 1,
+            });
+            if (!imageResult.ok) {
+              toast.error(imageResult.error);
+              return;
+            }
+          }
+        }
         toast.success("Product created successfully.");
         router.push("/products");
       } else {
@@ -318,6 +295,22 @@ export default function NewProductPage() {
       setIsSubmitting(false);
     }
   };
+
+  useDirtyForm({
+    dirty: form.formState.isDirty,
+    saving: isSubmitting,
+    label: "Unsaved product",
+    onDiscard: () => {
+      form.reset();
+      setSelectedMedia([]);
+      router.push("/products");
+    },
+    onSave: () => {
+      void form.handleSubmit(onSubmit, () => {
+        toast.error("Review the highlighted fields before saving.");
+      })();
+    },
+  });
 
   // Early return check comes AFTER all Hook declarations
   if (loading || !organizationId) {
@@ -331,104 +324,32 @@ export default function NewProductPage() {
   }
 
   return (
-    <div className="relative" ref={pageContainerRef}>
-      <header
-        className={cn(
-          "sticky top-0 z-10 grid h-15 grid-cols-3 items-center gap-2 overflow-hidden border-border bg-background px-4",
-          isScrolled ? "border-b " : "",
-        )}
-      >
-        {/* Left: Back Button + Dynamic Breadcrumb */}
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-body transition-colors hover:bg-muted/80"
-            aria-label="Back to products"
-            onClick={() => router.push("/products")}
-          >
-            <ArrowLeft className="size-4" />
-          </button>
-
-          <nav
-            aria-label="Breadcrumb"
-            className="flex items-center gap-1.5 text-sm text-muted-foreground"
-          >
-            <Link
-              href="/products"
-              className="font-medium text-body transition-colors hover:text-foreground"
-            >
-              Products
-            </Link>
-
-            <div
-              className={`flex items-center gap-1.5 transition-all duration-200 ${
-                isScrolled
-                  ? "translate-y-0 opacity-100"
-                  : "pointer-events-none translate-y-1 opacity-0"
-              }`}
-            >
-              <span>/</span>
-              <span className="truncate font-medium text-body">
-                Add product
-              </span>
-            </div>
-          </nav>
-        </div>
-
-        {/* Center: Unsaved Product Action Bar */}
-        <Card className="mx-auto flex h-9! w-full max-w-xs flex-row items-center justify-between gap-2 px-2 py-2!">
-          <span className="truncate text-xs font-medium">Unsaved product</span>
-          <div className="grid grid-cols-2 gap-1">
-            <Button
-              type="button"
-              size="sm"
-              className="h-6"
-              variant="outline"
-              onClick={() => setDiscardOpen(true)}
-              disabled={isSubmitting}
-            >
-              Discard
-            </Button>
-            <Button
-              type="submit"
-              size="sm"
-              className="h-6"
-              variant="default"
-              disabled={isSubmitting || !form.formState.isDirty}
-            >
-              {isSubmitting ? "Creating..." : "Save"}
-            </Button>
-          </div>
-        </Card>
-
-        <div />
-      </header>
-
-      <div className="relative mx-auto flex max-w-5xl flex-col px-2 py-6 sm:py-10 overflow-hidden">
+    <div className="relative min-h-screen bg-white text-[#202223]">
+      <div className="relative mx-auto flex max-w-[1088px] flex-col px-0 py-2 overflow-hidden">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold tracking-[-0.02em] text-body">
+          <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-[#202223]">
             Add product
           </h1>
         </div>
         <form
           id="product-form"
-          onSubmit={form.handleSubmit(onSubmit)}
-          className="lg:grid lg:grid-cols-4 lg:gap-4"
+          onSubmit={form.handleSubmit(onSubmit, () => {
+            toast.error("Review the highlighted fields before saving.");
+          })}
+          className="lg:grid lg:grid-cols-[minmax(0,760px)_280px] lg:gap-12"
         >
           {/* Left column - main form */}
-          <div className="space-y-8 lg:col-span-3">
-            {/* Title */}
-            <Card>
-              <CardContent>
+          <div className="space-y-8">
+            {/* Shopify groups the identity fields into one primary card. */}
+            <Card className="overflow-hidden">
+              <CardContent className="space-y-6 p-4">
                 <div className="space-y-2">
-                  <Label htmlFor="name">
-                    Title <span className="text-destructive">*</span>
-                  </Label>
+                  <Label htmlFor="name">Title</Label>
                   <Input
                     id="name"
                     {...form.register("name")}
                     placeholder="Short sleeve t-shirt"
-                    className="text-lg"
+                    className="bg-white text-lg"
                   />
                   {form.formState.errors.name && (
                     <p className="text-sm text-destructive">
@@ -436,43 +357,130 @@ export default function NewProductPage() {
                     </p>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Description */}
-            <Card>
-              <CardContent>
                 <div className="space-y-2">
                   <Label htmlFor="description">Description</Label>
                   <div className="relative">
-                    <div className="absolute top-2 left-2 flex gap-1 bg-background p-1 border border-border rounded shadow-sm z-10">
+                    <div className="flex h-10 items-center gap-1 overflow-x-auto rounded-t-md border border-b-0 border-[#d2d5d9] bg-[#f6f6f7] px-2">
                       <button
                         type="button"
-                        className="h-6 w-6 rounded flex items-center justify-center text-xs hover:bg-muted"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Formatting options"
+                        title="Formatting options"
+                      >
+                        ☷
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 whitespace-nowrap rounded px-2 text-xs hover:bg-white"
+                        aria-label="Paragraph"
+                      >
+                        Paragraph⌄
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs font-semibold hover:bg-white"
                         aria-label="Bold"
                       >
                         B
                       </button>
                       <button
                         type="button"
-                        className="h-6 w-6 rounded flex items-center justify-center text-xs hover:bg-muted"
+                        className="h-7 rounded px-2 text-xs italic hover:bg-white"
                         aria-label="Italic"
                       >
                         I
                       </button>
                       <button
                         type="button"
-                        className="h-6 w-6 rounded flex items-center justify-center text-xs hover:bg-muted"
+                        className="h-7 rounded px-2 text-xs underline hover:bg-white"
                         aria-label="Underline"
                       >
                         U
                       </button>
                       <button
                         type="button"
-                        className="h-6 w-6 rounded flex items-center justify-center text-xs hover:bg-muted"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
                         aria-label="Link"
                       >
                         🔗
+                      </button>
+                      <span className="mx-1 h-5 w-px bg-[#d2d5d9]" />
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Text color"
+                      >
+                        A⌄
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Alignment"
+                      >
+                        ☰⌄
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Insert image"
+                      >
+                        ▧
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Insert video"
+                      >
+                        ▷
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Insert table"
+                      >
+                        ▦⌄
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Bulleted list"
+                      >
+                        ☷
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Numbered list"
+                      >
+                        ☷
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Outdent"
+                      >
+                        ⇤
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Indent"
+                      >
+                        ⇥
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs hover:bg-white"
+                        aria-label="Clear formatting"
+                      >
+                        ⊘
+                      </button>
+                      <button
+                        type="button"
+                        className="h-7 rounded px-2 text-xs font-mono hover:bg-white"
+                        aria-label="Show HTML"
+                      >
+                        &lt;/&gt;
                       </button>
                     </div>
                     <Textarea
@@ -480,7 +488,7 @@ export default function NewProductPage() {
                       {...form.register("description")}
                       rows={8}
                       placeholder="Describe your product..."
-                      className="pl-10 pt-10 min-h-[200px]"
+                      className="min-h-[154px] rounded-t-none border-[#d2d5d9] bg-white pt-3"
                     />
                   </div>
                   {form.formState.errors.description && (
@@ -489,47 +497,56 @@ export default function NewProductPage() {
                     </p>
                   )}
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Media */}
-            <Card>
-              <CardContent>
                 <div className="space-y-4">
-                  <div className="flex gap-2">
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Upload new
-                    </Button>
-                    <Button variant="outline" size="sm" className="flex-1">
-                      Select existing
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Accepts images, videos, or 3D models
-                  </p>
-                  <div className="border-2 border-dashed border-border rounded-lg p-8 text-center text-muted-foreground">
-                    <p className="text-sm">No media added yet</p>
-                    <Button variant="outline" size="sm" className="mt-2">
+                  <div className="flex min-h-[124px] flex-col items-center justify-center gap-3 rounded-md border border-dashed border-[#8c9196] p-5 text-center">
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => setMediaPickerOpen(true)}
+                      >
+                        Upload new
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setMediaPickerOpen(true)}
+                      >
+                        Select existing
+                      </Button>
+                    </div>
+                    <p className="text-xs text-[#616161]">
+                      Accepts images, videos, or 3D models
+                    </p>
+                    {selectedMedia.length > 0 && (
+                      <span className="text-xs text-[#616161]">
+                        {selectedMedia.length} media selected
+                      </span>
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="hidden"
+                      onClick={() => setMediaPickerOpen(true)}
+                    >
                       Add media
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Category */}
-            <Card>
-              <CardContent>
                 <div className="space-y-2">
                   <Label htmlFor="category_id">Category</Label>
                   <Select
+                    className="w-full"
                     value={form.watch("category_id") || ""}
                     onValueChange={(v) =>
                       form.setValue("category_id", v || null)
                     }
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a product category" />
+                    <SelectTrigger className="w-full">
+                      <SelectValue>Choose a product category</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">No category</SelectItem>
@@ -560,7 +577,7 @@ export default function NewProductPage() {
               </CardHeader>
               <Card>
                 <CardContent className="space-y-4">
-                  <InputGroup className="max-w-[150px]">
+                  <InputGroup className="max-w-[230px] bg-white">
                     <InputGroupInput
                       placeholder="0.00"
                       {...form.register("price")}
@@ -790,7 +807,10 @@ export default function NewProductPage() {
 
                             <div className="flex gap-2 border-t pt-2">
                               <InputGroup className="w-30 space-x-2 gap-1">
-                                <InputGroupInput placeholder="-" className="bg-muted-foreground! text-foreground! p-2! h-5 rounded-2xl" />
+                                <InputGroupInput
+                                  placeholder="-"
+                                  className="bg-muted-foreground! text-foreground! p-2! h-5 rounded-2xl"
+                                />
                                 <InputGroupAddon>
                                   <InputGroupText> Cost</InputGroupText>
                                 </InputGroupAddon>
@@ -1485,21 +1505,24 @@ export default function NewProductPage() {
           </div>
 
           {/* Right column - side panel */}
-          <div className="space-y-6 lg:col-span-1 lg:sticky lg:top-6">
+          <div className="space-y-5 lg:sticky lg:top-6">
             {/* Status */}
-            <Card>
-              <CardHeader>
+            <Card className="border-0 bg-transparent shadow-none">
+              <CardHeader className="border-b px-0 pb-3 pt-0">
                 <CardTitle className="text-sm font-semibold">Status</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="px-0 pt-3">
                 <Select
+                  className="w-full"
                   value={form.watch("status")}
                   onValueChange={(v) =>
                     form.setValue("status", v as "draft" | "active")
                   }
                 >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue>
+                      {form.watch("status") === "active" ? "Active" : "Draft"}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="active">Active</SelectItem>
@@ -1510,16 +1533,16 @@ export default function NewProductPage() {
             </Card>
 
             {/* Publishing */}
-            <Card>
-              <CardHeader>
+            <Card className="border-0 bg-transparent shadow-none">
+              <CardHeader className="border-b px-0 pb-3 pt-0">
                 <CardTitle className="text-sm font-semibold">
                   Publishing
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <Select defaultValue="all">
-                  <SelectTrigger className="w-full">
-                    <SelectValue placeholder="All channels" />
+              <CardContent className="px-0 pt-3">
+                <Select className="w-full" defaultValue="all">
+                  <SelectTrigger className="w-full bg-white">
+                    <SelectValue>All channels</SelectValue>
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All channels</SelectItem>
@@ -1529,23 +1552,24 @@ export default function NewProductPage() {
             </Card>
 
             {/* Product organization */}
-            <Card>
-              <CardHeader>
+            <Card className="border-0 bg-transparent shadow-none">
+              <CardHeader className="border-b px-0 pb-3 pt-0">
                 <CardTitle className="text-sm font-semibold">
                   Product organization
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="space-y-4 px-0 pt-3">
                 <div className="space-y-2">
                   <Label htmlFor="product_type">Type</Label>
                   <Select
+                    className="w-full"
                     value={form.watch("product_type") ?? ""}
                     onValueChange={(v) =>
                       form.setValue("product_type", v ?? undefined)
                     }
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue>None</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">None</SelectItem>
@@ -1555,13 +1579,14 @@ export default function NewProductPage() {
                 <div className="space-y-2">
                   <Label htmlFor="vendor">Vendor</Label>
                   <Select
+                    className="w-full"
                     value={form.watch("vendor") ?? ""}
                     onValueChange={(v) =>
                       form.setValue("vendor", v ?? undefined)
                     }
                   >
-                    <SelectTrigger>
-                      <SelectValue placeholder="None" />
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue>None</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="">None</SelectItem>
@@ -1588,9 +1613,9 @@ export default function NewProductPage() {
                 </Button>
                 <div className="space-y-2">
                   <Label>Theme template</Label>
-                  <Select defaultValue="default">
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Default product" />
+                  <Select className="w-full" defaultValue="default">
+                    <SelectTrigger className="w-full bg-white">
+                      <SelectValue>Default product</SelectValue>
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="default">Default product</SelectItem>
@@ -1602,36 +1627,22 @@ export default function NewProductPage() {
           </div>
         </form>
 
-        <Dialog open={discardOpen} onOpenChange={setDiscardOpen}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Discard changes?</DialogTitle>
-              <DialogDescription>
-                You have unsaved changes. Discard them and return to products?
-              </DialogDescription>
-            </DialogHeader>
-            <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => setDiscardOpen(false)}
-              >
-                Keep editing
-              </Button>
-              <Button
-                type="button"
-                size="sm"
-                onClick={() => {
-                  form.reset();
-                  router.push("/products");
-                }}
-              >
-                Discard
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <MediaPicker
+          open={mediaPickerOpen}
+          onOpenChange={setMediaPickerOpen}
+          multiple
+          maxSelection={10}
+          acceptedTypes={["image", "video", "other"]}
+          selectedMedia={selectedMedia}
+          onConfirm={(media) => {
+            setSelectedMedia(media);
+            // Keep the dirty bar in sync with media-only edits.
+            form.setValue("description", form.getValues("description"), {
+              shouldDirty: true,
+            });
+          }}
+          folder="products"
+        />
       </div>
     </div>
   );

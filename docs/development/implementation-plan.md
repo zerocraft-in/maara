@@ -1,6 +1,11 @@
 # Implementation Plan and Status
 
-Last updated: 12 November 2026.
+Last updated: 20 November 2026.
+
+The current repository audit and executable follow-up plan lives in
+`docs/project-audit-and-implementation-plan.md`. This document remains the
+historical phase checklist; use the audit document for the latest route,
+security, API, cache, performance, and cleanup status.
 
 This document is the delivery checklist. A phase is only marked complete when
 its verification commands have actually run and passed.

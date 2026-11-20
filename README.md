@@ -3,12 +3,12 @@
 Multi-tenant retail management SaaS for clothing businesses — products, stock,
 purchasing, sales, expenses and finance in one admin application.
 
-**Current status: Phase 1 (foundation) only.** The repository contains a buildable
-Next.js 16 application with the approved Maara design tokens, owned shadcn/ui
-primitives, a tested money module and the full architecture, database, security
-and business-rule documentation. Authentication, the dashboard shell and all 16
-business modules are **not implemented yet**. The app currently renders a
-foundation status page.
+**Current status: active implementation.** The repository contains a buildable
+Next.js 16 admin application with the dashboard shell, authentication flows,
+settings, products, media, locations, users and audit-log surfaces in active
+development. Database/RLS verification and production hardening remain
+incomplete. See `docs/project-audit-and-implementation-plan.md` for the current
+audit, risks and delivery plan.
 
 ---
 
@@ -129,6 +129,7 @@ Key rules that will not be relaxed:
 | `docs/business-rules/*.md` | inventory, purchases, sales, finance |
 | `docs/api/api-reference.md` | current (empty) and planned API |
 | `docs/development/implementation-plan.md` | phases, status, risks |
+| `docs/project-audit-and-implementation-plan.md` | current audit, security findings, cleanup and implementation plan |
 | `docs/deployment/vercel-supabase.md` | deployment runbook (not executed) |
 
 ## Known blockers

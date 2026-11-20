@@ -1,14 +1,14 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { Bell, ShoppingBag } from "lucide-react";
+import { Bell, Settings } from "lucide-react";
 
 import { NavMain } from "./nav-main";
 import { NavProjects } from "./nav-projects";
-import { NavSecondary } from "./nav-secondary";
 import { SearchForm } from "./search-form";
-import { NavUser } from "./nav-user";
 import {
   Sidebar,
   SidebarContent,
@@ -17,7 +17,6 @@ import {
   SidebarTrigger,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { cn } from "@/lib/utils";
 
 type Team = {
   name: string;
@@ -58,7 +57,8 @@ export function AppSidebar({
 }: React.ComponentProps<typeof Sidebar> & {
   data?: AppSidebarData;
 }) {
-  const { state, toggleSidebar } = useSidebar();
+  const pathname = usePathname();
+  const { state } = useSidebar();
   const [fallbackData, setFallbackData] = React.useState<AppSidebarData | null>(
     null,
   );
@@ -111,49 +111,64 @@ export function AppSidebar({
   }
 
   return (
-    <Sidebar collapsible="icon" {...sidebarProps}>
-      <SidebarHeader className="px-2 py-2">
-        <div className="flex items-center justify-between gap-2">
-          <button
-            type="button"
-            onClick={() => state === "collapsed" && toggleSidebar()}
-            aria-label={
-              state === "collapsed" ? "Expand sidebar" : "Shopify admin"
-            }
-            className="flex size-8 shrink-0 items-center justify-center rounded-md text-[#95bf47] transition-colors hover:bg-sidebar-accent"
+    <Sidebar collapsible="icon" {...sidebarProps} className="">
+      <SidebarHeader className="px-3 py-4">
+        <div className="group/logo relative flex h-7 items-center gap-2">
+          <span
+            className={`flex size-7 shrink-0 items-center justify-center rounded-md bg-[#95bf47] text-white transition-opacity duration-150 ease-out ${state === "collapsed" ? "group-hover/logo:opacity-0" : ""}`}
           >
-            <span className="relative flex size-7 items-center justify-center">
-              <ShoppingBag className="size-7 fill-[#95bf47] stroke-[#95bf47]" />
-              <span className="absolute inset-0 flex items-center justify-center pt-1 text-[12px] font-black text-white">
-                S
-              </span>
-            </span>
-          </button>
+            <svg
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+              className="size-5 fill-current"
+            >
+              <path d="M7 8.5 8.8 4h6.4L17 8.5v9.7A1.8 1.8 0 0 1 15.2 20H8.8A1.8 1.8 0 0 1 7 18.2V8.5Zm2.1-.7h5.8l-.8-2H9.9l-.8 2Zm1.6 2.7 1.3-.8 1.3.8v-5.2h-2.6Z" />
+            </svg>
+          </span>
           <SidebarTrigger
             aria-label="Collapse sidebar"
-            className="size-8 text-white/70 hover:bg-white/10 hover:text-white group-data-[collapsible=icon]:hidden"
+            className="ml-auto size-8  shrink-0 text-sidebar-muted hover:bg-sidebar-hover! hover:text-white group-data-[collapsible=icon]:hidden"
+          />
+          <SidebarTrigger
+            aria-label="Expand sidebar"
+            className="pointer-events-none absolute left-0 top-0 hidden size-7 text-sidebar-muted opacity-0 transition-opacity duration-150 ease-out hover:bg-sidebar-hover! hover:text-white group-data-[collapsible=icon]:flex group-hover/logo:pointer-events-auto group-hover/logo:opacity-100"
           />
         </div>
       </SidebarHeader>
-      <SidebarContent className="pt-2">
+      <SidebarContent className="no-scrollbar px-3 space-y-4">
         <SearchForm />
         <NavMain items={sidebarData.navMain} />
         {sidebarData.projects.length > 0 && (
           <NavProjects projects={sidebarData.projects} />
         )}
-
-        <NavSecondary items={sidebarData.navSecondary} className="mt-auto" />
       </SidebarContent>
-      <SidebarFooter>
-        <div
-          className={cn(
-            "relative flex items-center justify-between gap-2 flex-row ",
-            state === "collapsed" && " flex-col-reverse",
-          )}
+      <SidebarFooter className="items-center gap-0 border-t border-transparent px-3 py-2 space-y-1">
+        <Link
+          href="/settings"
+          aria-current={pathname.startsWith("/settings") ? "page" : undefined}
+          className="flex !h-7 !w-full items-center gap-2 overflow-hidden rounded-lg !px-2 text-[13px] text-sidebar-foreground hover:bg-sidebar-hover data-[active=true]:bg-sidebar-accent group-data-[collapsible=icon]:!mx-auto group-data-[collapsible=icon]:!w-8 group-data-[collapsible=icon]:justify-center"
+          data-active={pathname.startsWith("/settings")}
         >
-          <NavUser user={sidebarData.user} state={state} />
-          <button className="hover:bg-primary-foreground/10 p-2 rounded-lg">
-            <Bell className="size-4  text-secondary/50" />
+          <Settings className="size-4 shrink-0 group-data-[collapsible=icon]:!mx-auto" />
+          <span className="min-w-0 truncate whitespace-nowrap transition-opacity duration-150 group-data-[collapsible=icon]:hidden">
+            Settings
+          </span>
+        </Link>
+        <div className="mx-auto flex h-7 w-full items-center pl-1  justify-center gap-2 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:gap-1 group-data-[collapsible=icon]:px-0">
+          <button className="flex items-center  py-1 pr-2 gap-2 hover:bg-primary-foreground/10 rounded-lg group-data-[collapsible=icon]:p-0">
+            <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-sidebar-avatar text-[7px] font-semibold leading-none tracking-tight text-black">
+              MAR
+            </span>
+            <span className="min-w-0 flex-1 truncate whitespace-nowrap text-[13px] font-semibold text-sidebar-foreground transition-opacity duration-150 group-data-[collapsible=icon]:w-0 group-data-[collapsible=icon]:hidden">
+              {sidebarData.user.name}
+            </span>
+          </button>
+          <button
+            type="button"
+            aria-label="Notifications"
+            className="ml-auto flex size-7 shrink-0 items-center justify-center rounded-lg text-sidebar-muted hover:bg-sidebar-hover hover:text-white group-data-[collapsible=icon]:ml-0"
+          >
+            <Bell className="size-3.5" />
           </button>
         </div>
       </SidebarFooter>

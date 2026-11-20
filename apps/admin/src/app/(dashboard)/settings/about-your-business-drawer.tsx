@@ -16,7 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { updateBusinessDetails } from "@/app/(dashboard)/settings/actions";
 import { Building2, Search, X, Plus, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useSettingsDirtyForm } from "../dirty-provider";
+import { useSettingsDirtyForm } from "@/components/providers/dirty-provider";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Static data

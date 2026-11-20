@@ -4,7 +4,7 @@ import * as React from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { updateStoreCurrency } from "../actions";
+import { updateStoreCurrency } from "./actions";
 
 const CURRENCIES = [
   ["INR", "Indian Rupee (INR ₹)"], ["USD", "United States Dollar (USD $)"], ["GBP", "British Pound (GBP £)"], ["EUR", "Euro (EUR €)"], ["AED", "UAE Dirham (AED د.إ)"],

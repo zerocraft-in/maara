@@ -116,7 +116,6 @@ export async function updateOrganization(
   // Re-render /settings so the page immediately shows the saved values.
   const { revalidatePath } = await import("next/cache")
   revalidatePath("/settings")
-  revalidatePath("/settings/general")
 
   return { ok: true }
 }
@@ -261,7 +260,6 @@ export async function updateBusinessDetails(
   // Re-render /settings so the page immediately shows the saved values.
   const { revalidatePath } = await import("next/cache")
   revalidatePath("/settings")
-  revalidatePath("/settings/general")
 
   return { ok: true }
 }

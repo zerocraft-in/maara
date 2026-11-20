@@ -9,11 +9,12 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GalleryVerticalEnd, Settings } from "lucide-react";
 import { SettingsSidebar } from "./sidebar/settings-sidebar";
+import { PageHeaderProvider } from "@/components/providers/page-header-provider";
 
 function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
   return {
     title: group.label,
-    url: group.children[0]?.href ?? "#",
+    url: group.href,
     icon: group.icon,
     section: group.section,
     isActive: false,
@@ -45,6 +46,7 @@ export default function DashboardShell({
   } | null;
 }) {
   const pathname = usePathname();
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Controlled sidebar open state. Shopify Admin auto-condenses the global
   // nav on Settings routes to make room for the settings secondary sidebar.
@@ -52,6 +54,19 @@ export default function DashboardShell({
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
   const effectiveSidebarOpen = sidebarOpen && !isSettings;
+
+  React.useEffect(() => {
+    if (document.cookie.split("; ").includes("sidebar_state=false")) {
+      const timer = window.setTimeout(() => setSidebarOpen(false), 0);
+      return () => window.clearTimeout(timer);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    if (!isSettings) {
+      window.sessionStorage.setItem("maara-last-store-route", pathname);
+    }
+  }, [isSettings, pathname]);
 
   const sidebarData: AppSidebarData = React.useMemo(() => {
     const teams: AppSidebarData["teams"] = (memberships ?? []).map((m) => ({
@@ -120,14 +135,25 @@ export default function DashboardShell({
 
         {/* Settings secondary nav — only on /settings routes. Sits between the
             condensed global nav and the content, like Shopify Admin. */}
-        {isSettings && <SettingsSidebar user={headerUser} />}
+        {isSettings && (
+          <SettingsSidebar
+            user={headerUser}
+            organizationName={activeOrganization?.name ?? "Organization"}
+            storeName={activeOrganization?.name ?? "MAARA MERCH+"}
+          />
+        )}
 
         {/* SidebarInset is the only scroll container (document never scrolls).
             The header stays fixed above the scroll area, like Shopify. */}
-        <SidebarInset className="flex h-auto min-w-0 flex-col overflow-hidden">
+        <SidebarInset className="flex h-auto min-w-0 flex-col overflow-hidden bg-[var(--background)]">
          
-          <div className="min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-            {children}
+          <div
+            ref={scrollContainerRef}
+            className="min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden"
+          >
+            <PageHeaderProvider scrollContainerRef={scrollContainerRef}>
+              {children}
+            </PageHeaderProvider>
           </div>
         </SidebarInset>
       </SidebarProvider>
