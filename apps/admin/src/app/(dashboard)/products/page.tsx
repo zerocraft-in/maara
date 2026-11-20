@@ -1,11 +1,14 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   requireOrganization,
   NO_ACTIVE_MEMBERSHIP_ERROR,
 } from "@/lib/auth/session";
-import ProductsManager from "./products-manager";
+
+import ProductsManager from "./_components/products-manager";
+import { PageHeader } from "@/components/layout/page-header";
+import { Button } from "@/components/ui/button";
 
 async function requireOrganizationOrRedirect() {
   try {
@@ -17,6 +20,7 @@ async function requireOrganizationOrRedirect() {
     ) {
       redirect("/onboarding");
     }
+
     throw error;
   }
 }
@@ -25,6 +29,7 @@ export default async function ProductsPage() {
   const context = await requireOrganizationOrRedirect();
 
   const organizationId = context.activeOrganization?.id;
+
   if (!organizationId) {
     redirect("/onboarding");
   }
@@ -34,9 +39,30 @@ export default async function ProductsPage() {
   }
 
   return (
-    <ProductsManager
-      organizationId={organizationId}
-      permissions={context.permissions}
-    />
+    <PageHeader
+      actions={
+        <div className="flex flex-col gap-1 sm:flex-row sm:items-center">
+          <Button variant="outline" size="sm">
+            Import
+          </Button>
+
+          <Button variant="outline" size="sm">
+            Export
+          </Button>
+
+          <Button
+            size="sm"
+            render={<Link href="/products/new" />}
+          >
+            Add product
+          </Button>
+        </div>
+      }
+    >
+      <ProductsManager
+        organizationId={organizationId}
+        permissions={context.permissions}
+      />
+    </PageHeader>
   );
 }

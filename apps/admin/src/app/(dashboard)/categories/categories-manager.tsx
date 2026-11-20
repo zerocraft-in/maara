@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import { archiveCategory, setCategoryStatus } from "./actions";
 import CategoryForm from "./category-form";
@@ -68,10 +68,10 @@ export default function CategoriesManager({
     try {
       const result = await archiveCategory({ id: categoryId });
       if (result.ok) {
-        toast.success("Category archived.");
+        toast.add({ title: "Category archived.", type: "success" });
         await router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setIsArchiving(null);
@@ -86,12 +86,10 @@ export default function CategoriesManager({
     try {
       const result = await setCategoryStatus({ id: categoryId, status });
       if (result.ok) {
-        toast.success(
-          status === "active" ? "Category reactivated." : "Category archived.",
-        );
+        toast.add({ title: status === "active" ? "Category reactivated." : "Category archived.", type: "success" });
         await router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setIsChangingStatus(null);
@@ -302,7 +300,7 @@ export default function CategoriesManager({
           mode="create"
           onSuccess={() => {
             setShowCreateForm(false);
-            toast.success("Category created successfully.");
+            toast.add({ title: "Category created successfully.", type: "success" });
             void router.refresh();
           }}
           onClose={() => setShowCreateForm(false)}
@@ -320,7 +318,7 @@ export default function CategoriesManager({
           }}
           onSuccess={() => {
             setEditingCategory(null);
-            toast.success("Category updated successfully.");
+            toast.add({ title: "Category updated successfully.", type: "success" });
             void router.refresh();
           }}
           onClose={() => setEditingCategory(null)}

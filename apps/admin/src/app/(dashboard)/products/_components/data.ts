@@ -7,7 +7,7 @@ import type {
   ProductOption,
   ProductImage,
   Collection,
-} from "./types";
+} from "../types";
 
 export type SupabaseClient = Awaited<
   ReturnType<typeof createServerSupabaseClient>

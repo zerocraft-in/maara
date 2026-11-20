@@ -114,7 +114,7 @@ export function SettingsSidebar({
   };
 
   return (
-    <aside className="flex h-full w-60 shrink-0 flex-col border-r border-border bg-sidebar text-sidebar-foreground">
+    <aside className="flex h-full w-60 shrink-0 flex-col bg-sidebar text-sidebar-foreground">
       <div className="shrink-0 border-b border-sidebar-border px-3 py-3">
         <button
           type="button"

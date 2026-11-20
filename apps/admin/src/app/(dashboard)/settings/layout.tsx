@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { SettingsLayoutClient } from "./settings-layout-client";
+import { PageHeader } from "@/components/layout/page-header";
 
 /**
  * Settings page layout.
@@ -11,8 +12,10 @@ import { SettingsLayoutClient } from "./settings-layout-client";
  */
 export default function SettingsLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="mx-auto flex w-full min-w-0 flex-col">
+    <PageHeader>
+      <div className="mx-auto flex w-full min-w-0 flex-col">
       <SettingsLayoutClient>{children}</SettingsLayoutClient>
     </div>
+    </PageHeader>
   );
 }

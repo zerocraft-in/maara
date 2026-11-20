@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Archive, Edit, Eye,  } from "lucide-react";
 import Link from "next/link";
-import type { ProductRow, VariantRow } from "./types";
+import type { ProductRow, VariantRow } from "../types";
 
 export type ProductColumnCtx = {
   canUpdate: boolean;

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import {
   Dialog,
@@ -220,7 +220,7 @@ export function MediaPicker({
       setNextCursor(data.nextCursor ?? null);
       setHasMore(Boolean(data.hasMore));
     } catch {
-      toast.error("Failed to load more files.");
+      toast.add({ title: "Failed to load more files.", type: "error" });
     } finally {
       setIsNextLoading(false);
     }
@@ -390,7 +390,7 @@ export function MediaPicker({
         prev.map((i) => (i.id === item.id ? { ...i, status: "done", progress: 100 } : i)),
       );
       await loadFiles(true);
-      toast.success(`“${file.name}” uploaded.`);
+      toast.add({ title: `“${file.name}” uploaded.`, type: "success" });
     } catch (err) {
       setUploads((prev) =>
         prev.map((i) =>
@@ -399,7 +399,7 @@ export function MediaPicker({
             : i,
         ),
       );
-      toast.error(`Failed to upload “${file.name}”.`);
+      toast.add({ title: `Failed to upload “${file.name}”.`, type: "error" });
     }
   };
 
@@ -409,17 +409,17 @@ export function MediaPicker({
       if (result.ok) {
         setFiles((prev) => prev.filter((f) => f.id !== mediaId));
         setSelectedIds((prev) => { const n = new Set(prev); n.delete(mediaId); return n; });
-        toast.success("File deleted.");
+        toast.add({ title: "File deleted.", type: "success" });
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } catch {
-      toast.error("Failed to delete file.");
+      toast.add({ title: "Failed to delete file.", type: "error" });
     }
   };
 
   const copyUrl = (url: string) => {
-    navigator.clipboard.writeText(url).then(() => toast.success("URL copied."));
+    navigator.clipboard.writeText(url).then(() => toast.add({ title: "URL copied.", type: "success" }));
   };
 
   const handleDrop = (accepted: File[]) => {

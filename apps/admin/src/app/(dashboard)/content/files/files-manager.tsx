@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -229,7 +229,7 @@ export default function FilesManager({
       setNextCursor(data.nextCursor ?? null);
       setHasMore(Boolean(data.hasMore));
     } catch (err) {
-      toast.error("Failed to load more files.");
+      toast.add({ title: "Failed to load more files.", type: "error" });
     } finally {
       setIsNextLoading(false);
     }
@@ -384,7 +384,7 @@ export default function FilesManager({
         ),
       );
       await loadFiles(true);
-      toast.success(`“${file.name}” uploaded.`);
+      toast.add({ title: `“${file.name}” uploaded.`, type: "success" });
     } catch (err) {
       setUploads((prev) =>
         prev.map((i) =>
@@ -397,7 +397,7 @@ export default function FilesManager({
             : i,
         ),
       );
-      toast.error(`Failed to upload “${file.name}”.`);
+      toast.add({ title: `Failed to upload “${file.name}”.`, type: "error" });
     }
   };
 
@@ -418,7 +418,7 @@ export default function FilesManager({
 
   const handleDrop = (accepted: File[]) => {
     if (!canCreate) {
-      toast.error("You do not have permission to upload files.");
+      toast.add({ title: "You do not have permission to upload files.", type: "error" });
       return;
     }
     startUploads(accepted);
@@ -438,12 +438,12 @@ export default function FilesManager({
         setDeleteOpen(false);
         setDeleteMediaId("");
         setDeleteName("");
-        toast.success("File deleted.");
+        toast.add({ title: "File deleted.", type: "success" });
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to delete file.");
+      toast.add({ title: err instanceof Error ? err.message : "Failed to delete file.", type: "error" });
     }
   };
 
@@ -459,17 +459,17 @@ export default function FilesManager({
           setFiles((prev) => prev.filter((f) => f.id !== file.id));
         } else {
           failed++;
-          toast.error(`Failed to delete “${file.name}”: ${result.error}`);
+          toast.add({ title: `Failed to delete “${file.name}”: ${result.error}`, type: "error" });
         }
       } catch {
         failed++;
-        toast.error(`Failed to delete “${file.name}”.`);
+        toast.add({ title: `Failed to delete “${file.name}”.`, type: "error" });
       }
     }
     setSelectedIds(new Set());
     setBulkDeleteOpen(false);
-    if (succeeded) toast.success(`${succeeded} file(s) deleted.`);
-    if (failed) toast.error(`${failed} file(s) failed to delete.`);
+    if (succeeded)     toast.add({ title: `${succeeded} file(s) deleted.`, type: "success" });
+    if (failed)     toast.add({ title: `${failed} file(s) failed to delete.`, type: "error" });
     await loadFiles(true);
   };
 
@@ -489,18 +489,18 @@ export default function FilesManager({
         setRenameOpen(false);
         setRenameMediaId("");
         setRenameName("");
-        toast.success("File renamed.");
+        toast.add({ title: "File renamed.", type: "success" });
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Failed to rename file.");
+      toast.add({ title: err instanceof Error ? err.message : "Failed to rename file.", type: "error" });
     }
   };
 
   const copyUrl = (url: string) => {
     navigator.clipboard.writeText(url).then(() => {
-      toast.success("URL copied to clipboard.");
+      toast.add({ title: "URL copied to clipboard.", type: "success" });
     });
   };
 
@@ -521,7 +521,7 @@ export default function FilesManager({
 
   const handleUploadClick = () => {
     if (!canCreate) {
-      toast.error("You do not have permission to upload files.");
+      toast.add({ title: "You do not have permission to upload files.", type: "error" });
       return;
     }
     const input = document.getElementById("file-upload-input") as

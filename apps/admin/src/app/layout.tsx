@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import type * as React from "react";
 import { Inter, JetBrains_Mono, Manrope } from "next/font/google";
 
-import { Toaster } from "@/components/ui/sonner";
+import { Toaster } from "@/components/ui/toast";
 
 import "./globals.css";
 
@@ -55,9 +55,9 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${manrope.variable} ${jetbrainsMono.variable}`}
     >
-      <body className="relative min-h-dvh bg-background font-sans text-[13px] leading-5 overscroll-none text-foreground antialiased">
+      <body className="relative min-h-dvh bg-sidebar font-sans text-[13px] leading-5 overscroll-none text-foreground antialiased">
         {children}
-        <Toaster position="bottom-right" richColors closeButton />
+        <Toaster />
       </body>
     </html>
   );

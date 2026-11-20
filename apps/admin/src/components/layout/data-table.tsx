@@ -9,4 +9,4 @@
  * continue to resolve without duplicating the component.
  */
 
-export { DataTable } from "@/app/(dashboard)/products/data-table";
+export { DataTable } from "@/app/(dashboard)/products/_components/data-table";

@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import {
   Package,
   Tag,
@@ -129,10 +129,10 @@ export default function ProductDetail({
     try {
       const result = await archiveProduct({ id: product.id });
       if (result.ok) {
-        toast.success("Product archived.");
+        toast.add({ title: "Product archived.", type: "success" });
         router.push("/products");
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setIsArchiving(false);
@@ -144,12 +144,10 @@ export default function ProductDetail({
     try {
       const result = await setProductStatus({ id: product.id, status });
       if (result.ok) {
-        toast.success(
-          status === "active" ? "Product activated." : "Product set to draft.",
-        );
+        toast.add({ title: status === "active" ? "Product activated." : "Product set to draft.", type: "success" });
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setIsChangingStatus(null);

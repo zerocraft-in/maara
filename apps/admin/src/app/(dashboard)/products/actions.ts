@@ -52,26 +52,26 @@ const productBaseSchema = z.object({
     .string()
     .trim()
     .max(2000, "Description must be at most 2000 characters")
-    .optional()
-    .or(z.literal("")),
+    .nullable()
+    .optional(),
   handle: z
     .string()
     .trim()
     .max(255, "Handle must be at most 255 characters")
-    .optional()
-    .or(z.literal("")),
+    .nullable()
+    .optional(),
   vendor: z
     .string()
     .trim()
     .max(100, "Vendor must be at most 100 characters")
-    .optional()
-    .or(z.literal("")),
+    .nullable()
+    .optional(),
   product_type: z
     .string()
     .trim()
     .max(100, "Product type must be at most 100 characters")
-    .optional()
-    .or(z.literal("")),
+    .nullable()
+    .optional(),
   tags: z.array(z.string()).default([]),
   tax_rate_bps: z
     .number()
@@ -82,10 +82,10 @@ const productBaseSchema = z.object({
   requires_shipping: z.boolean(),
   weight_grams: z.number().int().min(0).nullable(),
   weight_unit: z.enum(["g", "kg", "oz", "lb"]).default("g"),
-  hs_code: z.string().trim().max(20).optional().or(z.literal("")),
-  country_of_origin: z.string().trim().length(2).optional().or(z.literal("")),
-  seo_title: z.string().trim().max(70).optional().or(z.literal("")),
-  seo_description: z.string().trim().max(320).optional().or(z.literal("")),
+  hs_code: z.string().trim().max(20).nullable().optional(),
+  country_of_origin: z.string().trim().length(2).nullable().optional(),
+  seo_title: z.string().trim().max(70).nullable().optional(),
+  seo_description: z.string().trim().max(320).nullable().optional(),
   published_scope: z.enum(["web", "global"]).default("web"),
   status: z.enum(["draft", "active", "archived"]),
   options: z

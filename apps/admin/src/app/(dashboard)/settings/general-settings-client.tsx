@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -109,8 +109,8 @@ export function GeneralSettingsClient({
         archive,
         currency,
       });
-      toast.success("Settings saved");
-    } else toast.error(result.error);
+      toast.add({ title: "Settings saved", type: "success" });
+    } else toast.add({ title: result.error, type: "error" });
   }
 
   function discardChanges() {
@@ -421,7 +421,12 @@ export function GeneralSettingsClient({
               <SettingsRow
                 icon="Activity"
                 label="Keyboard shortcuts"
-                onClick={() => toast.info("Keyboard shortcuts are coming soon")}
+                onClick={() =>
+                  toast.add({
+                    title: "Keyboard shortcuts are coming soon",
+                    type: "info",
+                  })
+                }
               />
               <SettingsRow
                 icon="Activity"
@@ -451,7 +456,10 @@ export function GeneralSettingsClient({
             <Button
               size="sm"
               onClick={() =>
-                toast.info("Transfer workflow is not available yet")
+                toast.add({
+                  title: "Transfer workflow is not available yet",
+                  type: "info",
+                })
               }
             >
               Manage

@@ -10,4 +10,4 @@
  * duplicating the component.
  */
 
-export { default as ProductsManager } from "@/app/(dashboard)/products/products-manager";
+export { default as ProductsManager } from "@/app/(dashboard)/products/_components/products-manager";

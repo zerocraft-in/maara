@@ -2,14 +2,14 @@
 
 import * as React from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import {
   archiveProduct,
   setProductStatus,
   bulkArchiveProducts,
   bulkSetProductStatus,
-} from "./actions";
+} from "../actions";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -23,7 +23,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-  DropdownMenuSeparator,
   DropdownMenuCheckboxItem,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -48,14 +47,12 @@ import {
   Filter,
   Plus,
   MoreHorizontal,
-  ChevronDown,
 } from "lucide-react";
 
 import { DataTable } from "./data-table";
 import { buildColumns, type ProductColumnCtx } from "./columns";
-import { ProductsHeader } from "./header";
 import type { ColumnDef } from "@tanstack/react-table";
-import type { ProductRow, StatusFilter } from "./types";
+import type { ProductRow, StatusFilter } from "../types";
 
 type ProductTableColumns = ColumnDef<ProductRow, unknown>[];
 
@@ -252,7 +249,7 @@ export default function ProductsManager({
     // No dedicated bulk-edit page exists yet; open the first selected product
     // for editing and surface the selection count.
     router.push(`/products/${selectedProducts[0]}`);
-    toast.info(`Edit ${selectedProducts.length} selected product(s).`);
+    toast.add({ title: `Edit ${selectedProducts.length} selected product(s).`, type: "info" });
   };
 
   const handleBulkArchive = async () => {
@@ -263,10 +260,10 @@ export default function ProductsManager({
     try {
       const result = await bulkArchiveProducts({ ids: selectedProducts });
       if (result.ok) {
-        toast.success(`${selectedProducts.length} product(s) archived.`);
+        toast.add({ title: `${selectedProducts.length} product(s) archived.`, type: "success" });
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setSelectedProducts([]);
@@ -282,10 +279,10 @@ export default function ProductsManager({
         status: "active",
       });
       if (result.ok) {
-        toast.success(`${selectedProducts.length} product(s) published.`);
+        toast.add({ title: `${selectedProducts.length} product(s) published.`, type: "success" });
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setSelectedProducts([]);
@@ -297,6 +294,28 @@ export default function ProductsManager({
   // ---- Bulk selection toolbar ----
 
   const countLabel = `${selectedProducts.length} selected`;
+
+  const handleBulkStatusChange = async (status: "draft" | "active") => {
+    if (selectedProducts.length === 0) return;
+
+    try {
+      const result = await bulkSetProductStatus({
+        ids: selectedProducts,
+        status,
+      });
+      if (result.ok) {
+        toast.add({
+          title: `${selectedProducts.length} product(s) set to ${status}.`,
+          type: "success",
+        });
+        router.refresh();
+      } else {
+        toast.add({ title: result.error, type: "error" });
+      }
+    } finally {
+      setSelectedProducts([]);
+    }
+  };
 
   const bulkToolbar = (
     <div className="flex items-center justify-between">
@@ -398,26 +417,6 @@ export default function ProductsManager({
       </div>
     </div>
   );
-  const handleBulkStatusChange = async (status: "draft" | "active") => {
-    if (selectedProducts.length === 0) return;
-
-    try {
-      const result = await bulkSetProductStatus({
-        ids: selectedProducts,
-        status,
-      });
-      if (result.ok) {
-        toast.success(
-          `${selectedProducts.length} product(s) set to ${status}.`,
-        );
-        router.refresh();
-      } else {
-        toast.error(result.error);
-      }
-    } finally {
-      setSelectedProducts([]);
-    }
-  };
 
   const handleArchive = async (productId: string, productName: string) => {
     if (!window.confirm(`Archive "${productName}"?`)) return;
@@ -425,13 +424,13 @@ export default function ProductsManager({
     try {
       const result = await archiveProduct({ id: productId });
       if (result.ok) {
-        toast.success("Product archived.");
+        toast.add({ title: "Product archived.", type: "success" });
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } catch {
-      toast.error("Failed to archive product.");
+      toast.add({ title: "Failed to archive product.", type: "error" });
     }
   };
 
@@ -442,15 +441,13 @@ export default function ProductsManager({
     try {
       const result = await setProductStatus({ id: productId, status });
       if (result.ok) {
-        toast.success(
-          status === "active" ? "Product published." : "Product set to draft.",
-        );
+        toast.add({ title: status === "active" ? "Product published." : "Product set to draft.", type: "success" });
         router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } catch {
-      toast.error("Failed to change product status.");
+      toast.add({ title: "Failed to change product status.", type: "error" });
     }
   };
 
@@ -524,16 +521,10 @@ export default function ProductsManager({
   }
 
   return (
-    <div className="relative mx-auto flex flex-col px-4 space-y-6">
-      {/* Header */}
-      <ProductsHeader
-        canCreate={canCreate}
-        onAddProduct={() => router.push("/products/new")}
-      />
-
+    <div className="relative mx-auto flex flex-col px-4 py-10 space-y-6">
       <div className="flex flex-col gap-2.5">
         <Card className="overflow-hidden space-y-0! py-0! gap-0">
-          <CardHeader className="border-b p-1.5!">
+          <CardHeader className="p-1.5!">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
               <Select
                 value={statusFilter}

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import {
   archiveLocation,
@@ -105,10 +105,10 @@ export default function LocationsManager({
     try {
       const result = await archiveLocation({ id: locationId });
       if (result.ok) {
-        toast.success("Location archived.");
+        toast.add({ title: "Location archived.", type: "success" });
         await router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setIsArchiving(null);
@@ -126,10 +126,10 @@ export default function LocationsManager({
         location_id: locationId,
       });
       if (result.ok) {
-        toast.success("User assigned to location.");
+        toast.add({ title: "User assigned to location.", type: "success" });
         await router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setIsAssigning(null);
@@ -147,10 +147,10 @@ export default function LocationsManager({
         location_id: locationId,
       });
       if (result.ok) {
-        toast.success("User unassigned from location.");
+        toast.add({ title: "User unassigned from location.", type: "success" });
         await router.refresh();
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } finally {
       setIsAssigning(null);
@@ -385,7 +385,7 @@ export default function LocationsManager({
           mode="create"
           onSuccess={() => {
             setShowCreateForm(false);
-            toast.success("Location created successfully.");
+            toast.add({ title: "Location created successfully.", type: "success" });
             void router.refresh();
           }}
           onClose={() => setShowCreateForm(false)}
@@ -405,7 +405,7 @@ export default function LocationsManager({
           }}
           onSuccess={() => {
             setEditingLocation(null);
-            toast.success("Location updated successfully.");
+            toast.add({ title: "Location updated successfully.", type: "success" });
             void router.refresh();
           }}
           onClose={() => setEditingLocation(null)}

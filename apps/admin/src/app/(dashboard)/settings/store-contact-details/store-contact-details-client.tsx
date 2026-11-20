@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import {
   Card,
   CardContent,
@@ -52,10 +52,10 @@ export function StoreContactDetailsClient({ org }: { org: Org }) {
     const result = await updateStoreContact(values);
     setSaving(false);
     if (!result.ok) {
-      toast.error(result.error);
+      toast.add({ title: result.error, type: "error" });
       return;
     }
-    toast.success("Store contact details saved");
+    toast.add({ title: "Store contact details saved", type: "success" });
     setSaved({ ...values });
   }
 

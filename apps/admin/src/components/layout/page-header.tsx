@@ -14,6 +14,23 @@ import {
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
+const PageHeaderScrollContainerContext =
+  React.createContext<React.RefObject<HTMLDivElement | null> | null>(null);
+
+export function PageHeaderScrollContainerProvider({
+  children,
+  scrollContainerRef,
+}: {
+  children: React.ReactNode;
+  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  return (
+    <PageHeaderScrollContainerContext.Provider value={scrollContainerRef}>
+      {children}
+    </PageHeaderScrollContainerContext.Provider>
+  );
+}
+
 type PageHeaderConfig = {
   parentLabel: string;
   parentHref: string;
@@ -30,6 +47,7 @@ function humanize(value: string) {
 
 function getConfig(pathname: string): PageHeaderConfig | null {
   const segments = pathname.split("/").filter(Boolean);
+
   if (segments.length === 0) return null;
 
   const root = segments[0];
@@ -37,6 +55,7 @@ function getConfig(pathname: string): PageHeaderConfig | null {
   const parentHref = `/${root}`;
   const icon = root === "settings" ? Settings2 : Package;
   const isNested = segments.length > 1;
+
   const title =
     pathname === "/products/new"
       ? "Add product"
@@ -44,47 +63,96 @@ function getConfig(pathname: string): PageHeaderConfig | null {
         ? humanize(segments[segments.length - 1])
         : parentLabel;
 
-  return { parentLabel, parentHref, title, icon, showBack: isNested };
+  return {
+    parentLabel,
+    parentHref,
+    title,
+    icon,
+    showBack: isNested,
+  };
 }
 
-export function PageHeaderProvider({
+/** Reusable route-level layout for pages that need the Shopify-style header. */
+export function PageHeader({
+  title,
+  breadcrumb,
+  actions,
   children,
+  className,
   scrollContainerRef,
 }: {
+  title?: string;
+  breadcrumb?: {
+    title: string;
+    url: string;
+  };
   children: React.ReactNode;
-  scrollContainerRef: React.RefObject<HTMLDivElement | null>;
+  actions?: React.ReactNode;
+  className?: string;
+  scrollContainerRef?: React.RefObject<HTMLDivElement | null>;
 }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  const contextScrollContainerRef = React.useContext(
+    PageHeaderScrollContainerContext,
+  );
+
+  const activeScrollContainerRef =
+    scrollContainerRef ?? contextScrollContainerRef;
+
   const config = React.useMemo(() => getConfig(pathname), [pathname]);
+
   const PageIcon = config?.icon ?? Package;
   const [isScrolled, setIsScrolled] = React.useState(false);
 
   React.useEffect(() => {
-    const scrollContainer = scrollContainerRef.current;
-    if (!scrollContainer) return;
+    const scrollContainer = activeScrollContainerRef?.current;
 
-    const sync = () => setIsScrolled(scrollContainer.scrollTop > 24);
+    if (!scrollContainer) {
+      setIsScrolled(false);
+      return;
+    }
+
+    const sync = () => {
+      setIsScrolled(scrollContainer.scrollTop > 24);
+    };
+
     sync();
-    scrollContainer.addEventListener("scroll", sync, { passive: true });
 
-    return () => scrollContainer.removeEventListener("scroll", sync);
-  }, [scrollContainerRef, pathname]);
+    scrollContainer.addEventListener("scroll", sync, {
+      passive: true,
+    });
+
+    return () => {
+      scrollContainer.removeEventListener("scroll", sync);
+    };
+  }, [activeScrollContainerRef, pathname]);
 
   React.useEffect(() => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: "auto" });
-  }, [pathname, scrollContainerRef]);
+    activeScrollContainerRef?.current?.scrollTo({
+      top: 0,
+      behavior: "auto",
+    });
+  }, [pathname, activeScrollContainerRef]);
+
+  if (!config) {
+    return <>{children}</>;
+  }
+
+  const headerTitle = title ?? breadcrumb?.title ?? config.title;
 
   return (
     <>
-      {config && (
-        <header
-          className={cn(
-            "sticky top-0 z-10 flex h-12 items-center overflow-hidden border-border bg-white px-4 transition-[border-color,box-shadow] duration-200",
-            isScrolled ? "border-b" : "border-b-0",
-          )}
-        >
-          <div className="flex items-center gap-2">
+      <header
+        className={cn(
+          "sticky top-0 z-10 flex h-12 items-center overflow-hidden border-border bg-primary-foreground px-4",
+          isScrolled ? "border-b" : "border-b-0",
+          className,
+        )}
+      >
+        <div className="flex w-full items-center justify-between gap-2">
+          <div className="flex min-w-0 items-center gap-2">
             {config.showBack && (
               <Tooltip>
                 <TooltipTrigger
@@ -110,8 +178,9 @@ export function PageHeaderProvider({
               className="flex min-w-0 items-center gap-1.5 text-sm text-muted-foreground"
             >
               <PageIcon className="size-4 shrink-0" aria-hidden="true" />
+
               <Link
-                href={config.parentHref}
+                href={breadcrumb?.url ?? config.parentHref}
                 className="font-medium text-body transition-colors hover:text-foreground"
               >
                 {config.parentLabel}
@@ -124,20 +193,26 @@ export function PageHeaderProvider({
                     opacity: isScrolled ? 1 : 0,
                     y: isScrolled ? 0 : 6,
                   }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  transition={{
+                    duration: 0.2,
+                    ease: "easeOut",
+                  }}
                   aria-hidden={!isScrolled}
                   className="flex min-w-0 items-center gap-1.5 px-2"
                 >
                   <span aria-hidden="true">/</span>
                   <span className="truncate font-medium text-body">
-                    {config.title}
+                    {headerTitle}
                   </span>
                 </motion.div>
               )}
             </nav>
           </div>
-        </header>
-      )}
+
+          {actions}
+        </div>
+      </header>
+
       {children}
     </>
   );

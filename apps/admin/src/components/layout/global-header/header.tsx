@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { LogOut, User } from "lucide-react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import {
   DropdownMenu,
@@ -49,13 +49,13 @@ export function Header({ title, user }: HeaderProps) {
       const { error } = await supabase.auth.signOut();
 
       if (error) {
-        toast.error("Unable to sign out. Please try again.");
+        toast.add({ title: "Unable to sign out. Please try again.", type: "error" });
         return;
       }
 
       router.replace("/login");
     } catch {
-      toast.error("Unable to sign out. Please try again.");
+      toast.add({ title: "Unable to sign out. Please try again.", type: "error" });
     } finally {
       setLogoutLoading(false);
     }

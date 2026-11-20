@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm, useFormState, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -460,7 +460,7 @@ export function AboutYourBusinessDrawer({
         Number(values.dobDay),
       );
       if (isNaN(dob.getTime()) || dob.getDate() !== Number(values.dobDay)) {
-        toast.error("Enter a valid date of birth.");
+        toast.add({ title: "Enter a valid date of birth.", type: "error" });
         return;
       }
 
@@ -490,17 +490,17 @@ export function AboutYourBusinessDrawer({
       });
 
       if (!result.ok) {
-        toast.error(result.error ?? "Unable to save.");
+        toast.add({ title: result.error ?? "Unable to save.", type: "error" });
         return;
       }
 
-      toast.success("Business details saved.");
+      toast.add({ title: "Business details saved.", type: "success" });
       setSubmitAttempted(false);
       form.reset(values); // mark form clean, then close
       router.refresh();
       onOpenChange(false);
     } catch {
-      toast.error("Unable to save. Please try again.");
+      toast.add({ title: "Unable to save. Please try again.", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -974,7 +974,13 @@ export function AboutYourBusinessDrawer({
                               <SectionCard>
                                 <button
                                   type="button"
-                                  onClick={() => toast.info("People can be added after the business profile is saved.")}
+                                  onClick={() =>
+                                    toast.add({
+                                      title:
+                                        "People can be added after the business profile is saved.",
+                                      type: "info",
+                                    })
+                                  }
                                   className="flex w-full items-center gap-3 text-left text-sm font-medium text-foreground"
                                 >
                                   <span className="flex size-7 items-center justify-center rounded-full border border-border">

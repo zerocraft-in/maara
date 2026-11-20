@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { toast } from "sonner";
+import { toast } from "@/components/ui/toast";
 
 import {
   Dialog,
@@ -87,12 +87,12 @@ export function MediaAssetDetails({
       });
       if (result.ok) {
         onRename?.(asset.id, renameName.trim());
-        toast.success("File renamed.");
+        toast.add({ title: "File renamed.", type: "success" });
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } catch {
-      toast.error("Failed to rename file.");
+      toast.add({ title: "Failed to rename file.", type: "error" });
     } finally {
       setIsRenaming(false);
       setRenameOpen(false);
@@ -105,12 +105,12 @@ export function MediaAssetDetails({
       const result = await deleteMediaFile({ mediaId: asset.id });
       if (result.ok) {
         onDelete?.(asset.id);
-        toast.success("File deleted.");
+        toast.add({ title: "File deleted.", type: "success" });
       } else {
-        toast.error(result.error);
+        toast.add({ title: result.error, type: "error" });
       }
     } catch {
-      toast.error("Failed to delete file.");
+      toast.add({ title: "Failed to delete file.", type: "error" });
     } finally {
       setIsDeleting(false);
       setDeleteOpen(false);
@@ -127,7 +127,7 @@ export function MediaAssetDetails({
 
   const copyUrl = () => {
     navigator.clipboard.writeText(asset.url).then(() => {
-      toast.success("URL copied to clipboard.");
+      toast.add({ title: "URL copied to clipboard.", type: "success" });
     });
   };
 

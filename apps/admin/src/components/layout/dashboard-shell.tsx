@@ -9,7 +9,27 @@ import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { GalleryVerticalEnd, Settings } from "lucide-react";
 import { SettingsSidebar } from "./sidebar/settings-sidebar";
-import { PageHeaderProvider } from "@/components/providers/page-header-provider";
+import {
+  PageHeaderScrollContainerProvider,
+} from "@/components/layout/page-header";
+
+function readSidebarState(pathname: string): boolean {
+  if (typeof document !== "undefined") {
+    const cookie = document.cookie
+      .split("; ")
+      .find((value) => value.startsWith("maara_sidebar_state="))
+      ?.split("=")[1];
+
+    if (cookie === "true") return true;
+    if (cookie === "false") return false;
+
+    const storedState = window.localStorage.getItem("maara-sidebar-state");
+    if (storedState === "true") return true;
+    if (storedState === "false") return false;
+  }
+
+  return !pathname.startsWith("/products/new");
+}
 
 function navGroupToNavItem(group: NavGroup): AppSidebarData["navMain"][number] {
   return {
@@ -50,17 +70,31 @@ export default function DashboardShell({
 
   // Controlled sidebar open state. Shopify Admin auto-condenses the global
   // nav on Settings routes to make room for the settings secondary sidebar.
-  const [sidebarOpen, setSidebarOpen] = React.useState(true);
+  // Shopify's product editor uses the compact global nav to keep the form
+  // centered. Keep the wider navigation everywhere else so existing pages do
+  // not change their established working layout.
+  // Keep the server and first client render identical. Persisted browser
+  // state is applied in the effect below after hydration is complete.
+  const [sidebarOpen, setSidebarOpen] = React.useState(
+    !pathname.startsWith("/products/new"),
+  );
+  const [sidebarReady, setSidebarReady] = React.useState(false);
   const isSettings =
     pathname === "/settings" || pathname.startsWith("/settings/");
   const effectiveSidebarOpen = sidebarOpen && !isSettings;
+  const handleSidebarOpenChange = React.useCallback((open: boolean) => {
+    setSidebarOpen(open);
+    window.localStorage.setItem("maara-sidebar-state", String(open));
+  }, []);
 
   React.useEffect(() => {
-    if (document.cookie.split("; ").includes("sidebar_state=false")) {
-      const timer = window.setTimeout(() => setSidebarOpen(false), 0);
-      return () => window.clearTimeout(timer);
-    }
-  }, []);
+    const hydrationId = window.setTimeout(() => {
+      setSidebarOpen(readSidebarState(pathname));
+      setSidebarReady(true);
+    }, 0);
+
+    return () => window.clearTimeout(hydrationId);
+  }, [pathname]);
 
   React.useEffect(() => {
     if (!isSettings) {
@@ -84,7 +118,7 @@ export default function DashboardShell({
       {
         title: "Settings",
         url: "/settings",
-        icon: Settings ,
+        icon: Settings,
       },
     ];
 
@@ -128,7 +162,8 @@ export default function DashboardShell({
     <TooltipProvider>
       <SidebarProvider
         open={effectiveSidebarOpen}
-        onOpenChange={setSidebarOpen}
+        onOpenChange={handleSidebarOpenChange}
+        style={{ visibility: sidebarReady ? "visible" : "hidden" }}
       >
         {/* Single persistent global sidebar — no remount flicker between routes. */}
         <AppSidebar variant="sidebar" collapsible="icon" data={sidebarData} />
@@ -145,15 +180,16 @@ export default function DashboardShell({
 
         {/* SidebarInset is the only scroll container (document never scrolls).
             The header stays fixed above the scroll area, like Shopify. */}
-        <SidebarInset className="flex h-auto min-w-0 flex-col overflow-hidden bg-[var(--background)]">
-         
+        <SidebarInset className="flex h-svh min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--background)]">
           <div
             ref={scrollContainerRef}
-            className="min-h-0 flex-1 overflow-y-auto [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden"
+            className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden"
           >
-            <PageHeaderProvider scrollContainerRef={scrollContainerRef}>
+            <PageHeaderScrollContainerProvider
+              scrollContainerRef={scrollContainerRef}
+            >
               {children}
-            </PageHeaderProvider>
+            </PageHeaderScrollContainerProvider>
           </div>
         </SidebarInset>
       </SidebarProvider>
