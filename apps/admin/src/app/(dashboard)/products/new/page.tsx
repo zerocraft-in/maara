@@ -148,6 +148,7 @@ export default function NewProductPage() {
   const onSubmit = async (values: ProductFormValues) => {
     if (!organizationId) return;
 
+    form.clearErrors();
     setIsSubmitting(true);
 
     // Cross-field validation: compare-at price vs price.
@@ -163,7 +164,6 @@ export default function NewProductPage() {
       form.setError("compare_at_price", {
         message: priceRelationshipErrors.compare_at_price!,
       });
-      toast.add({ title: "Review the highlighted fields before saving.", type: "error" });
       setIsSubmitting(false);
       return;
     }
@@ -171,7 +171,9 @@ export default function NewProductPage() {
     // Validate variants.
     const variantErrors = validateVariants(variants);
     if (Object.keys(variantErrors).length > 0) {
-      toast.add({ title: "Please fix variant errors before saving.", type: "error" });
+      form.setError("root.variants", {
+        message: "Please fix the variant errors before saving.",
+      });
       setIsSubmitting(false);
       return;
     }
@@ -222,7 +224,7 @@ export default function NewProductPage() {
       const result = await createProduct(payload);
 
       if (!result.ok) {
-        toast.add({ title: result.error, type: "error" });
+        form.setError("root.server", { message: result.error });
         return;
       }
 
@@ -265,7 +267,7 @@ export default function NewProductPage() {
         });
 
         if (!variantResult.ok) {
-          toast.add({ title: variantResult.error, type: "error" });
+          form.setError("root.server", { message: variantResult.error });
           return;
         }
       }
@@ -280,7 +282,7 @@ export default function NewProductPage() {
           position: index + 1,
         });
         if (!imageResult.ok) {
-          toast.add({ title: imageResult.error, type: "error" });
+          form.setError("root.server", { message: imageResult.error });
           return;
         }
       }
@@ -291,7 +293,9 @@ export default function NewProductPage() {
       toast.add({ title: "Product created.", type: "success" });
       router.push("/products");
     } catch {
-      toast.add({ title: "Please try again.", type: "error" });
+      form.setError("root.server", {
+        message: "Something went wrong while saving this product. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -308,7 +312,6 @@ export default function NewProductPage() {
     },
     onSave: () => {
       void form.handleSubmit(onSubmit, () => {
-        toast.add({ title: "Review the highlighted fields before saving.", type: "error" });
       })();
     },
   });
@@ -336,7 +339,6 @@ export default function NewProductPage() {
         <form
           id="product-form"
           onSubmit={form.handleSubmit(onSubmit, () => {
-            toast.add({ title: "Review the highlighted fields before saving.", type: "error" });
           })}
           className="grid gap-8 xl:grid-cols-[minmax(0,760px)_280px] xl:gap-12"
         >

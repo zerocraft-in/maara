@@ -300,21 +300,23 @@ export default function EditProductPage() {
 
       if (categoriesResult.error) {
         console.error("Failed to load categories:", categoriesResult.error);
-        toast.add({ title: "Failed to load categories", type: "error" });
+        form.setError("root.server", {
+          message: "Failed to load product categories.",
+        });
       } else {
         setCategories((categoriesResult.data ?? []) as CategoryOption[]);
       }
 
       if (productResult.error) {
         console.error("Failed to load product:", productResult.error);
-        toast.add({ title: "Failed to load product", type: "error" });
+        form.setError("root.server", { message: "Failed to load product." });
         router.push("/products");
         setLoading(false);
         return;
       }
 
       if (!productResult.data) {
-        toast.add({ title: "Product not found", type: "error" });
+        form.setError("root.server", { message: "Product not found." });
         router.push("/products");
         setLoading(false);
         return;
@@ -439,6 +441,7 @@ export default function EditProductPage() {
   const onSubmit = async (values: ProductFormValues) => {
     if (!organizationId) return;
 
+    form.clearErrors();
     setIsSubmitting(true);
 
     // Cross-field validation: compare-at price vs price.
@@ -450,7 +453,6 @@ export default function EditProductPage() {
       form.setError("compare_at_price", {
         message: "Compare-at price cannot be lower than price.",
       });
-      toast.add({ title: "Review the highlighted fields before saving.", type: "error" });
       setIsSubmitting(false);
       return;
     }
@@ -458,7 +460,9 @@ export default function EditProductPage() {
     // Validate variants.
     const variantErrors = validateVariants(variants);
     if (Object.keys(variantErrors).length > 0) {
-      toast.add({ title: "Please fix variant errors before saving.", type: "error" });
+      form.setError("root.variants", {
+        message: "Please fix the variant errors before saving.",
+      });
       setIsSubmitting(false);
       return;
     }
@@ -497,7 +501,7 @@ export default function EditProductPage() {
       const productResult = await updateProduct(payload);
 
       if (!productResult.ok) {
-        toast.add({ title: productResult.error, type: "error" });
+        form.setError("root.server", { message: productResult.error });
         return;
       }
 
@@ -542,7 +546,7 @@ export default function EditProductPage() {
             ...baseVariantInput,
           });
           if (!result.ok) {
-            toast.add({ title: result.error, type: "error" });
+            form.setError("root.server", { message: result.error });
             return;
           }
         } else {
@@ -551,7 +555,7 @@ export default function EditProductPage() {
             ...baseVariantInput,
           });
           if (!result.ok) {
-            toast.add({ title: result.error, type: "error" });
+            form.setError("root.server", { message: result.error });
             return;
           }
         }
@@ -594,7 +598,9 @@ export default function EditProductPage() {
       toast.add({ title: "changes saved.", type: "success" });
       router.push(`/products/${productId}`);
     } catch {
-      toast.add({ title: "Please try again.", type: "error" });
+      form.setError("root.server", {
+        message: "Something went wrong while saving this product. Please try again.",
+      });
     } finally {
       setIsSubmitting(false);
     }
@@ -611,7 +617,6 @@ export default function EditProductPage() {
     },
     onSave: () => {
       void form.handleSubmit(onSubmit, () => {
-        toast.add({ title: "Review the highlighted fields before saving.", type: "error" });
       })();
     },
   });
@@ -639,7 +644,6 @@ export default function EditProductPage() {
         <form
           id="product-form"
           onSubmit={form.handleSubmit(onSubmit, () => {
-            toast.add({ title: "Review the highlighted fields before saving.", type: "error" });
           })}
           className="grid gap-8 xl:grid-cols-[minmax(0,760px)_280px] xl:gap-12"
         >
