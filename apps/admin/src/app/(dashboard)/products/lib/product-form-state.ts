@@ -34,6 +34,8 @@ interface ProductFormState {
   updateOptionValue: (optionIndex: number, valueIndex: number, value: string) => void;
   addOptionValue: (optionIndex: number) => void;
   removeOptionValue: (optionIndex: number, valueIndex: number) => void;
+  moveOption: (fromIndex: number, toIndex: number) => void;
+  moveOptionValue: (optionIndex: number, fromIndex: number, toIndex: number) => void;
   regenerateVariants: () => void;
   setVariantField: (
     variantIndex: number,
@@ -138,6 +140,30 @@ export const useProductFormState = create<ProductFormState>()(
             (_, i) => i !== valueIndex,
           ),
         };
+        set({ options });
+        get().regenerateVariants();
+      },
+
+      moveOption: (fromIndex, toIndex) => {
+        const options = [...get().options];
+        if (fromIndex < 0 || fromIndex >= options.length) return;
+        if (toIndex < 0 || toIndex >= options.length) return;
+        if (fromIndex === toIndex) return;
+        const [removed] = options.splice(fromIndex, 1);
+        options.splice(toIndex, 0, removed);
+        set({ options });
+        get().regenerateVariants();
+      },
+
+      moveOptionValue: (optionIndex, fromIndex, toIndex) => {
+        const options = [...get().options];
+        const values = [...(options[optionIndex]?.values ?? [])];
+        if (fromIndex < 0 || fromIndex >= values.length) return;
+        if (toIndex < 0 || toIndex >= values.length) return;
+        if (fromIndex === toIndex) return;
+        const [removed] = values.splice(fromIndex, 1);
+        values.splice(toIndex, 0, removed);
+        options[optionIndex] = { ...options[optionIndex], values };
         set({ options });
         get().regenerateVariants();
       },

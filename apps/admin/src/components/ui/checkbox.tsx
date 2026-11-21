@@ -12,7 +12,7 @@ type CheckboxOnCheckedChange = NonNullable<
 >;
 
 interface CheckboxProps extends Omit<CheckboxRootProps, "onChange"> {
-  onChange?: (checked: boolean) => void;
+  onChange?: (checked?: boolean | "indeterminate") => void;
 }
 
 const Checkbox = React.forwardRef<

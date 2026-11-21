@@ -42,7 +42,7 @@ const leaf = (href: string, label: string, icon: LucideIcon): NavChild => ({
 
 export const NAV_GROUPS: NavGroup[] = [
   { id: "home", label: "Home", href: "/overview", icon: House, children: [] },
-  { id: "orders", label: "Orders", href: "/sales", icon: Inbox, children: [] },
+  { id: "orders", label: "Orders", href: "/orders", icon: Inbox, children: [] },
   {
     id: "products",
     label: "Products",
@@ -52,8 +52,8 @@ export const NAV_GROUPS: NavGroup[] = [
       leaf("/categories", "Collections", Tag),
       leaf("/inventory", "Inventory", Boxes),
       leaf("/purchases", "Purchase orders", Inbox),
-      leaf("/locations", "Transfers", Truck),
-      leaf("/products/gift-cards", "Gift cards", Package),
+      leaf("/transfers", "Transfers", Truck),
+      leaf("/gift_cards", "Gift cards", Package),
     ],
   },
   {
@@ -66,14 +66,14 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "growth",
     label: "Growth",
-    href: "/analytics",
+    href: "/growth",
     icon: Gauge,
     children: [],
   },
   {
     id: "discounts",
     label: "Discounts",
-    href: "/reports",
+    href: "/discounts",
     icon: BadgePercent,
     children: [],
   },
@@ -87,7 +87,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "markets",
     label: "Markets",
-    href: "/finance",
+    href: "/markets",
     icon: Globe,
     children: [],
   },
@@ -121,15 +121,7 @@ export const NAV_GROUPS: NavGroup[] = [
     icon: Receipt,
     section: "Sales channels",
     children: [],
-  },
-  {
-    id: "checkout-blocks",
-    label: "Checkout Blocks",
-    href: "/products",
-    icon: Box,
-    section: "Apps",
-    children: [],
-  },
+  }
 ];
 
 export const FOOTER_ITEMS: NavChild[] = [

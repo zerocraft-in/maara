@@ -1,565 +1,487 @@
 "use client";
 
 import * as React from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Switch } from "@/components/ui/switch";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import {
-  Plus,
-  Trash2,
-  X,
-  GripVertical,
-  AlertTriangle,
-} from "lucide-react";
+import { GripVertical, Plus, Trash2, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCenter,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
 import {
-  useProductFormState,
-} from "@/app/(dashboard)/products/lib/product-form-state";
-import type { VariantInput } from "@/app/(dashboard)/products/lib/product-schema";
-import { validateVariants } from "@/app/(dashboard)/products/lib/variant-generator";
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
+  MAX_OPTIONS,
+  VARIANT_LIMIT,
+  builderReducer,
+  cleanValues,
+  countCombos,
+  createInitialState,
+  optionHasErrors,
+  toPayload,
+  uid,
+  validateOption,
+  validateVariants,
+  type BuilderAction,
+  type OptionErrors,
+  type ProductOption,
+  type VariantBuilderValue,
+} from "../lib/variant-builder";
+import { VariantTable } from "./variant-table";
 
-const VARIANT_LIMIT = 100;
-
-interface VariantEditorProps {
-  onVariantChange?: (variants: VariantInput[]) => void;
+function useDndSensors() {
+  return useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
+  );
 }
 
-/**
- * Variant editor: manages product options and the generated variant matrix.
- *
- * - Up to 3 options (Size, Color, Material, …)
- * - Cartesian-product variant generation
- * - Per-variant SKU, barcode, price, compare-at, cost, quantity, weight
- * - Bulk-edit controls
- * - Field-level validation errors (duplicate SKU, bad barcode, etc.)
- */
-export function VariantEditor({ onVariantChange }: VariantEditorProps) {
+const dragStyle = (
+  transform: { x: number; y: number } | null,
+  transition: string | undefined,
+  isDragging: boolean,
+): React.CSSProperties => ({
+  transform: transform
+    ? `translate3d(${Math.round(transform.x)}px, ${Math.round(transform.y)}px, 0)`
+    : undefined,
+  transition,
+  zIndex: isDragging ? 20 : undefined,
+});
+
+/* ───────────────────────── value row ───────────────────────── */
+function ValueRow({
+  optionId,
+  value,
+  isTrailingBlank,
+  error,
+  dispatch,
+}: {
+  optionId: string;
+  value: { id: string; label: string };
+  isTrailingBlank: boolean;
+  error?: string;
+  dispatch: React.Dispatch<BuilderAction>;
+}) {
   const {
-    options,
-    variants,
-    addOption,
-    removeOption,
-    updateOptionName,
-    updateOptionValue,
-    addOptionValue,
-    removeOptionValue,
-    setVariantField,
-    removeVariant,
-    setVariantDefaults,
-  } = useProductFormState();
-
-  const [bulkOpen, setBulkOpen] = React.useState(false);
-  const [bulkField, setBulkField] = React.useState<keyof VariantInput>("price");
-  const [bulkValue, setBulkValue] = React.useState("");
-
-  // Derived during render (pure computation from variants).
-  const variantErrors = validateVariants(variants);
-  const variantsCount = variants.length;
-  const atLimit = variantsCount >= VARIANT_LIMIT;
-
-  const totalErrorCount = Object.values(variantErrors).reduce(
-    (acc, e) => acc + Object.keys(e).length,
-    0,
-  );
-
-  const handleBulkApply = () => {
-    if (!bulkValue) {
-      setBulkOpen(false);
-      return;
-    }
-    setVariantDefaults({ [bulkField]: bulkValue });
-    setBulkOpen(false);
-    setBulkValue("");
-  };
-
-  const handleAddOption = () => {
-    if (options.length >= 3) return;
-    addOption();
-  };
-
-  const handleRemoveOption = (index: number) => {
-    removeOption(index);
-  };
-
-  const handleAddOptionValue = (optionIndex: number) => {
-    addOptionValue(optionIndex);
-  };
-
-  const handleRemoveOptionValue = (optionIndex: number, valueIndex: number) => {
-    removeOptionValue(optionIndex, valueIndex);
-  };
-
-  const handleRemoveVariant = (index: number) => {
-    removeVariant(index);
-  };
-
-  React.useEffect(() => {
-    onVariantChange?.(variants);
-  }, [variants, onVariantChange]);
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: value.id, disabled: isTrailingBlank });
 
   return (
-    <section className="space-y-6">
-      {/* Options editor */}
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 p-0">
-          <CardTitle className="text-sm">Options</CardTitle>
-          <p className="text-xs text-muted-foreground">
-            Up to 3 options. Each value combination becomes a variant.
-          </p>
-        </CardHeader>
-        <CardContent className="p-4 space-y-4">
-          {options.length === 0 ? (
+    <div ref={setNodeRef} style={dragStyle(transform, transition, isDragging)}>
+      <div
+        className={cn("flex items-center gap-2", isDragging && "opacity-80")}
+      >
+        <button
+          type="button"
+          aria-label="Drag to reorder value"
+          className={cn(
+            "shrink-0 cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing",
+            isTrailingBlank && "invisible",
+          )}
+          {...attributes}
+          {...listeners}
+          tabIndex={isTrailingBlank ? -1 : 0}
+        >
+          <GripVertical className="size-4" />
+        </button>
+        <Input
+          value={value.label}
+          placeholder={isTrailingBlank ? "Add another value" : "Value"}
+          onChange={(e) =>
+            dispatch({
+              type: "SET_VALUE",
+              optionId,
+              valueId: value.id,
+              label: e.target.value,
+              nextId: uid(),
+            })
+          }
+          aria-invalid={!!error || undefined}
+          className={cn(
+            "h-9 min-w-0 flex-1 text-sm",
+            error && "border-destructive",
+          )}
+        />
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          aria-label="Remove value"
+          onClick={() =>
+            dispatch({
+              type: "REMOVE_VALUE",
+              optionId,
+              valueId: value.id,
+              nextId: uid(),
+            })
+          }
+          className={cn("h-8 w-8 shrink-0", isTrailingBlank && "invisible")}
+          tabIndex={isTrailingBlank ? -1 : 0}
+        >
+          <Trash2 className="size-4" />
+        </Button>
+      </div>
+      {error && (
+        <p className="ml-8 mt-1 flex items-center gap-1 text-xs text-destructive">
+          <AlertCircle className="size-3.5" />
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── option card ───────────────────────── */
+function OptionCard({
+  option,
+  expanded,
+  errors,
+  onOpen,
+  onDone,
+  onRemove,
+  dispatch,
+}: {
+  option: ProductOption;
+  expanded: boolean;
+  errors: OptionErrors | null;
+  onOpen: () => void;
+  onDone: () => void;
+  onRemove: () => void;
+  dispatch: React.Dispatch<BuilderAction>;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: option.id });
+  const sensors = useDndSensors();
+
+  const chips = cleanValues(option);
+  const valueIds = option.values.map((v) => v.id);
+
+  const onValuesDragEnd = (e: DragEndEvent) => {
+    if (!e.over || e.active.id === e.over.id) return;
+    dispatch({
+      type: "REORDER_VALUES",
+      optionId: option.id,
+      activeId: String(e.active.id),
+      overId: String(e.over.id),
+    });
+  };
+
+  const handle = (
+    <button
+      type="button"
+      aria-label="Drag to reorder option"
+      onClick={(e) => e.stopPropagation()}
+      className="mt-0.5 shrink-0 cursor-grab touch-none p-1 text-muted-foreground hover:text-foreground active:cursor-grabbing"
+      {...attributes}
+      {...listeners}
+    >
+      <GripVertical className="size-4" />
+    </button>
+  );
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={dragStyle(transform, transition, isDragging)}
+      className={cn(
+        "rounded-lg border border-border bg-card",
+        isDragging && "shadow-lg ring-1 ring-ring/30",
+      )}
+    >
+      {!expanded ? (
+        <div
+          role="button"
+          tabIndex={0}
+          onClick={onOpen}
+          onKeyDown={(e) => {
+            if (e.target !== e.currentTarget) return;
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onOpen();
+            }
+          }}
+          className="flex cursor-pointer items-start gap-2 rounded-lg p-3 hover:bg-muted/50"
+        >
+          {handle}
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-semibold">
+              {option.name.trim() || "Untitled option"}
+            </p>
+            {chips.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap gap-1.5">
+                {chips.map((v) => (
+                  <span
+                    key={v.id}
+                    className="max-w-[160px] truncate rounded-md bg-muted px-2 py-0.5 text-xs"
+                    title={v.label.trim()}
+                  >
+                    {v.label.trim()}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-4 p-3">
+          <div className="flex items-start gap-2">
+            {handle}
+            <div className="min-w-0 flex-1 space-y-1">
+              <label className="block text-xs font-medium">Option name</label>
+              <Input
+                autoFocus={!option.name}
+                value={option.name}
+                placeholder="Size, Color, Material…"
+                onChange={(e) =>
+                  dispatch({
+                    type: "SET_OPTION_NAME",
+                    id: option.id,
+                    name: e.target.value,
+                  })
+                }
+                aria-invalid={!!errors?.name || undefined}
+                className={cn(
+                  "h-9 text-sm",
+                  errors?.name && "border-destructive",
+                )}
+              />
+              {errors?.name && (
+                <p className="flex items-center gap-1 text-xs text-destructive">
+                  <AlertCircle className="size-3.5" />
+                  {errors.name}
+                </p>
+              )}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="block text-xs font-medium">Option values</label>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onValuesDragEnd}
+            >
+              <SortableContext
+                items={valueIds}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-1.5">
+                  {option.values.map((v, i) => (
+                    <ValueRow
+                      key={v.id}
+                      optionId={option.id}
+                      value={v}
+                      isTrailingBlank={
+                        i === option.values.length - 1 && v.label.trim() === ""
+                      }
+                      error={errors?.values[v.id]}
+                      dispatch={dispatch}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          </div>
+
+          <div className="flex items-center justify-between">
             <Button
               type="button"
               variant="outline"
-              onClick={handleAddOption}
-              className="w-fit"
+              size="sm"
+              onClick={onRemove}
+              className="text-destructive"
             >
-              <Plus className="size-4 mr-2" />
-              Add option like size or color
+              Delete
             </Button>
-          ) : (
-            <>
-              {options.map((option, optionIndex) => (
-                <Card
-                  key={`option-${optionIndex}`}
-                  className="p-4 border-border"
-                >
-                  <div className="flex items-start justify-between gap-3 mb-3">
-                    <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-2">
-                        <GripVertical
-                          className="text-muted-foreground cursor-grab size-4"
-                        />
-                        <Input
-                          value={option.name}
-                          onChange={(e) =>
-                            updateOptionName(optionIndex, e.target.value)
-                          }
-                          placeholder={`Option ${optionIndex + 1} name`}
-                          className="w-auto min-w-[140px] text-sm"
-                        />
-                      </div>
-                      <p className="text-xs text-muted-foreground">
-                        Values create variant combinations
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveOption(optionIndex)}
-                      disabled={options.length <= 1}
-                      aria-label="Remove option"
-                    >
-                      <Trash2 className="size-4 text-destructive" />
-                    </Button>
-                  </div>
-
-                  <div className="flex flex-wrap gap-2">
-                    {option.values.map((value, valueIndex) => (
-                      <div
-                        key={valueIndex}
-                        className="flex items-center gap-1"
-                      >
-                        <Input
-                          value={value}
-                          onChange={(e) =>
-                            updateOptionValue(optionIndex, valueIndex, e.target.value)
-                          }
-                          placeholder={`Value ${valueIndex + 1}`}
-                          className="w-auto min-w-[120px] text-sm"
-                        />
-                        {option.values.length > 1 && (
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            onClick={() =>
-                              handleRemoveOptionValue(optionIndex, valueIndex)
-                            }
-                            aria-label="Remove value"
-                          >
-                            <X className="size-3.5" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleAddOptionValue(optionIndex)}
-                      className="h-9"
-                    >
-                      <Plus className="size-3.5 mr-1.5" />
-                      Add value
-                    </Button>
-                  </div>
-                </Card>
-              ))}
-              {options.length < 3 && !atLimit && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={handleAddOption}
-                  className="w-fit mt-2"
-                >
-                  <Plus className="size-4 mr-2" />
-                  Add another option
-                </Button>
-              )}
-              {atLimit && (
-                <p className="text-xs text-muted-foreground">
-                  Maximum {VARIANT_LIMIT} variants reached.
-                </p>
-              )}
-            </>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Variant matrix table */}
-      <Card className="overflow-hidden">
-        <CardHeader className="flex flex-row items-center justify-between gap-2 p-0">
-          <div className="flex items-center gap-2">
-            <CardTitle className="text-sm">Variants</CardTitle>
-            <Badge variant="secondary">{variantsCount}</Badge>
+            <Button type="button" size="sm" onClick={onDone}>
+              Done
+            </Button>
           </div>
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => setBulkOpen(true)}
-            disabled={variantsCount === 0}
-          >
-            Bulk edit
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ───────────────────────── variant editor ───────────────────────── */
+interface VariantEditorProps {
+  onVariantChange?: (value: VariantBuilderValue) => void;
+}
+
+export function VariantEditor({ onVariantChange }: VariantEditorProps) {
+  const [state, dispatch] = React.useReducer(
+    builderReducer,
+    undefined,
+    createInitialState,
+  );
+  const { options, variants } = state;
+
+  const [expandedId, setExpandedId] = React.useState<string | null>(null);
+  const [showErrors, setShowErrors] = React.useState<Set<string>>(new Set());
+  const sensors = useDndSensors();
+
+  const variantErrors = React.useMemo(
+    () => validateVariants(variants),
+    [variants],
+  );
+  const overLimit = countCombos(options) > VARIANT_LIMIT;
+
+  /* report to parent (callback kept in a ref so inline functions don't re-trigger it) */
+  const cbRef = React.useRef(onVariantChange);
+  React.useEffect(() => {
+    cbRef.current = onVariantChange;
+  });
+  React.useEffect(() => {
+    cbRef.current?.(toPayload(state));
+  }, [state]);
+
+  const hideErrors = (id: string) =>
+    setShowErrors((prev) => {
+      if (!prev.has(id)) return prev;
+      const next = new Set(prev);
+      next.delete(id);
+      return next;
+    });
+
+  /** validate an open option, collapse it when ok. Returns false if it must stay open */
+  const finalize = (id: string): boolean => {
+    const opt = options.find((o) => o.id === id);
+    if (!opt) return true;
+    if (optionHasErrors(validateOption(opt, options))) {
+      setShowErrors((prev) => new Set(prev).add(id));
+      return false;
+    }
+    if (overLimit) return false;
+    dispatch({ type: "FINALIZE_OPTION", id });
+    hideErrors(id);
+    setExpandedId((cur) => (cur === id ? null : cur));
+    return true;
+  };
+
+  const handleAdd = () => {
+    if (options.length >= MAX_OPTIONS) return;
+    if (expandedId && !finalize(expandedId)) return; // previous option must be valid first
+    const id = uid();
+    dispatch({ type: "ADD_OPTION", id, valueId: uid() });
+    setExpandedId(id); // only the new option is open, old ones collapse, old variants stay
+  };
+
+  const handleOpen = (id: string) => {
+    if (expandedId === id) return;
+    if (expandedId && !finalize(expandedId)) return;
+    dispatch({ type: "OPEN_OPTION", id, nextId: uid() });
+    setExpandedId(id);
+  };
+
+  const handleRemove = (id: string) => {
+    dispatch({ type: "REMOVE_OPTION", id });
+    hideErrors(id);
+    setExpandedId((cur) => (cur === id ? null : cur));
+  };
+
+  const onOptionsDragEnd = (e: DragEndEvent) => {
+    if (!e.over || e.active.id === e.over.id) return;
+    dispatch({
+      type: "REORDER_OPTIONS",
+      activeId: String(e.active.id),
+      overId: String(e.over.id),
+    });
+  };
+
+  return (
+    <section className="space-y-4">
+      {/* options */}
+      <div className="space-y-3 rounded-lg border border-border bg-card p-4">
+        {options.length === 0 ? (
+          <Button type="button" variant="outline" onClick={handleAdd}>
+            <Plus className="mr-2 size-4" />
+            Add options like size or color
           </Button>
-        </CardHeader>
-        <CardContent className="p-0">
-          {variantsCount === 0 ? (
-            <div className="p-8 text-center text-muted-foreground">
-              Add options above to generate variants.
-            </div>
-          ) : (
-            <div className="overflow-x-auto border-b border-border">
-              <Table>
-                <TableHeader>
-                  <TableRow className="text-[11px] uppercase text-muted-foreground">
-                    <TableCell className="w-20">SKU</TableCell>
-                    <TableCell>Variant</TableCell>
-                    <TableCell className="w-32">Price</TableCell>
-                    <TableCell className="w-32">Compare at</TableCell>
-                    <TableCell className="w-32">Cost</TableCell>
-                    <TableCell className="w-24">Qty</TableCell>
-                    <TableCell className="w-24">Weight</TableCell>
-                    <TableCell className="w-20">Active</TableCell>
-                    <TableCell className="w-20" />
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {variants.map((variant, variantIndex) => {
-                    const fieldErrors = variantErrors[variantIndex] ?? {};
-                    const hasError = Object.keys(fieldErrors).length > 0;
-                    return (
-                      <TableRow
-                        key={variant.id ?? variantIndex}
-                        className={cn("group", hasError && "bg-destructive/10")}
-                      >
-                        <TableCell className="pr-0">
-                          <Input
-                            value={variant.sku}
-                            onChange={(e) =>
-                              setVariantField(variantIndex, "sku", e.target.value)
-                            }
-                            placeholder="SKU"
-                            className="w-full text-sm bg-transparent"
-                            aria-invalid={!!fieldErrors.sku}
-                          />
-                          {fieldErrors.sku && (
-                            <p className="text-xs text-destructive mt-1">
-                              {fieldErrors.sku}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="text-sm text-body">
-                            {[
-                              variant.option1,
-                              variant.option2,
-                              variant.option3,
-                            ]
-                              .filter(Boolean)
-                              .join(" / ") || "—"}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground text-xs">
-                              ₹
-                            </span>
-                            <Input
-                              value={variant.price}
-                              onChange={(e) =>
-                                setVariantField(
-                                  variantIndex,
-                                  "price",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="0.00"
-                              className="w-[80px] text-sm bg-transparent"
-                              aria-invalid={!!fieldErrors.price}
-                            />
-                            {fieldErrors.price && (
-                              <p className="text-xs text-destructive mt-1">
-                                {fieldErrors.price}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground text-xs">
-                              ₹
-                            </span>
-                            <Input
-                              value={variant.compare_at_price ?? ""}
-                              onChange={(e) =>
-                                setVariantField(
-                                  variantIndex,
-                                  "compare_at_price",
-                                  e.target.value || null,
-                                )
-                              }
-                              placeholder="0.00"
-                              className="w-[80px] text-sm bg-transparent"
-                            />
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <span className="text-muted-foreground text-xs">
-                              ₹
-                            </span>
-                            <Input
-                              value={variant.cost_per_item}
-                              onChange={(e) =>
-                                setVariantField(
-                                  variantIndex,
-                                  "cost_per_item",
-                                  e.target.value,
-                                )
-                              }
-                              placeholder="0.00"
-                              className="w-[80px] text-sm bg-transparent"
-                              aria-invalid={!!fieldErrors.cost_per_item}
-                            />
-                            {fieldErrors.cost_per_item && (
-                              <p className="text-xs text-destructive mt-1">
-                                {fieldErrors.cost_per_item}
-                              </p>
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Input
-                            type="number"
-                            min={0}
-                            value={variant.quantity}
-                            onChange={(e) =>
-                              setVariantField(
-                                variantIndex,
-                                "quantity",
-                                e.target.value,
-                              )
-                            }
-                            className="w-[72px] text-right text-sm bg-transparent"
-                            aria-invalid={!!fieldErrors.quantity}
-                          />
-                          {fieldErrors.quantity && (
-                            <p className="text-xs text-destructive mt-1">
-                              {fieldErrors.quantity}
-                            </p>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Input
-                              value={variant.weight ?? ""}
-                              onChange={(e) =>
-                                setVariantField(
-                                  variantIndex,
-                                  "weight",
-                                  e.target.value || null,
-                                )
-                              }
-                              placeholder="0"
-                              className="w-[48px] text-sm bg-transparent"
-                            />
-                            <Select
-                              value={variant.weight_unit}
-                              onValueChange={(v) =>
-                                setVariantField(
-                                  variantIndex,
-                                  "weight_unit",
-                                  (v ?? variant.weight_unit) as VariantInput["weight_unit"],
-                                )
-                              }
-                              className="w-[64px]"
-                            >
-                              <SelectTrigger className="w-full">
-                                <SelectValue placeholder={variant.weight_unit} />
-                              </SelectTrigger>
-                              <SelectContent>
-                                {["g", "kg", "oz", "lb"].map((u) => (
-                                  <SelectItem key={u} value={u}>
-                                    {u}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-20">
-                          <Switch
-                            checked={variant.is_active}
-                            onCheckedChange={(v) =>
-                              setVariantField(variantIndex, "is_active", v)
-                            }
-                            size="sm"
-                          />
-                        </TableCell>
-                        <TableCell className="w-20">
-                          <Button
-                            type="button"
-                            variant="destructive"
-                            size="icon"
-                            onClick={() => handleRemoveVariant(variantIndex)}
-                            className="h-7 w-7 p-0"
-                            aria-label="Remove variant"
-                          >
-                            <X className="size-3.5" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
-          )}
-        </CardContent>
-        {totalErrorCount > 0 && (
-          <CardFooter className="border-t border-destructive/20 bg-destructive/5 p-3">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="size-4 text-destructive" />
-              <p className="text-sm text-destructive">
-                {totalErrorCount} variant field error{totalErrorCount === 1 ? "" : "s"}.
-                Please fix before saving.
-              </p>
-            </div>
-          </CardFooter>
-        )}
-      </Card>
-
-      {/* Bulk edit dialog */}
-      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="sm:max-w-[320px]">
-          <DialogHeader>
-            <DialogTitle>
-              Bulk edit {variantsCount} variant{variantsCount === 1 ? "" : "s"}
-            </DialogTitle>
-            <DialogDescription>
-              Apply one value to every variant below.
-            </DialogDescription>
-          </DialogHeader>
-          <Separator className="my-4" />
-          <div className="space-y-3 p-4">
-            <Label>Field</Label>
-            <Select
-              value={bulkField}
-              onValueChange={(v) =>
-                setBulkField((v ?? bulkField) as keyof VariantInput)
-              }
-              className="w-full"
+        ) : (
+          <>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onOptionsDragEnd}
             >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select field" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="price">Price</SelectItem>
-                <SelectItem value="compare_at_price">
-                  Compare-at price
-                </SelectItem>
-                <SelectItem value="cost_per_item">Cost per item</SelectItem>
-                <SelectItem value="quantity">Quantity</SelectItem>
-                <SelectItem value="weight">Weight</SelectItem>
-                <SelectItem value="requires_shipping">
-                  Requires shipping
-                </SelectItem>
-                <SelectItem value="track_quantity">Track quantity</SelectItem>
-                <SelectItem value="continue_selling_when_out_of_stock">
-                  Continue selling when out of stock
-                </SelectItem>
-                <SelectItem value="is_active">Active</SelectItem>
-              </SelectContent>
-            </Select>
+              <SortableContext
+                items={options.map((o) => o.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="space-y-2">
+                  {options.map((o) => (
+                    <OptionCard
+                      key={o.id}
+                      option={o}
+                      expanded={expandedId === o.id}
+                      errors={
+                        showErrors.has(o.id) ? validateOption(o, options) : null
+                      }
+                      onOpen={() => handleOpen(o.id)}
+                      onDone={() => finalize(o.id)}
+                      onRemove={() => handleRemove(o.id)}
+                      dispatch={dispatch}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
 
-            <Label>Value</Label>
-            <Input
-              value={bulkValue}
-              onChange={(e) => setBulkValue(e.target.value)}
-              placeholder="Enter value"
-              className="w-full"
-            />
-
-            <div className="flex justify-end gap-2 pt-3">
+            {options.length < MAX_OPTIONS && (
               <Button
                 type="button"
-                variant="outline"
-                onClick={() => setBulkOpen(false)}
+                variant="ghost"
+                size="sm"
+                onClick={handleAdd}
               >
-                Cancel
+                <Plus className="mr-1.5 size-4" />
+                Add another option
               </Button>
-              <Button type="button" onClick={handleBulkApply} disabled={!bulkValue}>
-                Apply to all
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
+            )}
+          </>
+        )}
+
+        {overLimit && (
+          <p className="flex items-center gap-1.5 text-xs text-destructive">
+            <AlertCircle className="size-3.5" />
+            These options create {countCombos(options)} variants. The limit is{" "}
+            {VARIANT_LIMIT} — remove some values.
+          </p>
+        )}
+      </div>
+
+      {/* variants */}
+      {variants.length > 0 && (
+        <VariantTable
+          options={options}
+          variants={variants}
+          errors={variantErrors}
+          dispatch={dispatch}
+        />
+      )}
     </section>
   );
 }
