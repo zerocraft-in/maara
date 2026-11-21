@@ -12,7 +12,7 @@ const formatIndianPrice = (val: string, padDecimals = false): string => {
   const parts = cleaned.split(".");
   const integerPart = parts[0];
   // Limit decimal digits to 2 places
-  let decimalPart = parts.length > 1 ? parts.slice(1).join("").slice(0, 2) : "";
+  const decimalPart = parts.length > 1 ? parts.slice(1).join("").slice(0, 2) : "";
 
   if (padDecimals) {
     const baseInt = integerPart || "0";

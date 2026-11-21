@@ -1,1 +1,0 @@
-Get-ChildItem: Cannot find path 'D:\projects\maara\node_modules\.pnpm\@base-ui+react@1.9.0_@date-fns+@dom+@va+@ba618cb3972508ae3b82d4e84add8229\node_modules\@base-ui\react\dist' because it does not exist.

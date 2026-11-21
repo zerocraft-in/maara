@@ -174,7 +174,7 @@ export default function OrganizationAccountSecurityPage() {
             </CardTitle>
             <CardDescription>
               Give designers, developers, and marketers access to this store.
-              Collaborators don't count toward your staff limit. Learn more
+              Collaborators don&apos;t count toward your staff limit. Learn more
               about collaborators.
             </CardDescription>
             <div className="mt-4 rounded-lg border border-input bg-background p-4">
@@ -196,7 +196,7 @@ export default function OrganizationAccountSecurityPage() {
               </div>
               <p className="mt-3 text-xs text-muted-foreground">
                 Share this code to allow someone to send you a collaborator
-                request for this store. You'll still need to review and approve
+                request for this store. You&apos;ll still need to review and approve
                 this request from Users.
               </p>
             </div>

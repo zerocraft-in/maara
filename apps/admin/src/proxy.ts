@@ -18,17 +18,12 @@ const AUTH_ROUTES = [
   "/reset-password",
   "/accept-invite",
   "/onboarding",
+  "/signup",
 ];
 
 export const config = {
   matcher: [
-    "/",
-    "/overview",
-    "/login",
-    "/forgot-password",
-    "/reset-password",
-    "/accept-invite",
-    "/onboarding",
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
   ],
 };
 
@@ -64,7 +59,7 @@ export async function proxy(request: NextRequest) {
 
   const pathname = request.nextUrl.pathname;
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
-  const isDashboardRoute = pathname === "/overview" || pathname === "/";
+  const isDashboardRoute = !isAuthRoute && pathname !== "/icon.svg";
 
   // No session: redirect dashboard requests to login.
   if (!user && isDashboardRoute) {

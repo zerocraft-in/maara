@@ -9,6 +9,7 @@ import { toast } from "@/components/ui/toast";
 import { slugify } from "@/lib/utils";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { createProduct, createVariant, createProductImage } from "../actions";
+import { syncProductChannelPublications } from "../publication-actions";
 import type { CategoryOption } from "../types";
 import { useDirtyForm } from "@/components/providers/dirty-provider";
 import { useProductFormState } from "@/app/(dashboard)/products/lib/product-form-state";
@@ -19,7 +20,7 @@ import {
   normalizeWeightToGrams,
   computeProfitMargin,
 } from "@/app/(dashboard)/products/lib/product-schema";
-import { validateVariants } from "@/app/(dashboard)/products/lib/variant-generator";
+import type { VariantBuilderValue } from "@/app/(dashboard)/products/lib/variant-builder";
 import { MediaPicker } from "@/components/media-picker/media-picker";
 import { PricingSection } from "../_components/pricing-section";
 import { ProductIdentityCard } from "../_components/product-identity-card";
@@ -44,10 +45,17 @@ export default function NewProductPage() {
   const [loading, setLoading] = React.useState(true);
   const [mediaPickerOpen, setMediaPickerOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [publishingKeys, setPublishingKeys] = React.useState<string[]>([]);
+  const [publishingDirty, setPublishingDirty] = React.useState(false);
+  const [variantDirty, setVariantDirty] = React.useState(false);
+  const variantHydrating = React.useRef(true);
+
+  React.useEffect(() => {
+    variantHydrating.current = false;
+  }, []);
 
   // Shared form state (options, variants, media, section flags).
   const {
-    variants,
     selectedMedia,
     setSelectedMedia,
     clearSelectedMedia,
@@ -58,6 +66,7 @@ export default function NewProductPage() {
     seoOpen,
     setSeoOpen,
   } = useProductFormState();
+  const [variantValue, setVariantValue] = React.useState<VariantBuilderValue>();
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema) as Resolver<
@@ -168,15 +177,29 @@ export default function NewProductPage() {
       return;
     }
 
-    // Validate variants.
-    const variantErrors = validateVariants(variants);
-    if (Object.keys(variantErrors).length > 0) {
+    const editorVariants = variantValue?.variants ?? [];
+    if (variantValue?.options.length && !variantValue.isValid) {
       form.setError("root.variants", {
         message: "Please fix the variant errors before saving.",
       });
       setIsSubmitting(false);
       return;
     }
+
+    const variants = editorVariants.length
+      ? editorVariants
+      : [{
+          position: 0,
+          title: values.name,
+          option1: null,
+          option2: null,
+          option3: null,
+          price: values.price,
+          compare_at_price: values.compare_at_price || null,
+          sku: values.sku,
+          barcode: values.barcode || null,
+          quantity: values.quantity || "0",
+        }];
 
     const pricePaise = parseMoney(values.price);
     const costPaise = parseMoney(values.cost_per_item);
@@ -208,9 +231,13 @@ export default function NewProductPage() {
       seo_description: values.seo_description || null,
       published_scope: values.published_scope,
       status: values.status,
-      options: values.options.filter((o) => o.name && o.values.some((v) => v)),
+      options: (variantValue?.options ?? values.options).filter(
+        (o) => o.name && o.values.some((v) => typeof v === "string" ? v : v.value),
+      ).map((o) => ({
+        name: o.name,
+        values: o.values.map((v) => typeof v === "string" ? v : v.value),
+      })),
       // Variant-level data
-      variants,
       profit_paise: profit ?? null,
       margin_percent: margin ?? null,
       images: selectedMedia.map((m, i) => ({
@@ -234,14 +261,10 @@ export default function NewProductPage() {
       const trackQty = values.track_quantity;
       for (const variant of variants) {
         const sellingPrice = parseMoney(variant.price);
-        const cost = parseMoney(variant.cost_per_item);
+        const cost = costPaise;
         const compareAt = variant.compare_at_price
           ? parseMoney(variant.compare_at_price)
           : null;
-        const weightGrams = variant.weight
-          ? normalizeWeightToGrams(variant.weight, variant.weight_unit)
-          : null;
-
         const variantResult = await createVariant({
           product_id: productId,
           sku: variant.sku,
@@ -258,11 +281,10 @@ export default function NewProductPage() {
             : 0,
           track_quantity: trackQty,
           quantity: Number(variant.quantity) || 0,
-          continue_selling_when_out_of_stock:
-            variant.continue_selling_when_out_of_stock,
+          continue_selling_when_out_of_stock: values.continue_selling_when_out_of_stock,
           weight_grams: weightGrams,
-          weight_unit: variant.weight_unit,
-          requires_shipping: variant.requires_shipping,
+          weight_unit: values.weight_unit,
+          requires_shipping: values.requires_shipping,
           reorder_point: 0,
         });
 
@@ -287,8 +309,19 @@ export default function NewProductPage() {
         }
       }
 
+      const publicationResult = await syncProductChannelPublications({
+        productId,
+        channelKeys: publishingKeys,
+      });
+      if (!publicationResult.ok) {
+        form.setError("root.server", { message: publicationResult.error });
+        return;
+      }
+
       // Mark the current values as the saved baseline before navigating so
       // the dirty bar closes immediately instead of surviving the transition.
+      setPublishingDirty(false);
+      setVariantDirty(false);
       form.reset(form.getValues());
       toast.add({ title: "Product created.", type: "success" });
       router.push("/products");
@@ -302,7 +335,7 @@ export default function NewProductPage() {
   };
 
   useDirtyForm({
-    dirty: form.formState.isDirty,
+    dirty: form.formState.isDirty || publishingDirty || variantDirty,
     saving: isSubmitting,
     label: "Unsaved product",
     onDiscard: () => {
@@ -361,7 +394,7 @@ export default function NewProductPage() {
               shippingOpen={shippingOpen}
               setShippingOpen={setShippingOpen}
             />
-            <VariantsSection />
+            <VariantsSection value={variantValue} onChange={(next) => { setVariantValue(next); if (!variantHydrating.current) setVariantDirty(true); }} />
             <MetafieldsCard />
             <SeoSection
               form={form}
@@ -373,7 +406,7 @@ export default function NewProductPage() {
           {/* Right column - side panel */}
           <div className="space-y-5 xl:sticky xl:top-6">
             <StatusCard form={form} />
-            <PublishingCard />
+            <PublishingCard onSelectionChange={setPublishingKeys} onDirtyChange={setPublishingDirty} />
             <OrganizationCard form={form} />
           </div>
         </form>

@@ -1,6 +1,5 @@
 import {
   BadgePercent,
-  Box,
   Boxes,
   ChartNoAxesColumn,
   Gauge,
@@ -32,6 +31,7 @@ export type NavGroup = {
   icon: LucideIcon;
   children: NavChild[];
   section?: string;
+  channelKey?: string;
 };
 const leaf = (href: string, label: string, icon: LucideIcon): NavChild => ({
   href,
@@ -101,26 +101,33 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     id: "online-store",
     label: "Online Store",
-    href: "/content/files",
+    href: "/settings/sales-channels?channel=online_store",
     icon: Store,
     section: "Sales channels",
+    channelKey: "online_store",
     children: [],
   },
   {
     id: "agentic",
     label: "Agentic",
-    href: "/overview",
+    href: "/settings/sales-channels?channel=agentic",
     icon: LayoutGrid,
     section: "Sales channels",
+    channelKey: "agentic",
     children: [],
   },
   {
     id: "point-of-sale",
     label: "Point of Sale",
-    href: "/sales",
+    href: "/settings/sales-channels/point-of-sale",
     icon: Receipt,
     section: "Sales channels",
-    children: [],
+    channelKey: "point_of_sale",
+    children: [
+      leaf("/settings/sales-channels/point-of-sale/devices", "Devices", Boxes),
+      leaf("/settings/sales-channels/point-of-sale/register-sessions", "Register sessions", Receipt),
+      leaf("/settings/sales-channels/point-of-sale/settings", "Settings", Settings),
+    ],
   }
 ];
 

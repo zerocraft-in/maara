@@ -50,6 +50,7 @@ export default function DashboardShell({
   user,
   memberships,
   activeOrganization,
+  installedSalesChannelKeys,
 }: {
   readonly children: React.ReactNode;
   readonly user?: { id: string; email: string | null };
@@ -64,6 +65,7 @@ export default function DashboardShell({
     name: string;
     slug: string;
   } | null;
+  readonly installedSalesChannelKeys?: string[];
 }) {
   const pathname = usePathname();
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
@@ -80,7 +82,8 @@ export default function DashboardShell({
   );
   const [sidebarReady, setSidebarReady] = React.useState(false);
   const isSettings =
-    pathname === "/settings" || pathname.startsWith("/settings/");
+    (pathname === "/settings" || pathname.startsWith("/settings/")) &&
+    !pathname.startsWith("/settings/sales-channels");
   const effectiveSidebarOpen = sidebarOpen && !isSettings;
   const handleSidebarOpenChange = React.useCallback((open: boolean) => {
     setSidebarOpen(open);
@@ -109,8 +112,10 @@ export default function DashboardShell({
       plan: m.roleKey,
     }));
 
-    const navMain: AppSidebarData["navMain"] =
-      NAV_GROUPS.map(navGroupToNavItem);
+    const installedKeys = new Set(installedSalesChannelKeys ?? []);
+    const navMain: AppSidebarData["navMain"] = NAV_GROUPS
+      .filter((group) => !group.channelKey || installedKeys.has(group.channelKey))
+      .map(navGroupToNavItem);
 
     const projects: AppSidebarData["projects"] = [];
 
@@ -148,7 +153,7 @@ export default function DashboardShell({
       navSecondary,
       projects,
     };
-  }, [user, memberships, activeOrganization]);
+  }, [user, memberships, activeOrganization, installedSalesChannelKeys]);
 
   const headerUser = user
     ? {

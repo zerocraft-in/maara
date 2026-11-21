@@ -7,6 +7,7 @@ import {
   archiveProduct,
   setProductStatus,
   bulkArchiveProducts,
+  bulkDeleteProducts,
   bulkSetProductStatus,
 } from "../actions";
 import { Button } from "@/components/ui/button";
@@ -32,6 +33,7 @@ interface BulkToolbarProps {
   isSelected: (id: string) => boolean;
   onClearSelection: () => void;
   onBulkEdit: () => void;
+  onRefresh: () => void;
 }
 
 export function BulkToolbar({
@@ -46,6 +48,7 @@ export function BulkToolbar({
   isSelected,
   onClearSelection,
   onBulkEdit,
+  onRefresh,
 }: BulkToolbarProps) {
   const countLabel = `${selectedProducts.length} selected`;
 
@@ -61,6 +64,7 @@ export function BulkToolbar({
           title: `${selectedProducts.length} product(s) archived.`,
           type: "success",
         });
+        onRefresh();
       } else {
         toast.add({ title: result.error, type: "error" });
       }
@@ -82,6 +86,24 @@ export function BulkToolbar({
           title: `${selectedProducts.length} product(s) published.`,
           type: "success",
         });
+        onRefresh();
+      } else {
+        toast.add({ title: result.error, type: "error" });
+      }
+    } finally {
+      onClearSelection();
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    if (selectedProducts.length === 0) return;
+    if (!window.confirm(`Delete ${selectedProducts.length} product(s) permanently? This cannot be undone.`)) return;
+
+    try {
+      const result = await bulkDeleteProducts({ ids: selectedProducts });
+      if (result.ok) {
+        toast.add({ title: `${selectedProducts.length} product(s) deleted.`, type: "success" });
+        onRefresh();
       } else {
         toast.add({ title: result.error, type: "error" });
       }
@@ -103,6 +125,7 @@ export function BulkToolbar({
           title: `${selectedProducts.length} product(s) set to ${status}.`,
           type: "success",
         });
+        onRefresh();
       } else {
         toast.add({ title: result.error, type: "error" });
       }
@@ -174,6 +197,14 @@ export function BulkToolbar({
                 className="text-destructive focus:text-destructive"
               >
                 Archive selected
+              </DropdownMenuItem>
+            )}
+            {canArchive && (
+              <DropdownMenuItem
+                onClick={handleBulkDelete}
+                className="text-destructive focus:text-destructive"
+              >
+                Delete selected permanently
               </DropdownMenuItem>
             )}
             <DropdownMenuItem

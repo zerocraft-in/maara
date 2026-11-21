@@ -121,34 +121,36 @@ export function ProductIdentityCard({
             </p>
           )}
         </div>
-        <div className="space-y-4">
-          <div className="flex min-h-[124px] flex-col items-center justify-center gap-3 rounded-md border border-dashed border-[#8c9196] p-5 text-center">
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="secondary"
-                size="sm"
-                onClick={() => setMediaPickerOpen(true)}
-              >
-                Upload new
-              </Button>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                onClick={() => setMediaPickerOpen(true)}
-              >
-                Select existing
-              </Button>
-            </div>
-            <p className="text-xs text-[#616161]">
-              Accepts images, videos, or 3D models
-            </p>
-            {selectedMedia.length > 0 && (
-              <span className="text-xs text-[#616161]">
-                {selectedMedia.length} media selected
-              </span>
-            )}
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-2">
+            {selectedMedia.length > 0 ? (
+              selectedMedia.map((media, index) => (
+                <button
+                  key={media.id || media.url}
+                  type="button"
+                  onClick={() => setMediaPickerOpen(true)}
+                  className={index === 0
+                    ? "relative h-60 w-60 overflow-hidden rounded-xl border border-[#c9c9c9] bg-[#f6f6f6]"
+                    : "relative h-28 w-28 overflow-hidden rounded-xl border border-[#c9c9c9] bg-[#f6f6f6]"}
+                  aria-label={`Edit ${media.name}`}
+                >
+                  <img src={media.url} alt={media.name} className="h-full w-full object-cover" />
+                </button>
+              ))
+            ) : null}
+            <button
+              type="button"
+              onClick={() => setMediaPickerOpen(true)}
+              className="flex h-28 w-28 items-center justify-center rounded-xl border border-dashed border-[#8c9196] text-2xl text-[#616161] transition-colors hover:bg-[#f6f6f6]"
+              aria-label="Add media"
+            >
+              +
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button type="button" variant="secondary" size="sm" onClick={() => setMediaPickerOpen(true)}>Upload new</Button>
+            <Button type="button" variant="ghost" size="sm" onClick={() => setMediaPickerOpen(true)}>Select existing</Button>
+            <p className="text-xs text-[#616161]">Accepts images, videos, or 3D models</p>
           </div>
         </div>
         <div className="space-y-2">

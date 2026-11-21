@@ -2,8 +2,19 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { VariantEditor } from "@/app/(dashboard)/products/_components/variant-editor";
+import type { VariantBuilderValue } from "../lib/variant-builder";
 
-export function VariantsSection() {
+export function VariantsSection({
+  value,
+  onChange,
+  resetKey,
+  hideSingleVariantTable = false,
+}: {
+  value?: VariantBuilderValue;
+  onChange: (value: VariantBuilderValue) => void;
+  resetKey?: string;
+  hideSingleVariantTable?: boolean;
+}) {
   return (
     <div className="space-y-4">
       <CardHeader className="flex items-center justify-between">
@@ -11,7 +22,12 @@ export function VariantsSection() {
       </CardHeader>
       <Card>
         <CardContent>
-          <VariantEditor onVariantChange={() => {}} />
+          <VariantEditor
+            key={resetKey ?? "new"}
+            initialValue={value}
+            onVariantChange={onChange}
+            hideSingleVariantTable={hideSingleVariantTable}
+          />
         </CardContent>
       </Card>
     </div>

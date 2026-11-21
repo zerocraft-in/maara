@@ -26,7 +26,6 @@ import {
   builderReducer,
   cleanValues,
   countCombos,
-  createInitialState,
   optionHasErrors,
   toPayload,
   uid,
@@ -36,6 +35,7 @@ import {
   type OptionErrors,
   type ProductOption,
   type VariantBuilderValue,
+  createStateFromValue,
 } from "../lib/variant-builder";
 import { VariantTable } from "./variant-table";
 
@@ -329,13 +329,15 @@ function OptionCard({
 /* ───────────────────────── variant editor ───────────────────────── */
 interface VariantEditorProps {
   onVariantChange?: (value: VariantBuilderValue) => void;
+  initialValue?: VariantBuilderValue;
+  hideSingleVariantTable?: boolean;
 }
 
-export function VariantEditor({ onVariantChange }: VariantEditorProps) {
+export function VariantEditor({ onVariantChange, initialValue, hideSingleVariantTable = false }: VariantEditorProps) {
   const [state, dispatch] = React.useReducer(
     builderReducer,
-    undefined,
-    createInitialState,
+    initialValue,
+    createStateFromValue,
   );
   const { options, variants } = state;
 
@@ -474,7 +476,7 @@ export function VariantEditor({ onVariantChange }: VariantEditorProps) {
       </div>
 
       {/* variants */}
-      {variants.length > 0 && (
+      {variants.length > 0 && !(hideSingleVariantTable && options.length === 0) && (
         <VariantTable
           options={options}
           variants={variants}

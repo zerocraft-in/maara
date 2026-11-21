@@ -1,445 +1,217 @@
 "use client";
 
-import Link from "next/link";
 import * as React from "react";
-import {
-  ArrowUpRight,
-  CalendarDays,
-  Check,
-  ChevronDown,
-  CreditCard,
-  Globe2,
-  Mic,
-  Paperclip,
-  Palette,
-  Send,
-  ShoppingBag,
-  Sparkles,
-  Store,
-  Truck,
-  X,
-} from "lucide-react";
+import { motion } from "framer-motion";
+
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { toast } from "@/components/ui/toast";
 
-type FeedCard = {
-  id: string;
-  title: string;
-  description: string;
-  action: string;
-  href?: string;
-  icon: React.ElementType;
-  tint: string;
-  bullets?: string[];
+type Kpi = {
+  label: string;
+  value: string;
+  note: string;
+  accent: "primary" | "tag";
 };
-const metrics = [
-  { label: "Sessions", value: "1", note: "vs. previous period" },
-  { label: "Total sales", value: "₹0", note: "vs. previous period" },
-  { label: "Orders", value: "0", note: "vs. previous period" },
-  { label: "Conversion rate", value: "0%", note: "vs. previous period" },
-];
-const initialFeed: FeedCard[] = [
+
+const kpis: Kpi[] = [
   {
-    id: "dropshipping",
-    title: "Learn the dropshipping basics",
-    description:
-      "See how to find products, build your store, and start selling.",
-    action: "Watch now",
-    icon: ShoppingBag,
-    tint: "oklch(0.94 0.02 265)",
+    label: "Stock on hand",
+    value: "1,248",
+    note: "units across all locations",
+    accent: "primary",
   },
   {
-    id: "launch",
-    title: "Launch your online store",
-    description:
-      "Ready to open for business? Take your store public and start welcoming customers.",
-    action: "Launch store",
-    href: "/settings",
-    icon: Store,
-    tint: "oklch(0.96 0.025 90)",
+    label: "Today's sales",
+    value: "₹84,320",
+    note: "versus yesterday",
+    accent: "primary",
   },
   {
-    id: "payments",
-    title: "Set up payments",
-    description:
-      "Choose a payment provider to let customers pay by card or digital wallet.",
-    action: "Activate payments",
-    href: "/settings/payments",
-    icon: CreditCard,
-    tint: "oklch(0.94 0.015 240)",
-  },
-  {
-    id: "domain",
-    title: "Get maraapparels a matching domain",
-    description:
-      "We found domain names that match your store. Choose your favorite and make it yours.",
-    action: "Choose a domain",
-    href: "/settings/domains",
-    icon: Globe2,
-    tint: "oklch(0.96 0.025 90)",
-    bullets: ["maraapparels.com", "maraapparels.in", "maraapparels.net"],
-  },
-  {
-    id: "shipping",
-    title: "Review shipping rates",
-    description:
-      "Look over the shipping defaults based on your store location.",
-    action: "Review rates",
-    href: "/settings/shipping",
-    icon: Truck,
-    tint: "oklch(0.95 0.015 350)",
-  },
-  {
-    id: "homepage",
-    title: "Boost conversion with a customized homepage",
-    description:
-      "Use your theme and apps to tailor the homepage for your customers.",
-    action: "View guide",
-    href: "/online-store",
-    icon: Palette,
-    tint: "oklch(0.94 0.018 300)",
+    label: "Low stock",
+    value: "12",
+    note: "items need reordering",
+    accent: "tag",
   },
 ];
 
-function StatsBar() {
+type Task = {
+  id: string;
+  label: string;
+  hint: string;
+};
+
+const tasks: Task[] = [
+  {
+    id: "receive",
+    label: "Receive new spring stock",
+    hint: "Shop — three boxes awaiting unpacking",
+  },
+  {
+    id: "tag",
+    label: "Tag summer tees S–XL",
+    hint: "Size stickers on the cutting table",
+  },
+  {
+    id: "reconcile",
+    label: "Reconcile yesterday's takings",
+    hint: "Shop, online, and van",
+  },
+];
+
+function greeting() {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Good morning";
+  if (hour < 17) return "Good afternoon";
+  return "Good evening";
+}
+
+function KpiCard({ kpi }: { kpi: Kpi }) {
+  const isTag = kpi.accent === "tag";
   return (
-    <div
-      className="shrink-0"
+    <Card
+      className="flex-1 flex flex-col border-l-4"
       style={{
-        background: "var(--card)",
-        borderBottom: "1px solid var(--border)",
+        borderLeftColor: isTag ? "var(--tag)" : "var(--primary)",
       }}
     >
-      <div className="flex items-center justify-end gap-2 px-6 pt-3">
-        {[
-          { label: "Last 30 days", icon: CalendarDays },
-          { label: "All channels", icon: Globe2 },
-        ].map(({ label, icon: Icon }) => (
-          <button
-            key={label}
-            type="button"
-            className="flex h-8 items-center gap-1.5 rounded-lg px-3 text-[13px] font-medium hover:bg-[var(--muted)]"
-            style={{
-              border: "1px solid var(--border)",
-              background: "var(--card)",
-              color: "var(--foreground)",
-            }}
-          >
-            <Icon
-              className="size-3.5"
-              style={{ color: "var(--muted-foreground)" }}
-            />
-            {label}
-            <ChevronDown
-              className="size-3"
-              style={{ color: "var(--muted-foreground)" }}
-            />
-          </button>
-        ))}
-      </div>
-      <div className="flex items-stretch">
-        {metrics.map((m, i) => (
-          <div
-            key={m.label}
-            className="flex flex-1 flex-col px-5 py-3"
-            style={{
-              borderRight:
-                i < metrics.length - 1 ? "1px solid var(--border)" : "none",
-            }}
-          >
-            <span
-              className="text-[12px]"
-              style={{ color: "var(--foreground)" }}
-            >
-              {m.label}
-            </span>
-            <span
-              className="mt-0.5 text-[22px] font-semibold leading-tight"
-              style={{ color: "var(--foreground)" }}
-            >
-              {m.value}
-            </span>
-            <span
-              className="mt-0.5 text-[11px]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              {m.note}
-            </span>
-          </div>
-        ))}
-      </div>
-      <div
-        className="flex items-center gap-2 px-5 py-2"
-        style={{ borderTop: "1px solid var(--border)" }}
-      >
-        <span
-          className="size-1.5 rounded-full"
-          style={{ background: "oklch(0.6 0.17 145)" }}
-        />
-        <span className="text-[12px]" style={{ color: "var(--foreground)" }}>
-          Live visitors
-        </span>
-        <span
-          className="text-[12px] font-medium"
-          style={{ color: "var(--foreground)" }}
+      <CardHeader className="flex flex-row items-center justify-between gap-2 pb-1">
+        <CardTitle
+          className="text-[12px] font-medium leading-tight"
+          style={{
+            color: isTag ? "var(--tag)" : "var(--primary)",
+          }}
         >
-          0
-        </span>
-        <Link
-          href="/analytics"
-          className="ml-0.5"
-          style={{ color: "var(--primary)" }}
-        >
-          <ArrowUpRight className="size-3" />
-        </Link>
-      </div>
-    </div>
+          {kpi.label}
+        </CardTitle>
+        <CardTitle className="text-[26px] font-semibold leading-tight">
+          {kpi.value}
+        </CardTitle>
+      </CardHeader>
+      <CardDescription className="mt-0.5 text-[12px]">
+        {kpi.note}
+      </CardDescription>
+    </Card>
   );
 }
 
-function FeedArticle({
-  card,
-  onDismiss,
-}: {
-  card: FeedCard;
-  onDismiss: (id: string) => void;
-}) {
-  const Icon = card.icon;
+function TaskRow({ task }: { task: Task }) {
+  const [done, setDone] = React.useState(false);
   return (
-    <article
-      className="relative flex flex-col overflow-hidden rounded-xl"
-      style={{ border: "1px solid var(--border)", background: "var(--card)" }}
+    <label
+      className="flex items-center gap-3 rounded-lg px-3 py-2 transition-colors hover:bg-muted/50"
     >
       <button
         type="button"
-        aria-label={`Dismiss ${card.title}`}
-        onClick={() => onDismiss(card.id)}
-        className="absolute right-3 top-3 z-10 flex size-5 items-center justify-center"
-        style={{ color: "var(--muted-foreground)" }}
+        role="checkbox"
+        aria-checked={done}
+        onClick={() => setDone((d) => !d)}
+        className="shrink-0 flex size-5 items-center justify-center rounded-sm border border-border text-sm transition-colors disabled:opacity-50"
+        style={{
+          borderColor: done ? "var(--primary)" : "var(--border)",
+          color: done ? "var(--primary-foreground)" : "var(--muted-foreground)",
+          background: done ? "var(--primary)" : "transparent",
+        }}
       >
-        <X className="size-3.5" />
-      </button>
-      <div
-        className="flex h-28 items-center justify-center"
-        style={{ background: card.tint }}
-      >
-        <div
-          className="flex size-12 items-center justify-center rounded-xl"
-          style={{
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          <Icon
-            className="size-6"
-            style={{ color: "var(--foreground)" }}
-            strokeWidth={1.5}
-          />
-        </div>
-      </div>
-      <div className="flex flex-1 flex-col space-y-2 p-5">
-        <h2
-          className="pr-5 text-[14px] font-semibold leading-snug"
-          style={{ color: "var(--card-foreground)" }}
-        >
-          {card.title}
-        </h2>
-        <p
-          className="text-[12px] leading-relaxed"
-          style={{ color: "var(--muted-foreground)" }}
-        >
-          {card.description}
-        </p>
-        {card.bullets && (
-          <ul className="flex flex-col gap-0.5">
-            {card.bullets.map((b) => (
-              <li
-                key={b}
-                className="flex items-center gap-1.5 text-[12px]"
-                style={{ color: "var(--muted-foreground)" }}
-              >
-                <Check className="size-3" style={{ color: "var(--primary)" }} />
-                {b}
-              </li>
-            ))}
-          </ul>
+        {done && (
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 12 12"
+            fill="none"
+            aria-hidden="true"
+          >
+            <path
+              d="m4.5 6 1.5 1.5L8 3.5"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
         )}
-        <div className="mt-auto pt-1">
-          {card.href ? (
-            <Link
-              href={card.href}
-              className="inline-flex items-center gap-1 text-[13px] font-medium hover:underline"
-              style={{ color: "var(--primary)" }}
-            >
-              {card.action}
-              <ArrowUpRight className="size-3.5" />
-            </Link>
-          ) : (
-            <button
-              type="button"
-              className="inline-flex h-7 items-center rounded-md px-3 text-[12px] font-medium hover:bg-[var(--muted)]"
-              style={{
-                border: "1px solid var(--border)",
-                background: "var(--card)",
-                color: "var(--foreground)",
-              }}
-            >
-              {card.action}
-            </button>
-          )}
-        </div>
+      </button>
+      <div className="min-w-0 flex flex-col gap-0.5">
+        <span className="text-[13px] font-medium leading-snug" style={{ color: "var(--foreground)" }}>
+          {task.label}
+        </span>
+        <span className="text-[11px] leading-tight" style={{ color: "var(--muted-foreground)" }}>
+          {task.hint}
+        </span>
       </div>
-    </article>
+    </label>
   );
 }
 
 export default function OverviewPage() {
-  const [feed, setFeed] = React.useState(initialFeed);
-  const [message, setMessage] = React.useState("");
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12
-      ? "Good morning!"
-      : hour < 17
-        ? "Good afternoon!"
-        : "Good evening!";
   return (
     <main
-      className="flex min-h-full flex-col"
+      className="flex min-h-full flex-col font-manrope"
       style={{ background: "var(--background)" }}
     >
-      <StatsBar />
-      <div className="flex flex-col px-6 py-6">
-        <header className="pb-4 text-center">
+      {/* Single orchestrated motion moment: one page-load fade-in. */}
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="flex flex-col px-6 py-6"
+      >
+        <header className="pb-6">
+          <p className="text-[12px] font-medium leading-tight" style={{ color: "var(--muted-foreground)" }}>
+            {greeting()}. Here is your shop floor.
+          </p>
           <h1
-            className="text-[20px] font-semibold leading-snug"
+            className="mt-1 text-[28px] font-extrabold leading-tight tracking-tight"
             style={{ color: "var(--foreground)" }}
           >
-            {greeting} Let&apos;s continue growing your business.
+            Here&apos;s your shop floor.
           </h1>
           <p
-            className="mx-auto mt-1.5 max-w-[480px] text-[13px] leading-relaxed"
+            className="mt-2 max-w-[64ch] text-[13px] leading-relaxed"
             style={{ color: "var(--muted-foreground)" }}
           >
-            Get a quick view of your store and keep moving forward with these
-            recommended tasks.
+            Stock on hand, today&apos;s takings, and what needs doing before close.
           </p>
         </header>
-        <section
-          aria-label="Sidekick"
-          className="rounded-xl p-4"
-          style={{
-            background: "var(--card)",
-            border: "1px solid var(--border)",
-          }}
-        >
-          <div className="flex items-center gap-2">
-            <span
-              className="flex size-7 items-center justify-center rounded-lg"
-              style={{
-                background: "var(--primary)",
-                color: "var(--primary-foreground)",
-              }}
-            >
-              <Sparkles className="size-4" />
-            </span>
-            <span
-              className="text-[13px] font-medium"
-              style={{ color: "var(--foreground)" }}
-            >
-              Work with Sidekick
-            </span>
-          </div>
-          <div
-            className="mt-3 flex items-center gap-2 rounded-lg px-3 py-2"
-            style={{ border: "1px solid var(--input)" }}
-          >
-            <input
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              placeholder="Ask Sidekick anything about your store"
-              className="min-w-0 flex-1 bg-transparent text-[13px] outline-none"
-            />
-            {[
-              { icon: Paperclip, label: "Add files" },
-              { icon: Mic, label: "Dictate" },
-              { icon: Send, label: "Send" },
-            ].map(({ icon: Icon, label }, i) => (
-              <button
-                key={label}
-                type="button"
-                aria-label={label}
-                disabled={i === 2 && !message.trim()}
-                className="flex size-7 items-center justify-center rounded-md disabled:opacity-40"
-                style={
-                  i === 2
-                    ? {
-                        background: "var(--primary)",
-                        color: "var(--primary-foreground)",
-                      }
-                    : { color: "var(--muted-foreground)" }
-                }
-              >
-                <Icon className="size-3.5" />
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            className="mt-2 text-[12px]"
-            style={{ color: "var(--muted-foreground)" }}
-          >
-            Recents
-          </button>
-        </section>
-        <section
-          aria-label="Recommended tasks"
-          className="mt-5 grid gap-4 md:grid-cols-2"
-        >
-          {feed.map((card) => (
-            <FeedArticle
-              key={card.id}
-              card={card}
-              onDismiss={(id) =>
-                setFeed((cur) => cur.filter((c) => c.id !== id))
-              }
-            />
+
+        <section className="mt-6 grid gap-4 md:grid-cols-3">
+          {kpis.map((kpi) => (
+            <KpiCard key={kpi.label} kpi={kpi} />
           ))}
         </section>
-        {feed.length === 0 && (
-          <section
-            className="mt-5 rounded-xl p-10 text-center"
-            style={{
-              border: "1px dashed var(--border)",
-              background: "var(--card)",
-            }}
-          >
-            <Check
-              className="mx-auto size-8"
-              style={{ color: "var(--primary)" }}
-            />
-            <h2
-              className="mt-3 text-[14px] font-semibold"
-              style={{ color: "var(--foreground)" }}
-            >
-              You&apos;re all caught up
-            </h2>
-            <p
-              className="mt-1 text-[13px]"
-              style={{ color: "var(--muted-foreground)" }}
-            >
-              There are no recommended tasks right now.
-            </p>
-          </section>
-        )}
 
-        <Button
-          variant="outline"
-          onClick={() => toast.add({ title: "Event has been created." })}
-        >
-          Test
-        </Button>
-      </div>
+        <section className="mt-8">
+          <h2 className="text-[15px] font-semibold leading-snug" style={{ color: "var(--foreground)" }}>
+            Things to do today
+          </h2>
+          <ul className="mt-3 space-y-2">
+            {tasks.map((task) => (
+              <li key={task.id}>
+                <TaskRow task={task} />
+              </li>
+            ))}
+          </ul>
+          {tasks.length === 0 && (
+            <div className="mt-3 rounded-xl border border-dashed p-6 text-center" style={{ borderColor: "var(--border)", background: "var(--card)" }}>
+              <p className="text-[13px]" style={{ color: "var(--muted-foreground)" }}>
+                Nothing scheduled for today. You&apos;re caught up.
+              </p>
+            </div>
+          )}
+        </section>
+
+        <section className="mt-8 flex flex-wrap gap-3">
+          <Button
+            onClick={() => toast.add({ title: "Sale recorded." })}
+            className="bg-primary text-primary-foreground"
+          >
+            Record sale
+          </Button>
+          <Button variant="outline" onClick={() => toast.add({ title: "Stock receipt opened." })}>
+            Receive stock
+          </Button>
+        </section>
+      </motion.div>
     </main>
   );
 }

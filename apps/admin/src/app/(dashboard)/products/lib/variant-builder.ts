@@ -198,6 +198,39 @@ export const createInitialState = (): BuilderState => ({
   excluded: [],
 });
 
+/** Convert the serializable editor value back into reducer state for edit mode. */
+export function createStateFromValue(value?: VariantBuilderValue): BuilderState {
+  if (!value) return createInitialState();
+  const options = value.options.map((option, optionIndex) => {
+    const optionId = uid();
+    return {
+      id: optionId,
+      name: option.name,
+      position: optionIndex,
+      values: option.values.map((item) => ({ id: uid(), label: item.value })),
+    };
+  });
+  const variants = value.variants.map((item) => {
+    const selections = options.flatMap((option, index) => {
+      const label = [item.option1, item.option2, item.option3][index];
+      const selected = option.values.find((v) => v.label === label);
+      return selected ? [{ optionId: option.id, valueId: selected.id }] : [];
+    });
+    const parts = selections.map(partKey);
+    return {
+      key: [...parts].sort().join("|"),
+      parts,
+      selections,
+      price: item.price,
+      compareAtPrice: item.compare_at_price ?? "",
+      quantity: item.quantity,
+      sku: item.sku,
+      barcode: item.barcode ?? "",
+    };
+  });
+  return { options, variants, excluded: [] };
+}
+
 /** keeps exactly one empty "Add another value" row at the end */
 function ensureBlank(values: OptionValue[], id: string): OptionValue[] {
   const v = [...values];

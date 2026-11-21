@@ -244,7 +244,7 @@ async function getPendingInvitations(
   )
 }
 
-export async function submitInviteMember(formData: FormData): Promise<void> {
+async function submitInviteMember(formData: FormData): Promise<void> {
   "use server"
 
   const email = formData.get("email") as string

@@ -81,7 +81,9 @@ export function ToolbarMenu({
   }, [open]);
 
   React.useEffect(() => {
-    if (disabled) setOpen(false);
+    if (!disabled) return;
+    const timer = window.setTimeout(() => setOpen(false), 0);
+    return () => window.clearTimeout(timer);
   }, [disabled]);
 
   return (

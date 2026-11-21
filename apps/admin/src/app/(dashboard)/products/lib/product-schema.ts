@@ -199,7 +199,9 @@ export type ProductFormValues = z.infer<typeof productFormSchema>;
  * Cross-field validation: compare-at price must not be below the selling
  * price unless explicitly allowed. Returns a map of field → error message.
  */
-export function validatePriceRelationship(values: ProductFormValues) {
+export function validatePriceRelationship(
+  values: Pick<ProductFormValues, "price" | "compare_at_price">,
+) {
   const errors: Record<string, string> = {};
 
   const price = values.price ? rupeesToPaise(values.price) : null;

@@ -246,6 +246,7 @@ export default function ProductsManager({
       isSelected={isSelected}
       onClearSelection={handleClearSelection}
       onBulkEdit={handleBulkEdit}
+      onRefresh={() => router.refresh()}
     />
   );
 

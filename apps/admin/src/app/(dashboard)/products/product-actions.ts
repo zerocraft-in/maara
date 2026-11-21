@@ -388,6 +388,50 @@ export async function archiveProduct(input: unknown): Promise<ProductResult> {
   return { ok: true };
 }
 
+const deleteProductSchema = z.object({
+  id: z.string().uuid("Invalid product ID."),
+});
+
+export async function deleteProduct(input: unknown): Promise<ProductResult> {
+  await requirePermission("products.archive");
+
+  const parseResult = deleteProductSchema.safeParse(input);
+  if (!parseResult.success) {
+    return {
+      ok: false,
+      error: parseResult.error.issues[0]?.message ?? "Invalid product ID.",
+    };
+  }
+
+  const supabase = await createServerSupabaseClient();
+  const { error } = await supabase.rpc("delete_product", {
+    p_product_id: parseResult.data.id,
+  });
+
+  if (error) {
+    console.error(
+      `Product deletion failed. code=${error.code ?? "-"} message=${error.message}`,
+    );
+    return { ok: false, error: "Unable to delete product. Please try again." };
+  }
+
+  revalidatePath("/products");
+  revalidatePath(`/products/${parseResult.data.id}`);
+  return { ok: true };
+}
+
+export async function bulkDeleteProducts(input: unknown): Promise<ProductResult> {
+  const parseResult = z.object({ ids: z.array(z.string().uuid()).min(1) }).safeParse(input);
+  if (!parseResult.success) return { ok: false, error: "Select at least one product." };
+
+  for (const id of parseResult.data.ids) {
+    const result = await deleteProduct({ id });
+    if (!result.ok) return result;
+  }
+
+  return { ok: true };
+}
+
 const setProductStatusSchema = z.object({
   id: z.string().uuid("Invalid product ID."),
   status: z.enum(["draft", "active"]),

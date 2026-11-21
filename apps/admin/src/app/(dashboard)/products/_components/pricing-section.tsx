@@ -111,7 +111,7 @@ export function PricingSection<T extends PricingFields>({
   // Form field paths
   const priceField = "price" as Path<T>;
   const compareAtField = "compare_at_price" as Path<T>;
-  const costField = "cost" as Path<T>;
+  const costField = "cost_per_item" as Path<T>;
   const taxField = "is_tax_inclusive" as Path<T>;
 
   // Bug fix: use toNumber() everywhere — strips Indian-format commas before parsing

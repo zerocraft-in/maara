@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { cn } from "cn"
+import { cn } from "@/lib/utils"
 import { CheckIcon, ChevronDownIcon, SearchIcon } from "lucide-react"
 import {
   Button as ButtonPrimitive,

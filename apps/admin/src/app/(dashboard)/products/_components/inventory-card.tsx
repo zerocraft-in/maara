@@ -43,76 +43,46 @@ export function InventoryCard({
         </div>
       </CardHeader>
       {form.watch("track_quantity") && (
-        <CardContent className="border m-2 p-2 rounded-lg">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between bg-muted rounded-lg px-4 py-2 gap-4 text-sm">
-              <span className="text-muted-foreground">Quantity</span>
+        <CardContent className="m-2 rounded-lg border p-0">
+          <div className="grid grid-cols-[minmax(150px,1.5fr)_repeat(4,minmax(68px,1fr))] items-center gap-3 rounded-t-lg bg-muted/60 px-3 py-2 text-xs font-medium text-muted-foreground">
+            <span>Locations</span>
+            <span className="text-right">Unavailable</span>
+            <span className="text-right">Committed</span>
+            <span className="text-right">Available</span>
+            <span className="text-right">On hand</span>
+          </div>
+          <div className="grid grid-cols-[minmax(150px,1.5fr)_repeat(4,minmax(68px,1fr))] items-center gap-3 border-t px-3 py-3 text-sm">
+            <span>Shop location</span>
+            <span className="text-right">0</span>
+            <span className="text-right">0</span>
+            <div className="flex justify-end">
+              <Input
+                id="quantity"
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={form.watch("quantity")}
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val === "" || /^\d+$/.test(val)) {
+                    form.setValue("quantity", val);
+                  }
+                }}
+                onBlur={() => {
+                  if (form.watch("quantity") === "")
+                    form.setValue("quantity", "0");
+                }}
+                aria-label="Available quantity at Shop location"
+                className="h-8 w-[72px] text-right text-sm [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+              />
             </div>
-            <div className="flex items-center justify-between gap-2 px-4 text-sm">
-              <span className="text-muted-foreground">
-                Shop location
-              </span>
-              <div className="relative inline-flex items-center">
-                <Input
-                  id="quantity"
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  step={1}
-                  value={form.watch("quantity")}
-                  onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === "" || /^\d+$/.test(val)) {
-                      form.setValue("quantity", val);
-                    }
-                  }}
-                  onBlur={() => {
-                    if (form.watch("quantity") === "")
-                      form.setValue("quantity", "0");
-                  }}
-                  className="w-[72px] text-right text-sm pr-7 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                />
-                <div className="absolute right-1 inset-y-1 flex flex-col justify-center">
-                  <button
-                    type="button"
-                    aria-label="Increase quantity"
-                    className="flex items-center justify-center h-4 w-5 rounded-sm text-[9px] leading-none text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                    onClick={() =>
-                      form.setValue(
-                        "quantity",
-                        String(
-                          Math.max(
-                            0,
-                            Number(form.watch("quantity") || 0) + 1,
-                          ),
-                        ),
-                      )
-                    }
-                  >
-                    ▲
-                  </button>
-                  <button
-                    type="button"
-                    aria-label="Decrease quantity"
-                    disabled={Number(form.watch("quantity") || 0) <= 0}
-                    className="flex items-center justify-center h-4 w-5 rounded-sm text-[9px] leading-none text-muted-foreground hover:text-foreground hover:bg-muted disabled:opacity-40 disabled:pointer-events-none transition-colors"
-                    onClick={() =>
-                      form.setValue(
-                        "quantity",
-                        String(
-                          Math.max(
-                            0,
-                            Number(form.watch("quantity") || 0) - 1,
-                          ),
-                        ),
-                      )
-                    }
-                  >
-                    ▼
-                  </button>
-                </div>
-              </div>
-            </div>
+            <span className="text-right">{Number(form.watch("quantity") || 0)}</span>
+          </div>
+          <div className="border-t px-3 py-2 text-sm">
+            <button type="button" className="text-primary underline-offset-2 hover:underline">
+              View adjustment history
+            </button>
           </div>
         </CardContent>
       )}

@@ -326,7 +326,7 @@ function GiftCardRow({ card, isSelected, onSelect }: GiftCardRowProps) {
       <TableCell className="[&:has([role=checkbox])]:pr-0">
         <Checkbox
           checked={isSelected}
-          onChange={(checked) => onSelect(card.id, checked)}
+          onChange={(checked) => onSelect(card.id, checked === true)}
           aria-label={`Select ${card.code}`}
         />
       </TableCell>
@@ -395,7 +395,7 @@ function GiftCardsTable({
               <TableHead className="w-[44px] [&:has([role=checkbox])]:pr-0">
                 <Checkbox
                   checked={allSelected}
-                  onChange={(checked) => onSelectAll(checked)}
+                  onChange={(checked) => onSelectAll(checked === true)}
                   aria-label="Select all"
                 />
               </TableHead>

@@ -467,12 +467,14 @@ export function GeneralSettingsClient({
           </CardContent>
         </Card>
         <EditStoreAddressDialog
+          key={`${addressOpen}-${JSON.stringify(address)}-${org.country}`}
           open={addressOpen}
           onOpenChange={setAddressOpen}
           address={address}
           country={org.country}
         />
         <ChangeCurrencyDialog
+          key={`${currencyOpen}-${currency}`}
           open={currencyOpen}
           onOpenChange={setCurrencyOpen}
           onSaved={(next) => {

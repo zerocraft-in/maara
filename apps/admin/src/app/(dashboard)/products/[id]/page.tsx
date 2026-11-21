@@ -16,6 +16,7 @@ import {
   updateProductImage,
   deleteProductImage,
 } from "../actions";
+import { syncProductChannelPublications } from "../publication-actions";
 import type { CategoryOption } from "../types";
 import { useDirtyForm } from "@/components/providers/dirty-provider";
 import { useProductFormState } from "@/app/(dashboard)/products/lib/product-form-state";
@@ -27,7 +28,7 @@ import {
   formatMoneyInput,
 } from "@/app/(dashboard)/products/lib/product-schema";
 import { Paise } from "@/lib/money";
-import { validateVariants } from "@/app/(dashboard)/products/lib/variant-generator";
+import type { VariantBuilderValue } from "@/app/(dashboard)/products/lib/variant-builder";
 import { MediaPicker } from "@/components/media-picker/media-picker";
 import { PricingSection } from "../_components/pricing-section";
 import { ProductIdentityCard } from "../_components/product-identity-card";
@@ -39,6 +40,7 @@ import { SeoSection } from "../_components/seo-section";
 import { StatusCard } from "../_components/status-card";
 import { PublishingCard } from "../_components/publishing-card";
 import { OrganizationCard } from "../_components/organization-card";
+import { SalesSummaryCard } from "../_components/sales-summary-card";
 import { FormErrorCard } from "../_components/form-error-card";
 import { PageHeader } from "@/components/layout/page-header";
 
@@ -146,6 +148,11 @@ export default function EditProductPage() {
   const [loading, setLoading] = React.useState(true);
   const [mediaPickerOpen, setMediaPickerOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [publishingKeys, setPublishingKeys] = React.useState<string[]>([]);
+  const [publishingDirty, setPublishingDirty] = React.useState(false);
+  const [variantDirty, setVariantDirty] = React.useState(false);
+  const variantHydrating = React.useRef(true);
+  const suppressVariantDirty = React.useRef(false);
   const [existingImages, setExistingImages] = React.useState<Array<{
     id: string;
     src: string;
@@ -153,11 +160,10 @@ export default function EditProductPage() {
   const [loadedVariants, setLoadedVariants] = React.useState<
     ProductData["product_variants"]
   >([]);
-  const [variantsOverlaid, setVariantsOverlaid] = React.useState(false);
+  const [variantValue, setVariantValue] = React.useState<VariantBuilderValue>();
 
   // Shared form state (options, variants, media, section flags).
   const {
-    variants,
     selectedMedia,
     setSelectedMedia,
     clearSelectedMedia,
@@ -167,8 +173,6 @@ export default function EditProductPage() {
     setShippingOpen,
     seoOpen,
     setSeoOpen,
-    setOptions,
-    setVariantField,
   } = useProductFormState();
 
   const form = useForm<ProductFormValues>({
@@ -346,6 +350,12 @@ export default function EditProductPage() {
           primaryVariant?.compare_at_price_paise ?? null,
         ),
         cost_per_item: toMoneyInput(primaryVariant?.cost_per_item_paise ?? null),
+        sku: primaryVariant?.sku ?? "",
+        barcode: primaryVariant?.barcode ?? "",
+        track_quantity: primaryVariant?.track_quantity ?? true,
+        quantity: String(primaryVariant?.quantity ?? 0),
+        continue_selling_when_out_of_stock:
+          primaryVariant?.continue_selling_when_out_of_stock ?? false,
         is_tax_inclusive: product.is_tax_inclusive,
         tax_rate_percent: taxPercent,
         requires_shipping: product.requires_shipping,
@@ -367,14 +377,34 @@ export default function EditProductPage() {
         })),
       });
 
-      // Seed shared options (regenerates default variant matrix asynchronously).
-      setOptions((optionsResult.data ?? []).map((o) => ({
-        name: o.name,
-        values: o.values,
-      })));
-
-      // Keep loaded variants for the overlay effect (runs after matrix exists).
       setLoadedVariants(variantsResult.data ?? []);
+      setVariantValue({
+        options: (optionsResult.data ?? []).map((o, position) => ({
+          name: o.name,
+          position,
+          values: o.values.map((value: string, valuePosition: number) => ({
+            value,
+            position: valuePosition,
+          })),
+        })),
+        variants: (variantsResult.data ?? []).map((v, position) => ({
+          position,
+          title: [v.option1, v.option2, v.option3].filter(Boolean).join(" / "),
+          option1: v.option1,
+          option2: v.option2,
+          option3: v.option3,
+          price: toMoneyInput(v.selling_price_paise),
+          compare_at_price: toMoneyInput(v.compare_at_price_paise) || null,
+          sku: v.sku,
+          barcode: v.barcode,
+          quantity: String(v.quantity ?? 0),
+        })),
+        isValid: true,
+      });
+      // Shopify exposes the base variant's SKU/barcode controls directly for
+      // products without options; there is no variant matrix to expand.
+      setInventoryOpen((optionsResult.data ?? []).length === 0);
+      window.setTimeout(() => { variantHydrating.current = false; }, 0);
       setExistingImages(
         (imagesResult.data ?? []).map((img) => ({ id: img.id, src: img.src })),
       );
@@ -399,46 +429,7 @@ export default function EditProductPage() {
     return () => {
       cancelled = true;
     };
-  }, [productId, router, setOptions, form, setSelectedMedia]);
-
-  // Overlay loaded variant data onto the generated matrix by option tuple.
-  React.useEffect(() => {
-    if (variantsOverlaid || loadedVariants.length === 0) return;
-    if (variants.length === 0) return;
-
-    loadedVariants.forEach((lv) => {
-      const key = variantKey(lv);
-      const idx = variants.findIndex((v) => variantKey(v) === key);
-      if (idx === -1) return;
-      setVariantField(idx, "id", lv.id);
-      setVariantField(idx, "sku", lv.sku);
-      setVariantField(idx, "barcode", lv.barcode ?? null);
-      setVariantField(idx, "price", toMoneyInput(lv.selling_price_paise));
-      setVariantField(
-        idx,
-        "compare_at_price",
-        toMoneyInput(lv.compare_at_price_paise),
-      );
-      setVariantField(idx, "cost_per_item", toMoneyInput(lv.cost_per_item_paise));
-      setVariantField(idx, "track_quantity", lv.track_quantity);
-      setVariantField(idx, "quantity", String(lv.quantity ?? 0));
-      setVariantField(
-        idx,
-        "continue_selling_when_out_of_stock",
-        lv.continue_selling_when_out_of_stock,
-      );
-      setVariantField(
-        idx,
-        "weight",
-        gramsToDisplay(lv.weight_grams, lv.weight_unit),
-      );
-      setVariantField(idx, "weight_unit", lv.weight_unit);
-      setVariantField(idx, "requires_shipping", lv.requires_shipping);
-      setVariantField(idx, "is_active", lv.is_active);
-    });
-
-    setVariantsOverlaid(true);
-  }, [variants, loadedVariants, variantsOverlaid, setVariantField]);
+  }, [productId, router, form, setSelectedMedia]);
 
   const onSubmit = async (values: ProductFormValues) => {
     if (!organizationId) return;
@@ -459,15 +450,37 @@ export default function EditProductPage() {
       return;
     }
 
-    // Validate variants.
-    const variantErrors = validateVariants(variants);
-    if (Object.keys(variantErrors).length > 0) {
+    if (variantValue?.options.length && !variantValue.isValid) {
       form.setError("root.variants", {
         message: "Please fix the variant errors before saving.",
       });
       setIsSubmitting(false);
       return;
     }
+
+    const hasOptions = Boolean(variantValue?.options.length);
+    const variants = hasOptions
+      ? variantValue?.variants ?? []
+      : [
+          {
+            ...(variantValue?.variants[0] ?? {
+              position: 0,
+              option1: null,
+              option2: null,
+              option3: null,
+              title: values.name,
+            }),
+            title: values.name,
+            option1: null,
+            option2: null,
+            option3: null,
+            price: values.price,
+            compare_at_price: values.compare_at_price || null,
+            sku: values.sku,
+            barcode: values.barcode || null,
+            quantity: values.quantity || "0",
+          },
+        ];
 
     const weightGrams = normalizeWeightToGrams(
       values.weight ?? null,
@@ -496,7 +509,12 @@ export default function EditProductPage() {
       seo_description: values.seo_description || null,
       published_scope: values.published_scope,
       status: values.status,
-      options: values.options.filter((o) => o.name && o.values.some((v) => v)),
+      options: (variantValue?.options ?? values.options).filter(
+        (o) => o.name && o.values.some((v) => typeof v === "string" ? v : v.value),
+      ).map((o) => ({
+        name: o.name,
+        values: o.values.map((v) => typeof v === "string" ? v : v.value),
+      })),
     };
 
     try {
@@ -511,13 +529,11 @@ export default function EditProductPage() {
       const trackQty = values.track_quantity;
       for (const variant of variants) {
         const sellingPrice = parseMoney(variant.price);
-        const cost = parseMoney(variant.cost_per_item);
+        const cost = parseMoney(values.cost_per_item);
         const compareAt = variant.compare_at_price
           ? parseMoney(variant.compare_at_price)
           : null;
-        const weightGrams = variant.weight
-          ? normalizeWeightToGrams(variant.weight, variant.weight_unit)
-          : null;
+        const weightGrams = normalizeWeightToGrams(values.weight ?? null, values.weight_unit);
 
         const baseVariantInput = {
           sku: variant.sku,
@@ -534,17 +550,29 @@ export default function EditProductPage() {
             : 0,
           track_quantity: trackQty,
           quantity: Number(variant.quantity) || 0,
-          continue_selling_when_out_of_stock:
-            variant.continue_selling_when_out_of_stock,
+          continue_selling_when_out_of_stock: values.continue_selling_when_out_of_stock,
           weight_grams: weightGrams,
-          weight_unit: variant.weight_unit,
-          requires_shipping: variant.requires_shipping,
+          weight_unit: values.weight_unit,
+          requires_shipping: values.requires_shipping,
           reorder_point: 0,
         };
 
-        if (variant.id) {
+        const optionKey = [variant.option1, variant.option2, variant.option3]
+          .filter(Boolean)
+          .map((value) => value!.trim())
+          .join("|");
+        // Older variants may not have option columns populated even though
+        // their product options are present. Prefer the option key, then use
+        // the stable SKU identity, and finally preserve the single base
+        // variant for products without options.
+        const existing = loadedVariants.find((loaded) =>
+          variantKey(loaded) === optionKey ||
+          (variant.sku && loaded.sku === variant.sku) ||
+          (!optionKey && !variantValue?.options.length && loadedVariants.length === 1),
+        );
+        if (existing) {
           const result = await updateVariant({
-            id: variant.id,
+            id: existing.id,
             ...baseVariantInput,
           });
           if (!result.ok) {
@@ -595,10 +623,28 @@ export default function EditProductPage() {
         }
       }
 
+      const publicationResult = await syncProductChannelPublications({
+        productId,
+        channelKeys: publishingKeys,
+      });
+      if (!publicationResult.ok) {
+        form.setError("root.server", { message: publicationResult.error });
+        return;
+      }
+
       // Reset the dirty baseline before routing back to the saved product.
+      setPublishingDirty(false);
+      // VariantEditor can emit its controlled value once more while the
+      // saved baseline is being reset. Ignore that reconciliation event.
+      suppressVariantDirty.current = true;
+      variantHydrating.current = true;
+      setVariantDirty(false);
       form.reset(form.getValues());
+      window.setTimeout(() => {
+        variantHydrating.current = false;
+        suppressVariantDirty.current = false;
+      }, 1000);
       toast.add({ title: "changes saved.", type: "success" });
-      router.push(`/products/${productId}`);
     } catch {
       form.setError("root.server", {
         message: "Something went wrong while saving this product. Please try again.",
@@ -609,7 +655,7 @@ export default function EditProductPage() {
   };
 
   useDirtyForm({
-    dirty: form.formState.isDirty,
+    dirty: form.formState.isDirty || publishingDirty || variantDirty,
     saving: isSubmitting,
     label: "Unsaved changes",
     onDiscard: () => {
@@ -638,8 +684,13 @@ export default function EditProductPage() {
       <div className="product-edit-page relative min-h-full bg-white text-[#202223]">
       <div className="relative mx-auto flex max-w-[1088px] flex-col overflow-visible px-4 py-4 sm:px-0 lg:py-6">
         <div className="mb-6 flex items-center gap-2">
-          <h1 className="text-[22px] font-semibold leading-7 tracking-[-0.02em] text-[#202223]">
-            Edit product
+          <h1 className="flex items-center gap-2 text-[22px] font-semibold leading-7 tracking-[-0.02em] text-[#202223]">
+            {watchName || "Edit product"}
+            {form.watch("status") && (
+              <span className={`rounded-md px-2 py-0.5 text-xs font-medium ${form.watch("status") === "active" ? "bg-[#d9f7c9] text-[#1f6b2c]" : form.watch("status") === "draft" ? "bg-[#dff3ff] text-[#155b7a]" : "bg-[#f1f1f1] text-[#5f6368]"}`}>
+                {form.watch("status") === "draft" ? "Draft" : form.watch("status") === "archived" ? "Unlisted" : "Active"}
+              </span>
+            )}
           </h1>
         </div>
         <FormErrorCard errors={form.formState.errors} />
@@ -668,7 +719,17 @@ export default function EditProductPage() {
               shippingOpen={shippingOpen}
               setShippingOpen={setShippingOpen}
             />
-            <VariantsSection />
+            <VariantsSection
+              value={variantValue}
+              resetKey={variantValue ? "loaded" : "empty"}
+              hideSingleVariantTable={variantValue?.options.length === 0}
+              onChange={(next) => {
+                setVariantValue(next);
+                if (!variantHydrating.current && !suppressVariantDirty.current) {
+                  setVariantDirty(true);
+                }
+              }}
+            />
             <MetafieldsCard />
             <SeoSection
               form={form}
@@ -680,7 +741,8 @@ export default function EditProductPage() {
           {/* Right column - side panel */}
           <div className="space-y-5 xl:sticky xl:top-6">
             <StatusCard form={form} />
-            <PublishingCard />
+            <PublishingCard productId={productId} onSelectionChange={setPublishingKeys} onDirtyChange={setPublishingDirty} />
+            <SalesSummaryCard />
             <OrganizationCard form={form} />
           </div>
         </form>

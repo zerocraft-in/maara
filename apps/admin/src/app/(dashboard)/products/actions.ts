@@ -15,6 +15,8 @@ export {
   createProduct,
   updateProduct,
   archiveProduct,
+  deleteProduct,
+  bulkDeleteProducts,
   setProductStatus,
   bulkArchiveProducts,
   bulkSetProductStatus,

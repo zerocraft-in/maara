@@ -5,6 +5,7 @@ import {
   statusBadgeVariant,
   getInventoryStatus,
 } from "@/app/(dashboard)/products/types";
+import type { VariantRow } from "@/app/(dashboard)/products/types";
 import { validatePriceRelationship } from "@/app/(dashboard)/products/lib/product-schema";
 
 describe("formatMoney", () => {
@@ -36,7 +37,7 @@ describe("getInventoryStatus", () => {
     const result = getInventoryStatus({
       track_quantity: false,
       quantity: 0,
-    } as any);
+    } as VariantRow);
     expect(result.status).toBe("not_tracked");
     expect(result.label).toBe("Not tracked");
   });
@@ -45,7 +46,7 @@ describe("getInventoryStatus", () => {
     const result = getInventoryStatus({
       track_quantity: true,
       quantity: 0,
-    } as any);
+    } as VariantRow);
     expect(result.status).toBe("out_of_stock");
     expect(result.label).toBe("Out of stock");
   });
@@ -55,7 +56,7 @@ describe("getInventoryStatus", () => {
       track_quantity: true,
       quantity: 5,
       reorder_point: 10,
-    } as any);
+    } as VariantRow);
     expect(result.status).toBe("low_stock");
     expect(result.label).toBe("Low stock (5)");
   });
@@ -65,7 +66,7 @@ describe("getInventoryStatus", () => {
       track_quantity: true,
       quantity: 20,
       reorder_point: 10,
-    } as any);
+    } as VariantRow);
     expect(result.status).toBe("in_stock");
     expect(result.label).toBe("In stock (20)");
   });
@@ -76,7 +77,7 @@ describe("validatePriceRelationship", () => {
     const errors = validatePriceRelationship({
       price: "10.00",
       compare_at_price: "15.00",
-    } as any);
+    });
     expect(errors).toEqual({});
   });
 
@@ -84,7 +85,7 @@ describe("validatePriceRelationship", () => {
     const errors = validatePriceRelationship({
       price: "15.00",
       compare_at_price: "10.00",
-    } as any);
+    });
     expect(errors.compare_at_price).toBe(
       "Compare-at price cannot be lower than the selling price.",
     );
@@ -94,7 +95,7 @@ describe("validatePriceRelationship", () => {
     const errors = validatePriceRelationship({
       price: "",
       compare_at_price: "10.00",
-    } as any);
+    });
     expect(errors).toEqual({});
   });
 });

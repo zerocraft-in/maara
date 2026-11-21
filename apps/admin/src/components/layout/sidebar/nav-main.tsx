@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import {
   ChevronRight,
   LayoutGrid,
@@ -33,10 +33,21 @@ type NavItem = {
 
 export function NavMain({ items }: { items: NavItem[] }) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { state } = useSidebar();
   const isActive = React.useCallback(
-    (href: string) => pathname === href || pathname.startsWith(`${href}/`),
-    [pathname],
+    (href: string) => {
+      const target = new URL(href, "http://localhost");
+      if (pathname !== target.pathname && !pathname.startsWith(`${target.pathname}/`)) {
+        return false;
+      }
+
+      for (const [key, value] of target.searchParams) {
+        if (searchParams.get(key) !== value) return false;
+      }
+      return true;
+    },
+    [pathname, searchParams],
   );
   const mainItems = items.filter((item) => !item.section);
   const channelItems = items.filter(
@@ -46,8 +57,6 @@ export function NavMain({ items }: { items: NavItem[] }) {
       item.title === "Point of Sale",
   );
   const appItems = items.filter((item) => item.title === "Checkout Blocks");
-  const currentOwner = items.find((item) => pathname === item.url)?.title;
-
   return (
     <SidebarGroup className="px-0 py-0">
       <SidebarMenu className="gap-0.5">
@@ -57,7 +66,6 @@ export function NavMain({ items }: { items: NavItem[] }) {
             item={item}
             pathname={pathname}
             isActive={isActive}
-            exactCurrent={currentOwner === item.title}
           />
         ))}
         <SectionBlocks
@@ -67,7 +75,6 @@ export function NavMain({ items }: { items: NavItem[] }) {
           isActive={isActive}
           collapsedIcon={Store}
           state={state}
-          currentOwner={currentOwner}
         />
         <SectionBlocks
           label="Apps"
@@ -76,7 +83,6 @@ export function NavMain({ items }: { items: NavItem[] }) {
           isActive={isActive}
           collapsedIcon={LayoutGrid}
           state={state}
-          currentOwner={currentOwner}
         />
       </SidebarMenu>
     </SidebarGroup>
@@ -90,7 +96,6 @@ function SectionBlocks({
   isActive,
   collapsedIcon: CollapsedIcon,
   state,
-  currentOwner,
 }: {
   label: string;
   items: NavItem[];
@@ -98,8 +103,9 @@ function SectionBlocks({
   isActive: (href: string) => boolean;
   collapsedIcon: LucideIcon;
   state: "expanded" | "collapsed";
-  currentOwner?: string;
 }) {
+  if (items.length === 0) return null;
+
   const sectionActive = items.some((item) => isActive(item.url));
   const href = items[0]?.url ?? "#";
   return (
@@ -119,7 +125,6 @@ function SectionBlocks({
               item={item}
               pathname={pathname}
               isActive={isActive}
-              exactCurrent={currentOwner === item.title}
             />
           ))}
         </div>
@@ -153,15 +158,13 @@ function NavItemRow({
   item,
   pathname,
   isActive,
-  exactCurrent = true,
 }: {
   item: NavItem;
   pathname: string;
   isActive: (href: string) => boolean;
-  exactCurrent?: boolean;
 }) {
   const Icon = item.icon;
-  const exact = pathname === item.url && exactCurrent;
+  const exact = isActive(item.url);
   const childActive =
     !exact && item.items?.some((child) => isActive(child.url));
   const sectionActive = exact || Boolean(childActive);
@@ -172,7 +175,7 @@ function NavItemRow({
         render={
           <Link
             href={item.url}
-            aria-current={exact && exactCurrent ? "page" : undefined}
+            aria-current={exact ? "page" : undefined}
           />
         }
         isActive={exact}

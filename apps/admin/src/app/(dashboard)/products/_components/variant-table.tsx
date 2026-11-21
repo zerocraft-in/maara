@@ -249,11 +249,6 @@ function BulkDialog({
   const [value, setValue] = React.useState("");
   const [error, setError] = React.useState<string | null>(null);
 
-  React.useEffect(() => {
-    setValue("");
-    setError(null);
-  }, [mode]);
-
   const apply = () => {
     if (!mode) return;
     if (mode === "price" && !isValidPrice(value))
@@ -745,6 +740,7 @@ export function VariantTable({
       )}
 
       <BulkDialog
+        key={bulk ?? "closed"}
         mode={bulk}
         count={selectedCount}
         onClose={() => setBulk(null)}
