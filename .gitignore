@@ -1,0 +1,58 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# next.js
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# environment
+.env
+.env.local
+.env*.local
+!.env.example
+
+# testing
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# supabase local state
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+
+# deployment
+.vercel/
+
+# tooling
+.turbo/
+.eslintcache
+*.log
+.DS_Store
+Thumbs.db
+
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+!.env.*.example
+
+# Build and dependencies
+node_modules/
+.next/
+dist/
+build/
+.turbo/
+
+# Logs
+*.log
+
+# Local OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/

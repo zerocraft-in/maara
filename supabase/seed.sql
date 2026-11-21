@@ -1,0 +1,8 @@
+-- ============================================================================
+-- Maara Merch — local seed
+-- ============================================================================
+-- Intentionally empty. Seed data is added only after the Phase 2 auth/tenancy
+-- migrations exist, and it is always clearly marked as demo data.
+--
+-- Production and shared environments must never be seeded from this file.
+-- ============================================================================
