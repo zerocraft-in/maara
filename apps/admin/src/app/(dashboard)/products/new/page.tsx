@@ -201,6 +201,18 @@ export default function NewProductPage() {
           quantity: values.quantity || "0",
         }];
 
+    // Shopify treats SKU as optional in the product editor, while our
+    // database keeps it as a unique internal variant key. Generate a stable
+    // fallback only at persistence time so the UI can remain SKU-optional.
+    const skuBase = (slugify(values.handle || values.name) || "PRODUCT")
+      .replace(/[^a-z0-9-]/gi, "")
+      .toUpperCase()
+      .slice(0, 32) || "PRODUCT";
+    const variantsWithSkus = variants.map((variant, index) => ({
+      ...variant,
+      sku: variant.sku?.trim() || `${skuBase}-${index + 1}`.slice(0, 40),
+    }));
+
     const pricePaise = parseMoney(values.price);
     const costPaise = parseMoney(values.cost_per_item);
     const { profit, margin } = computeProfitMargin(pricePaise, costPaise);
@@ -259,7 +271,7 @@ export default function NewProductPage() {
 
       // Persist variants atomically after the base product exists.
       const trackQty = values.track_quantity;
-      for (const variant of variants) {
+      for (const variant of variantsWithSkus) {
         const sellingPrice = parseMoney(variant.price);
         const cost = costPaise;
         const compareAt = variant.compare_at_price

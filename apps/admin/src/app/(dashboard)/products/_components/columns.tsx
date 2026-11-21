@@ -135,7 +135,7 @@ export function buildColumns(ctx: ProductColumnCtx) {
               )}
             </div>
             <div className="min-w-0">
-              <Link href={`/products/${product.id}`} className="hover:underline font-medium text-body truncate">
+              <Link href={`/products/${product.public_id}`} className="hover:underline font-medium text-body truncate">
                 {product.name}
               </Link>
             </div>

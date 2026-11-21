@@ -2,6 +2,7 @@ import { formatPaise, paise } from "@/lib/money";
 
 export type ProductOption = {
   id: string;
+  public_id: number;
   product_id?: string;
   name: string;
   position: 1 | 2 | 3;
@@ -10,6 +11,7 @@ export type ProductOption = {
 
 export type ProductImage = {
   id: string;
+  public_id: number;
   product_id?: string;
   variant_ids: string[];
   src: string;
@@ -32,6 +34,7 @@ export type Collection = {
 
 export type VariantRow = {
   id: string;
+  public_id: number;
   product_id?: string;
   sku: string;
   barcode: string | null;
@@ -57,6 +60,7 @@ export type VariantRow = {
 
 export type ProductBaseRow = {
   id: string;
+  public_id: number;
   organization_id: string;
   category_id: string | null;
   name: string;

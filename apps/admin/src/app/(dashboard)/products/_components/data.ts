@@ -27,6 +27,7 @@ export async function fetchProducts(
     .select(
       `
       id,
+      public_id,
       organization_id,
       category_id,
       name,
@@ -67,6 +68,7 @@ export async function fetchVariants(
     .select(
       `
       id,
+      public_id,
       product_id,
       sku,
       barcode,
@@ -106,6 +108,7 @@ export async function fetchOptions(
     .select(
       `
       id,
+      public_id,
       product_id,
       name,
       position,
@@ -130,6 +133,7 @@ export async function fetchImages(
     .select(
       `
       id,
+      public_id,
       product_id,
       variant_ids,
       src,
@@ -177,7 +181,7 @@ export async function fetchCollections(
   // Fetch product-collection relationships
   const { data: productCollections, error: pcError } = await supabase
     .from("product_collections")
-    .select("product_id, collection_id, position")
+    .select("public_id, product_id, collection_id, position")
     .eq("organization_id", organizationId);
 
   if (pcError) throw pcError;
@@ -294,6 +298,7 @@ export async function fetchProductById(
     .select(
       `
       id,
+      public_id,
       organization_id,
       category_id,
       name,
@@ -330,6 +335,7 @@ export async function fetchProductById(
       .select(
         `
         id,
+        public_id,
         sku,
         barcode,
         option1,
@@ -357,13 +363,13 @@ export async function fetchProductById(
       .order("created_at", { ascending: true }),
     supabase
       .from("product_options")
-      .select("id, name, position, values")
+      .select("id, public_id, name, position, values")
       .eq("organization_id", organizationId)
       .eq("product_id", productId)
       .order("position", { ascending: true }),
     supabase
       .from("product_images")
-      .select("id, variant_ids, src, alt, position, width, height")
+      .select("id, public_id, variant_ids, src, alt, position, width, height")
       .eq("organization_id", organizationId)
       .eq("product_id", productId)
       .order("position", { ascending: true }),
@@ -430,6 +436,7 @@ export async function fetchVariantById(
     .select(
       `
       id,
+      public_id,
       sku,
       barcode,
       option1,

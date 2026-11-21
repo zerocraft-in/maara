@@ -46,6 +46,7 @@ import { PageHeader } from "@/components/layout/page-header";
 
 type ProductData = {
   id: string;
+  public_id: number;
   name: string;
   description: string | null;
   category_id: string | null;
@@ -139,7 +140,13 @@ function toMoneyInput(paise: number | null): string {
 export default function EditProductPage() {
   const params = useParams();
   const router = useRouter();
-  const productId = params.id as string;
+  const routeKey = params.id as string;
+  const isUuidRoute = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(routeKey);
+  const isPublicIdRoute = /^\d{13}$/.test(routeKey);
+  const [resolvedProductId, setResolvedProductId] = React.useState<string | null>(
+    isUuidRoute ? routeKey : null,
+  );
+  const productId = resolvedProductId ?? "";
 
   const [categories, setCategories] = React.useState<CategoryOption[]>([]);
   const [organizationId, setOrganizationId] = React.useState<string | null>(
@@ -261,6 +268,40 @@ export default function EditProductPage() {
       const orgId = membership.organization_id;
       setOrganizationId(orgId);
 
+      const productLookup = supabase
+        .from("products")
+        .select("id, public_id")
+        .eq("organization_id", orgId);
+      const { data: productReference, error: productReferenceError } = isUuidRoute
+        ? await productLookup.eq("id", routeKey).maybeSingle()
+        : isPublicIdRoute
+          ? await productLookup.eq("public_id", Number(routeKey)).maybeSingle()
+          : { data: null, error: null };
+
+      if (productReferenceError) {
+        console.error("Failed to resolve product route:", productReferenceError);
+        form.setError("root.server", { message: "Failed to load product." });
+        router.push("/products");
+        setLoading(false);
+        return;
+      }
+
+      if (!productReference) {
+        form.setError("root.server", { message: "Product not found." });
+        router.push("/products");
+        setLoading(false);
+        return;
+      }
+
+      const internalProductId = productReference.id;
+      setResolvedProductId(internalProductId);
+
+      // UUID links remain supported, but public_id is the canonical product URL.
+      if (isUuidRoute && productReference.public_id) {
+        router.replace(`/products/${productReference.public_id}`);
+        return;
+      }
+
       const [categoriesResult, productResult, optionsResult, variantsResult, imagesResult] =
         await Promise.all([
           supabase
@@ -271,34 +312,34 @@ export default function EditProductPage() {
           supabase
             .from("products")
             .select(
-              "id, name, category_id, description, handle, vendor, product_type, tags, " +
+              "id, public_id, name, category_id, description, handle, vendor, product_type, tags, " +
                 "tax_rate_bps, is_tax_inclusive, requires_shipping, weight_grams, weight_unit, " +
                 "hs_code, country_of_origin, seo_title, seo_description, published_scope, status",
             )
             .eq("organization_id", orgId)
-            .eq("id", productId)
+            .eq("id", internalProductId)
             .maybeSingle(),
           supabase
             .from("product_options")
-            .select("id, name, position, values")
+            .select("id, public_id, name, position, values")
             .eq("organization_id", orgId)
-            .eq("product_id", productId)
+            .eq("product_id", internalProductId)
             .order("position", { ascending: true }),
           supabase
             .from("product_variants")
             .select(
-              "id, sku, barcode, option1, option2, option3, cost_price_paise, selling_price_paise, compare_at_price_paise, cost_per_item_paise, track_quantity, quantity, continue_selling_when_out_of_stock, weight_grams, weight_unit, requires_shipping, is_active",
+              "id, public_id, sku, barcode, option1, option2, option3, cost_price_paise, selling_price_paise, compare_at_price_paise, cost_per_item_paise, track_quantity, quantity, continue_selling_when_out_of_stock, weight_grams, weight_unit, requires_shipping, is_active",
             )
             .eq("organization_id", orgId)
-            .eq("product_id", productId)
+            .eq("product_id", internalProductId)
             .order("sku", { ascending: true }),
           supabase
             .from("product_images")
             .select(
-              "id, product_id, variant_ids, src, alt, position, width, height, created_at, updated_at",
+              "id, public_id, product_id, variant_ids, src, alt, position, width, height, created_at, updated_at",
             )
             .eq("organization_id", orgId)
-            .eq("product_id", productId)
+            .eq("product_id", internalProductId)
             .order("position", { ascending: true }),
         ]);
 
@@ -429,7 +470,7 @@ export default function EditProductPage() {
     return () => {
       cancelled = true;
     };
-  }, [productId, router, form, setSelectedMedia]);
+  }, [routeKey, isUuidRoute, isPublicIdRoute, router, form, setSelectedMedia]);
 
   const onSubmit = async (values: ProductFormValues) => {
     if (!organizationId) return;

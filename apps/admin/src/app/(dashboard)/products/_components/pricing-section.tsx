@@ -197,6 +197,13 @@ export function PricingSection<T extends PricingFields>({
 
   const handleUnitPanelCancel = () => setUnitPanelOpen(false);
 
+  const setMoneyField = (field: Path<T>, value: string) => {
+    form.setValue(field, value as PathValue<T, Path<T>>, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
   const isSaveEnabled = unitPriceDraft.totalAmount.trim() !== "";
 
   // ── Collapsed tag values ──────────────────────────────────────────────────
@@ -218,7 +225,10 @@ export function PricingSection<T extends PricingFields>({
           <PriceInput
             id="price"
             placeholder="0.00"
-            {...form.register(priceField)}
+            name={String(priceField)}
+            value={String(form.watch(priceField) ?? "")}
+            onChange={(event) => setMoneyField(priceField, event.target.value)}
+            onBlur={() => void form.trigger(priceField)}
           />
         </CardContent>
 
@@ -321,7 +331,12 @@ export function PricingSection<T extends PricingFields>({
                     <PriceInput
                       id="compare_at_price"
                       placeholder="0.00"
-                      {...form.register(compareAtField)}
+                      name={String(compareAtField)}
+                      value={String(form.watch(compareAtField) ?? "")}
+                      onChange={(event) =>
+                        setMoneyField(compareAtField, event.target.value)
+                      }
+                      onBlur={() => void form.trigger(compareAtField)}
                     />
                   </div>
 
@@ -500,7 +515,10 @@ export function PricingSection<T extends PricingFields>({
                       id="cost"
                       placeholder="0.00"
                       className="w-32 max-w-32"
-                      {...form.register(costField)}
+                      name={String(costField)}
+                      value={String(form.watch(costField) ?? "")}
+                      onChange={(event) => setMoneyField(costField, event.target.value)}
+                      onBlur={() => void form.trigger(costField)}
                     />
                   </div>
 
