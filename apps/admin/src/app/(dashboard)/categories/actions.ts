@@ -27,6 +27,7 @@ const categorySchema = z.object({
     .int()
     .min(0, "Sort order must be zero or greater")
     .max(999999, "Sort order must be 999999 or less"),
+  parent_id: z.string().uuid().nullable(),
 });
 
 export async function createCategory(input: unknown): Promise<CategoryResult> {
@@ -48,17 +49,18 @@ export async function createCategory(input: unknown): Promise<CategoryResult> {
     };
   }
 
-  const { name, description, sort_order } = parseResult.data;
+  const { name, description, sort_order, parent_id } = parseResult.data;
 
   // 4. Call the authenticated Supabase client (RLS applies).
   const supabase = await createServerSupabaseClient();
 
   // 5. Call the create_category RPC.
-  const { error } = await supabase.rpc("create_category", {
+  const { error } = await supabase.rpc("create_category_with_parent", {
     p_organization_id: organization.id,
     p_name: name,
     p_description: description || null,
     p_sort_order: sort_order,
+    p_parent_id: parent_id,
   });
 
   if (error) {
@@ -98,17 +100,18 @@ export async function updateCategory(input: unknown): Promise<CategoryResult> {
     };
   }
 
-  const { id, name, description, sort_order } = parseResult.data;
+  const { id, name, description, sort_order, parent_id } = parseResult.data;
 
   // 3. Call the authenticated Supabase client (RLS applies).
   const supabase = await createServerSupabaseClient();
 
   // 4. Call the update_category RPC.
-  const { error } = await supabase.rpc("update_category", {
+  const { error } = await supabase.rpc("update_category_with_parent", {
     p_category_id: id,
     p_name: name,
     p_description: description || null,
     p_sort_order: sort_order,
+    p_parent_id: parent_id,
   });
 
   if (error) {

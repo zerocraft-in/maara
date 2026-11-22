@@ -43,6 +43,7 @@ async function getExistingHandles(
 
 const productBaseSchema = z.object({
   category_id: z.string().uuid("Invalid category ID.").nullable(),
+  shopify_category_id: z.string().trim().min(1).nullable(),
   name: z
     .string()
     .trim()
@@ -116,6 +117,7 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
 
   const {
     category_id,
+    shopify_category_id,
     name,
     description,
     handle: inputHandle,
@@ -191,6 +193,15 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
 
   const productId = data as string;
 
+  const { error: taxonomyError } = await supabase.rpc("set_product_shopify_category", {
+    p_product_id: productId,
+    p_shopify_category_id: shopify_category_id,
+  });
+  if (taxonomyError) {
+    console.error(`Shopify taxonomy assignment failed: ${taxonomyError.message}`);
+    return { ok: false, error: "Unable to assign the Shopify product category." };
+  }
+
   // Create options if provided
   if (options && options.length > 0) {
     for (let i = 0; i < options.length; i++) {
@@ -235,6 +246,7 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
   const {
     id,
     category_id,
+    shopify_category_id,
     name,
     description,
     handle: inputHandle,
@@ -321,6 +333,15 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
       `Product update failed. code=${error.code ?? "-"} message=${error.message}`,
     );
     return { ok: false, error: "Unable to update product. Please try again." };
+  }
+
+  const { error: taxonomyError } = await supabase.rpc("set_product_shopify_category", {
+    p_product_id: id,
+    p_shopify_category_id: shopify_category_id,
+  });
+  if (taxonomyError) {
+    console.error(`Shopify taxonomy assignment failed: ${taxonomyError.message}`);
+    return { ok: false, error: "Unable to assign the Shopify product category." };
   }
 
   // Update options (delete and recreate for simplicity)

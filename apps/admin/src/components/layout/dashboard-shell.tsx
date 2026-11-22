@@ -82,8 +82,7 @@ export default function DashboardShell({
   );
   const [sidebarReady, setSidebarReady] = React.useState(false);
   const isSettings =
-    (pathname === "/settings" || pathname.startsWith("/settings/")) &&
-    !pathname.startsWith("/settings/sales-channels");
+    (pathname === "/settings" || pathname.startsWith("/settings/"))
   const effectiveSidebarOpen = sidebarOpen && !isSettings;
   const handleSidebarOpenChange = React.useCallback((open: boolean) => {
     setSidebarOpen(open);

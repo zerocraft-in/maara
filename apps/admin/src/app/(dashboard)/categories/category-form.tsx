@@ -35,6 +35,7 @@ const categorySchema = z.object({
       /^\d{1,6}$/,
       "Sort order must be a whole number from 0 to 999999",
     ),
+  parent_id: z.string().uuid().nullable(),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
@@ -48,7 +49,9 @@ interface CategoryFormProps {
     name: string;
     description: string | null;
     sort_order: number;
+    parent_id: string | null;
   };
+  categories: Array<{ id: string; name: string; parent_id: string | null }>;
   onSuccess: () => void;
   onClose: () => void;
 }
@@ -56,6 +59,7 @@ interface CategoryFormProps {
 export default function CategoryForm({
   mode,
   category,
+  categories,
   onSuccess,
   onClose,
 }: CategoryFormProps) {
@@ -65,6 +69,7 @@ export default function CategoryForm({
       name: category?.name ?? "",
       description: category?.description ?? "",
       sort_order: String(category?.sort_order ?? 0),
+      parent_id: category?.parent_id ?? null,
     },
   });
 
@@ -80,6 +85,7 @@ export default function CategoryForm({
       name: values.name,
       description: values.description,
       sort_order: Number(values.sort_order),
+      parent_id: values.parent_id,
     };
 
     try {
@@ -114,6 +120,19 @@ export default function CategoryForm({
           onSubmit={form.handleSubmit(onSubmit)}
           className="flex w-full max-w-md flex-col gap-4"
         >
+          <div className="flex flex-col gap-2">
+            <label className="text-xs font-semibold text-body">Parent category</label>
+            <select
+              {...form.register("parent_id", { setValueAs: (value) => value || null })}
+              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            >
+              <option value="">No parent (root category)</option>
+              {categories.map((item) => (
+                <option key={item.id} value={item.id}>{item.name}</option>
+              ))}
+            </select>
+          </div>
+
           <div className="flex flex-col gap-2">
             <label className="text-xs font-semibold text-body">
               Category name

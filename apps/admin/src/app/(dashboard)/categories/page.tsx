@@ -13,9 +13,11 @@ type CategoryRow = {
   name: string;
   slug: string;
   description: string | null;
+  parent_id: string | null;
   sort_order: number;
   status: string;
   created_at: string;
+  product_count: number;
 };
 
 type SupabaseClient = Awaited<ReturnType<typeof createServerSupabaseClient>>;
@@ -46,6 +48,7 @@ async function fetchCategories(
       name,
       slug,
       description,
+      parent_id,
       sort_order,
       status,
       created_at
@@ -56,7 +59,24 @@ async function fetchCategories(
 
   if (error) throw error;
 
-  return (data ?? []) as unknown as CategoryRow[];
+  const { data: productRows, error: productError } = await supabase
+    .from("products")
+    .select("category_id")
+    .eq("organization_id", organizationId);
+
+  if (productError) throw productError;
+
+  const counts = new Map<string, number>();
+  for (const row of productRows ?? []) {
+    if (row.category_id) {
+      counts.set(row.category_id, (counts.get(row.category_id) ?? 0) + 1);
+    }
+  }
+
+  return (data ?? []).map((row) => ({
+    ...(row as unknown as Omit<CategoryRow, "product_count">),
+    product_count: counts.get(row.id) ?? 0,
+  }));
 }
 
 export default async function CategoriesPage() {

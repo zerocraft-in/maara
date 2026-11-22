@@ -63,6 +63,7 @@ export type ProductBaseRow = {
   public_id: number;
   organization_id: string;
   category_id: string | null;
+  shopify_category_id: string | null;
   name: string;
   description: string | null;
   status: "draft" | "active" | "archived";
@@ -97,6 +98,7 @@ export type CategoryOption = {
   id: string;
   name: string;
   status: string;
+  parent_id: string | null;
 };
 
 export type StatusFilter = "all" | "draft" | "active" | "archived";

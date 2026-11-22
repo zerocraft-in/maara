@@ -82,6 +82,7 @@ export default function NewProductPage() {
       product_type: "",
       tags: [],
       category_id: null,
+      shopify_category_id: null,
       price: "",
       compare_at_price: "",
       cost_per_item: "",
@@ -141,7 +142,7 @@ export default function NewProductPage() {
 
       const { data, error } = await supabase
         .from("categories")
-        .select("id, name, status")
+        .select("id, name, status, parent_id")
         .eq("organization_id", membership.organization_id)
         .order("name", { ascending: true });
 
@@ -230,6 +231,7 @@ export default function NewProductPage() {
       product_type: values.product_type || null,
       tags: values.tags,
       category_id: values.category_id,
+      shopify_category_id: values.shopify_category_id,
       tax_rate_bps: values.tax_rate_percent
         ? Math.round(Number(values.tax_rate_percent) * 100)
         : 0,
@@ -371,6 +373,8 @@ export default function NewProductPage() {
     );
   }
 
+  const hasVariantOptions = (variantValue?.options.length ?? 0) > 0;
+
   return (
     <PageHeader>
       <div className="product-create-page relative min-h-full bg-white text-[#202223]">
@@ -395,17 +399,21 @@ export default function NewProductPage() {
               selectedMedia={selectedMedia}
               setMediaPickerOpen={setMediaPickerOpen}
             />
-            <PricingSection form={form} />
-            <InventoryCard
-              form={form}
-              inventoryOpen={inventoryOpen}
-              setInventoryOpen={setInventoryOpen}
-            />
-            <ShippingCard
-              form={form}
-              shippingOpen={shippingOpen}
-              setShippingOpen={setShippingOpen}
-            />
+            {!hasVariantOptions && <PricingSection form={form} />}
+            {!hasVariantOptions && (
+              <InventoryCard
+                form={form}
+                inventoryOpen={inventoryOpen}
+                setInventoryOpen={setInventoryOpen}
+              />
+            )}
+            {!hasVariantOptions && (
+              <ShippingCard
+                form={form}
+                shippingOpen={shippingOpen}
+                setShippingOpen={setShippingOpen}
+              />
+            )}
             <VariantsSection value={variantValue} onChange={(next) => { setVariantValue(next); if (!variantHydrating.current) setVariantDirty(true); }} />
             <MetafieldsCard />
             <SeoSection

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { EllipsisVertical } from "lucide-react";
+import { Ellipsis } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -60,7 +60,7 @@ export function BusinessDetailsRow({ org }: BusinessDetailsRowProps) {
                     size="icon-sm"
                     aria-label="More options"
                   >
-                    <EllipsisVertical className="size-4" />
+                    <Ellipsis className="size-4" />
                   </Button>
                 )}
               />
@@ -87,7 +87,7 @@ export function BusinessDetailsRow({ org }: BusinessDetailsRowProps) {
           </div>
         </CardContent>
       </Card>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-sm text-foreground">
         Manage entities in{" "}
         <Link
           className="text-primary underline underline-offset-2"

@@ -22,9 +22,11 @@ type CategoryRow = {
   name: string;
   slug: string;
   description: string | null;
+  parent_id: string | null;
   sort_order: number;
   status: string;
   created_at: string;
+  product_count: number;
 };
 
 interface CategoriesManagerProps {
@@ -49,6 +51,7 @@ export default function CategoriesManager({
   const [isChangingStatus, setIsChangingStatus] = React.useState<string | null>(
     null,
   );
+  const [expanded, setExpanded] = React.useState<Set<string>>(new Set());
 
   const router = useRouter();
 
@@ -62,6 +65,36 @@ export default function CategoriesManager({
       statusFilter === "all" || row.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  const childrenByParent = React.useMemo(() => {
+    const map = new Map<string | null, CategoryRow[]>();
+    for (const row of categories) {
+      const list = map.get(row.parent_id) ?? [];
+      list.push(row);
+      map.set(row.parent_id, list);
+    }
+    for (const list of map.values()) {
+      list.sort((a, b) => a.sort_order - b.sort_order || a.name.localeCompare(b.name));
+    }
+    return map;
+  }, [categories]);
+
+  const searchActive = searchQuery.trim().length > 0 || statusFilter !== "all";
+  const visibleIds = new Set(filteredCategories.map((row) => row.id));
+  const rowsToRender: Array<{ row: CategoryRow; depth: number }> = [];
+
+  const addTreeRows = (parentId: string | null, depth: number) => {
+    for (const row of childrenByParent.get(parentId) ?? []) {
+      if (searchActive) {
+        if (visibleIds.has(row.id)) rowsToRender.push({ row, depth });
+        addTreeRows(row.id, depth + 1);
+      } else {
+        rowsToRender.push({ row, depth });
+        if (expanded.has(row.id)) addTreeRows(row.id, depth + 1);
+      }
+    }
+  };
+  addTreeRows(null, 0);
 
   const handleArchive = async (categoryId: string) => {
     setIsArchiving(categoryId);
@@ -111,13 +144,18 @@ export default function CategoriesManager({
   return (
     <div className="mx-auto flex max-w-5xl flex-col px-5 py-6 sm:px-8 sm:py-10">
       <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="min-w-0 flex items-center gap-2">
+          <div className="min-w-0 flex items-center gap-2">
           <div
             aria-hidden="true"
             className="flex size-8 shrink-0 items-center justify-center rounded-md bg-brand text-[13px] font-bold text-brand-fg"
           >
             M
           </div>
+            <div className="hidden items-center gap-3 text-xs text-muted-foreground lg:flex">
+              <span>{categories.length} total</span>
+              <span>{categories.filter((row) => row.status === "active").length} active</span>
+              <span>{categories.filter((row) => row.status === "inactive").length} inactive</span>
+            </div>
           <div className="min-w-0 leading-tight">
             <h2 className="text-sm font-semibold tracking-[-0.02em] text-body">
               Categories
@@ -177,7 +215,7 @@ export default function CategoriesManager({
               <thead>
                 <tr className="text-xs text-muted-foreground border-b">
                   <th className="text-left pb-3">Name</th>
-                  <th className="text-left pb-3">Description</th>
+                  <th className="text-left pb-3">Products</th>
                   <th className="text-left pb-3">Sort Order</th>
                   <th className="text-left pb-3">Status</th>
                   <th className="text-left pb-3">Created</th>
@@ -206,22 +244,29 @@ export default function CategoriesManager({
                     </td>
                   </tr>
                 ) : (
-                  filteredCategories.map((row) => (
+                  rowsToRender.map(({ row, depth }) => (
                     <tr key={row.id} className="border-b">
                       <td className="py-3 text-body font-medium">
-                        {row.name}
+                        <div className="flex items-center gap-2" style={{ paddingLeft: `${depth * 22}px` }}>
+                          {(childrenByParent.get(row.id)?.length ?? 0) > 0 ? (
+                            <button
+                              type="button"
+                              className="flex size-6 items-center justify-center rounded hover:bg-muted"
+                              aria-label={`${expanded.has(row.id) ? "Collapse" : "Expand"} ${row.name}`}
+                              onClick={() => setExpanded((previous) => {
+                                const next = new Set(previous);
+                                if (next.has(row.id)) next.delete(row.id); else next.add(row.id);
+                                return next;
+                              })}
+                            >
+                              {expanded.has(row.id) ? "▾" : "▸"}
+                            </button>
+                          ) : <span className="size-6" />}
+                          <span>{row.name}</span>
+                        </div>
                       </td>
                       <td className="py-3 text-muted-foreground">
-                        {row.description ? (
-                          <span
-                            title={row.description}
-                            className="line-clamp-1 max-w-[24rem]"
-                          >
-                            {row.description}
-                          </span>
-                        ) : (
-                          "—"
-                        )}
+                        {row.product_count}
                       </td>
                       <td className="py-3 text-muted-foreground">
                         {row.sort_order}
@@ -298,6 +343,7 @@ export default function CategoriesManager({
       {showCreateForm && canManage && (
         <CategoryForm
           mode="create"
+          categories={categories}
           onSuccess={() => {
             setShowCreateForm(false);
             toast.add({ title: "Category created successfully.", type: "success" });
@@ -315,7 +361,9 @@ export default function CategoriesManager({
             name: editingCategory.name,
             description: editingCategory.description,
             sort_order: editingCategory.sort_order,
+            parent_id: editingCategory.parent_id,
           }}
+          categories={categories.filter((item) => item.id !== editingCategory.id)}
           onSuccess={() => {
             setEditingCategory(null);
             toast.add({ title: "Category updated successfully.", type: "success" });
