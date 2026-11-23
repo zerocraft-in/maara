@@ -479,6 +479,15 @@ export function MediaPicker({
               </div>
             </div>
             <div className="ml-auto flex items-center gap-2">
+              <input
+                id="picker-upload-input"
+                type="file"
+                multiple
+                className="hidden"
+                aria-label="Upload media files"
+                disabled={disabled}
+                onChange={handleFilesSelected}
+              />
               <Button
                 onClick={() => setIsRefreshing(true)}
                 disabled={isRefreshing}
