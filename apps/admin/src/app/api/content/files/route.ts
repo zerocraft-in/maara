@@ -47,7 +47,10 @@ import {
 } from "@/lib/r2";
 import { initUpload, ASSET_FOLDERS, sanitizeAssetFilename } from "@/lib/storage";
 import { requestIdFrom } from "@/lib/http";
-import { mediaVisibilityForKey } from "@/lib/media-visibility";
+import {
+  isCanonicalMediaFolder,
+  mediaVisibilityForKey,
+} from "@/lib/media-visibility";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -302,10 +305,15 @@ export async function POST(request: Request) {
     const clientContentType =
       typeof body.contentType === "string" ? body.contentType : "";
     const size = typeof body.size === "number" ? body.size : 0;
-    const folder =
-      typeof body.folder === "string" && body.folder.trim().length > 0
-        ? body.folder.trim()
-        : ASSET_FOLDERS.uploads;
+    const hasFolder = Object.prototype.hasOwnProperty.call(body, "folder");
+    const folderInput = hasFolder ? body.folder : ASSET_FOLDERS.uploads;
+    if (!isCanonicalMediaFolder(folderInput)) {
+      return NextResponse.json(
+        { error: "Invalid media folder." },
+        { status: 400, headers: { "X-Request-Id": requestId, "Cache-Control": "no-store" } },
+      );
+    }
+    const folder = folderInput;
 
     // --- Use the centralized storage service for upload initialization ---
     // This validates the file policy, generates a server-controlled object key

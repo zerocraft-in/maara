@@ -34,7 +34,11 @@ import {
   R2_OBJECT_ROOT_PREFIX,
   getPublicCdnUrl,
 } from "./r2";
-import { mediaVisibilityForFolder, type MediaVisibility } from "./media-visibility";
+import {
+  canonicalMediaFolder,
+  mediaVisibilityForFolder,
+  type MediaVisibility,
+} from "./media-visibility";
 
 /** Canonical asset categories (folders) under the `assets/` root prefix. */
 export const ASSET_FOLDERS: Readonly<{
@@ -49,6 +53,8 @@ export const ASSET_FOLDERS: Readonly<{
   documents: "documents";
   thumbnails: "thumbnails";
   system: "system";
+  customers: "customers";
+  internal: "internal";
 }> = {
   uploads: "uploads",
   products: "products",
@@ -61,6 +67,8 @@ export const ASSET_FOLDERS: Readonly<{
   documents: "documents",
   thumbnails: "thumbnails",
   system: "system",
+  customers: "customers",
+  internal: "internal",
 } as const;
 
 export type AssetFolder = (typeof ASSET_FOLDERS)[keyof typeof ASSET_FOLDERS];
@@ -192,8 +200,9 @@ export async function initUpload({
   readonly size: number;
   readonly folder?: AssetFolder | string;
 }): Promise<InitUploadResult> {
-  // Default empty folder to uploads
-  const resolvedFolder = folder || ASSET_FOLDERS.uploads;
+  // Validate the folder before any file policy or R2 work. Invalid values must
+  // never be sanitized into a valid public or private namespace.
+  const resolvedFolder = canonicalMediaFolder(folder);
   // Validate file extension / size / MIME against the centralized policy.
   // Category is derived from the file extension (not the folder), so that
   // validation is consistent regardless of which folder the file goes into.

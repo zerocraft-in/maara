@@ -88,6 +88,8 @@ describe("ASSET_FOLDERS", () => {
     expect(ASSET_FOLDERS.documents).toBe("documents");
     expect(ASSET_FOLDERS.thumbnails).toBe("thumbnails");
     expect(ASSET_FOLDERS.system).toBe("system");
+    expect(ASSET_FOLDERS.customers).toBe("customers");
+    expect(ASSET_FOLDERS.internal).toBe("internal");
   });
 });
 
@@ -149,15 +151,19 @@ describe("initUpload", () => {
     expect(result.key).toBe("assets/public/products/photo.jpg");
   });
 
-  it("sanitizes the folder name", async () => {
-    const result = await initUpload({
-      filename: "file.jpg",
-      clientContentType: "image/jpeg",
-      size: 1024,
-      folder: "My Folder!",
-    });
-    expect(result.key).toBe("assets/private/My_Folder/file.jpg");
-  });
+  it.each(["My Folder!", "", "products/../uploads", "products\\uploads", "products%2Fuploads", "products%00"])(
+    "rejects non-canonical folder %j before signing",
+    async (folder) => {
+      await expect(
+        initUpload({
+          filename: "file.jpg",
+          clientContentType: "image/jpeg",
+          size: 1024,
+          folder,
+        }),
+      ).rejects.toThrow("Invalid media folder.");
+    },
+  );
 
   it("rejects path traversal in filename", async () => {
     const result = await initUpload({
@@ -170,12 +176,11 @@ describe("initUpload", () => {
     expect(result.key.endsWith("passwd.jpg")).toBe(true);
   });
 
-  it("defaults empty folder to uploads", async () => {
+  it("defaults an omitted folder to uploads", async () => {
     const result = await initUpload({
       filename: "file.jpg",
       clientContentType: "image/jpeg",
       size: 1024,
-      folder: "",
     });
     expect(result.key).toBe("assets/private/uploads/file.jpg");
   });
