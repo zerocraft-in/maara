@@ -10,7 +10,6 @@ import { slugify } from "@/lib/utils";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { createProduct, createVariant, createProductImage } from "../actions";
 import { syncProductChannelPublications } from "../publication-actions";
-import type { CategoryOption } from "../types";
 import { useDirtyForm } from "@/components/providers/dirty-provider";
 import { useProductFormState } from "@/app/(dashboard)/products/lib/product-form-state";
 import {
@@ -41,7 +40,6 @@ export default function NewProductPage() {
   const [organizationId, setOrganizationId] = React.useState<string | null>(
     null,
   );
-  const [categories, setCategories] = React.useState<CategoryOption[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [mediaPickerOpen, setMediaPickerOpen] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -140,15 +138,6 @@ export default function NewProductPage() {
 
       setOrganizationId(membership.organization_id);
 
-      const { data, error } = await supabase
-        .from("categories")
-        .select("id, name, status, parent_id")
-        .eq("organization_id", membership.organization_id)
-        .order("name", { ascending: true });
-
-      if (!error && data) {
-        setCategories(data as CategoryOption[]);
-      }
       setLoading(false);
     }
 
@@ -395,7 +384,6 @@ export default function NewProductPage() {
           <div className="space-y-8">
             <ProductIdentityCard
               form={form}
-              categories={categories}
               selectedMedia={selectedMedia}
               setMediaPickerOpen={setMediaPickerOpen}
             />

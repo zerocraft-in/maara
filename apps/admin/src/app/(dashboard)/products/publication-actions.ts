@@ -23,7 +23,7 @@ export async function syncProductChannelPublications(input: unknown): Promise<Pu
   const [{ data: product }, { data: channels }, { data: existing }] = await Promise.all([
     supabase.from("products").select("id").eq("id", parsed.data.productId).eq("organization_id", organizationId).maybeSingle(),
     supabase.from("sales_channels").select("id,key").in("key", parsed.data.channelKeys),
-    supabase.from("product_channel_publications").select("id,sales_channel_id,status").eq("product_id", parsed.data.productId).eq("organization_id", organizationId),
+    supabase.from("product_publications").select("id,sales_channel_id,status").eq("product_id", parsed.data.productId).eq("organization_id", organizationId),
   ]);
 
   if (!product) return { ok: false, error: "Product not found." };
@@ -51,13 +51,13 @@ export async function syncProductChannelPublications(input: unknown): Promise<Pu
     unpublished_at: null,
   }));
   if (rows.length > 0) {
-    const { error } = await supabase.from("product_channel_publications").upsert(rows, { onConflict: "organization_id,product_id,sales_channel_id" });
+    const { error } = await supabase.from("product_publications").upsert(rows, { onConflict: "organization_id,product_id,sales_channel_id" });
     if (error) return { ok: false, error: "Unable to publish the product to the selected channels." };
   }
 
   const existingRows = (existing ?? []).filter((row) => !requestedIds.has(row.sales_channel_id));
   for (const row of existingRows) {
-    const { error } = await supabase.from("product_channel_publications").update({ status: "unpublished", unpublished_at: now }).eq("id", row.id).eq("organization_id", organizationId);
+    const { error } = await supabase.from("product_publications").update({ status: "unpublished", unpublished_at: now }).eq("id", row.id).eq("organization_id", organizationId);
     if (error) return { ok: false, error: "Unable to unpublish the product from a channel." };
   }
 

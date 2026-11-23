@@ -7,14 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import type { CategoryOption } from "../types";
 import type { ProductFormValues } from "@/app/(dashboard)/products/lib/product-schema";
 import { RichTextEditor } from "@/components/tiptap/rich-text-editor";
 import { ShopifyCategoryPicker } from "./shopify-category-picker";
@@ -23,32 +15,15 @@ type ProductForm = UseFormReturn<ProductFormValues>;
 
 interface ProductIdentityCardProps {
   form: ProductForm;
-  categories: CategoryOption[];
   selectedMedia: Array<{ id: string; url: string; name: string }>;
   setMediaPickerOpen: (open: boolean) => void;
 }
 
 export function ProductIdentityCard({
   form,
-  categories,
   selectedMedia,
   setMediaPickerOpen,
 }: ProductIdentityCardProps) {
-  const categoryDepth = React.useMemo(() => {
-    const byId = new Map(categories.map((category) => [category.id, category]));
-    const depths = new Map<string, number>();
-    const resolveDepth = (id: string, seen = new Set<string>()): number => {
-      if (depths.has(id)) return depths.get(id)!;
-      const category = byId.get(id);
-      if (!category?.parent_id || seen.has(id)) return 0;
-      const nextSeen = new Set(seen).add(id);
-      const depth = resolveDepth(category.parent_id, nextSeen) + 1;
-      depths.set(id, depth);
-      return depth;
-    };
-    categories.forEach((category) => resolveDepth(category.id));
-    return depths;
-  }, [categories]);
   const descriptionRef = React.useRef<HTMLTextAreaElement | null>(null);
   const descriptionField = form.register("description");
 
@@ -168,35 +143,6 @@ export function ProductIdentityCard({
             <Button type="button" variant="ghost" size="sm" onClick={() => setMediaPickerOpen(true)}>Select existing</Button>
             <p className="text-xs text-[#616161]">Accepts images, videos, or 3D models</p>
           </div>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="category_id">Store category (optional)</Label>
-          <Select
-            className="w-full"
-            value={form.watch("category_id") || ""}
-            onValueChange={(v) => form.setValue("category_id", v || null)}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue>Choose a product category</SelectValue>
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="">No category</SelectItem>
-              {categories.map((category) => (
-                <SelectItem
-                  key={category.id}
-                  value={category.id}
-                  disabled={category.status !== "active"}
-                >
-                  {"— ".repeat(categoryDepth.get(category.id) ?? 0)}{category.name}
-                  {category.status !== "active" && " (inactive)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <p className="text-xs text-muted-foreground">
-            Use this for your internal merchandising groups. Shopify product
-            category below controls taxonomy and category metafields.
-          </p>
         </div>
         <ShopifyCategoryPicker form={form} />
       </CardContent>

@@ -17,7 +17,6 @@ import {
   deleteProductImage,
 } from "../actions";
 import { syncProductChannelPublications } from "../publication-actions";
-import type { CategoryOption } from "../types";
 import { useDirtyForm } from "@/components/providers/dirty-provider";
 import { useProductFormState } from "@/app/(dashboard)/products/lib/product-form-state";
 import {
@@ -149,7 +148,6 @@ export default function EditProductPage() {
   );
   const productId = resolvedProductId ?? "";
 
-  const [categories, setCategories] = React.useState<CategoryOption[]>([]);
   const [organizationId, setOrganizationId] = React.useState<string | null>(
     null,
   );
@@ -240,7 +238,7 @@ export default function EditProductPage() {
     }
   }, [watchName, watchHandle, form]);
 
-  // Load product, categories, options, variants, images.
+  // Load product, options, variants, and images.
   React.useEffect(() => {
     let cancelled = false;
 
@@ -304,13 +302,8 @@ export default function EditProductPage() {
         return;
       }
 
-      const [categoriesResult, productResult, optionsResult, variantsResult, imagesResult] =
+      const [productResult, optionsResult, variantsResult, imagesResult] =
         await Promise.all([
-          supabase
-            .from("categories")
-            .select("id, name, status, parent_id")
-            .eq("organization_id", orgId)
-            .order("name", { ascending: true }),
           supabase
             .from("products")
             .select(
@@ -346,15 +339,6 @@ export default function EditProductPage() {
         ]);
 
       if (cancelled) return;
-
-      if (categoriesResult.error) {
-        console.error("Failed to load categories:", categoriesResult.error);
-        form.setError("root.server", {
-          message: "Failed to load product categories.",
-        });
-      } else {
-        setCategories((categoriesResult.data ?? []) as CategoryOption[]);
-      }
 
       if (productResult.error) {
         console.error("Failed to load product:", productResult.error);
@@ -751,7 +735,6 @@ export default function EditProductPage() {
           <div className="space-y-8">
             <ProductIdentityCard
               form={form}
-              categories={categories}
               selectedMedia={selectedMedia}
               setMediaPickerOpen={setMediaPickerOpen}
             />

@@ -8,6 +8,10 @@
   --font-mono:
     "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
+  --font-manrope:
+    "Manrope", -apple-system, BlinkMacSystemFont, "Segoe UI", ui-sans-serif,
+    sans-serif;
+
   --color-background: var(--background);
   --color-foreground: var(--foreground);
 
@@ -101,6 +105,11 @@
   /* Clothing-tag accent — used sparingly for stock/sale markers only. */
   --tag: #b45309;
   --tag-foreground: #ffffff;
+
+  /* Garment-shop palette (per DESIGN_PLAN.md). */
+  --ink: #111012;
+  --paper: #ffffff;
+  --dye: #0e7c7b;
 
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);

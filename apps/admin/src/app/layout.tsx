@@ -1,14 +1,62 @@
 import type { Metadata, Viewport } from "next";
 import type * as React from "react";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 
 import { Toaster } from "@/components/ui/toast";
 
 import "./globals.css";
 
-const inter = Inter({
-  subsets: ["latin"],
+const inter = localFont({
+  src: [
+    {
+      path: "./fonts/inter/Inter-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter/Inter-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter/Inter-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter/Inter-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const manrope = localFont({
+  src: [
+    {
+      path: "./fonts/inter/Inter-Regular.woff2",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter/Inter-Medium.woff2",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter/Inter-SemiBold.woff2",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/inter/Inter-Bold.woff2",
+      weight: "700",
+      style: "normal",
+    },
+  ],
+  variable: "--font-manrope",
   display: "swap",
 });
 
@@ -41,7 +89,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} font-sans`}
+      className={`${inter.variable} ${manrope.variable} font-sans`}
     >
       <body className="relative min-h-dvh bg-sidebar font-sans text-[13px] leading-5 overscroll-none text-foreground antialiased">
         {children}

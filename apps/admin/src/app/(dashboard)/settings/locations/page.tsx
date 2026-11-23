@@ -17,7 +17,7 @@ type LocationRow = {
   contact_email: string | null;
   status: string;
   created_at: string;
-  user_locations: Array<{ user_id: string }>;
+  location_user_assignments: Array<{ user_id: string }>;
 };
 
 type MemberRow = {
@@ -62,7 +62,7 @@ async function fetchLocations(
       contact_email,
       status,
       created_at,
-      user_locations!fk_user_locations_location ( user_id )
+      location_user_assignments!fk_location_user_assignments_location ( user_id )
     `)
     .eq("organization_id", organizationId)
     .order("created_at", { ascending: false });
@@ -107,7 +107,7 @@ async function fetchUserLocations(
   organizationId: string,
 ): Promise<UserLocationRow[]> {
   const { data, error } = await supabase
-    .from("user_locations")
+    .from("location_user_assignments")
     .select("user_id, location_id")
     .eq("organization_id", organizationId);
 

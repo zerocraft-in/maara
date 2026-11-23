@@ -15,6 +15,8 @@
     "typecheck": "pnpm --filter @maara/admin typecheck",
     "test": "pnpm --filter @maara/admin test",
     "test:e2e": "pnpm --filter @maara/admin test:e2e",
+    "db:migration-check": "node scripts/validate-migrations.js && node scripts/check-duplicate-timestamps.js",
+    "db:verify-schema": "echo 'Use Supabase dashboard SQL Editor to run read-only verification queries'",
     "db:start": "supabase start",
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",

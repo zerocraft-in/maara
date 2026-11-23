@@ -6,6 +6,7 @@ import {
   NO_ACTIVE_MEMBERSHIP_ERROR,
 } from "@/lib/auth/session";
 
+import CustomersManager from "./_components/customers-manager";
 import { PageHeader } from "@/components/layout/page-header";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +26,18 @@ async function requireOrganizationOrRedirect() {
 }
 
 export default async function CustomersPage() {
+  const context = await requireOrganizationOrRedirect();
+
+  const organizationId = context.activeOrganization?.id;
+
+  if (!organizationId) {
+    redirect("/onboarding");
+  }
+
+  if (!context.permissions.has("customers.view")) {
+    redirect("/overview");
+  }
+
   return (
     <PageHeader
       actions={
@@ -36,13 +49,19 @@ export default async function CustomersPage() {
             Import
           </Button>
 
-          <Button size="sm" render={<Link href="/customers/new" />}>
+          <Button
+            size="sm"
+            render={<Link href="/customers/new" />}
+          >
             Add customer
           </Button>
         </div>
       }
     >
-      coming soon
+      <CustomersManager
+        organizationId={organizationId}
+        permissions={context.permissions}
+      />
     </PageHeader>
   );
 }

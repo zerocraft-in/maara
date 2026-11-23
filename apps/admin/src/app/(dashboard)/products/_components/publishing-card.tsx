@@ -68,7 +68,7 @@ export function PublishingCard({
       let next = available.map((channel) => channel.key);
       if (productId) {
         const { data: publications } = await supabase
-          .from("product_channel_publications")
+          .from("product_publications")
           .select("sales_channel_id,status")
           .eq("product_id", productId)
           .eq("status", "published");

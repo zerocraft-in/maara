@@ -32,7 +32,7 @@ type LocationRow = {
   contact_email: string | null;
   status: string;
   created_at: string;
-  user_locations: Array<{ user_id: string }>;
+  location_user_assignments: Array<{ user_id: string }>;
 };
 
 type MemberRow = {

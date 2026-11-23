@@ -56,10 +56,9 @@ export async function inviteMember(
     return { ok: false, error: "Unable to create invitation." };
   }
 
-  // invite_member returns a table with one row: { invitation_id, token }
-  const invitationRow = Array.isArray(data) ? data[0] : data;
-  const invitationId = invitationRow?.invitation_id as string | undefined;
-  const token = invitationRow?.token as string | undefined;
+  // invite_member returns jsonb { invitation_id, token }.
+  const invitationId = (data as { invitation_id?: string; token?: string })?.invitation_id;
+  const token = (data as { invitation_id?: string; token?: string })?.token;
 
   if (!invitationId || !token) {
     return { ok: false, error: "Unable to create invitation." };

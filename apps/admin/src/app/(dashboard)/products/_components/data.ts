@@ -178,28 +178,9 @@ export async function fetchCollections(
 
   if (collectionsError) throw collectionsError;
 
-  // Fetch product-collection relationships
-  const { data: productCollections, error: pcError } = await supabase
-    .from("product_collections")
-    .select("public_id, product_id, collection_id, position")
-    .eq("organization_id", organizationId);
-
-  if (pcError) throw pcError;
-
-  // Group collections by product
-  const collectionsByProduct = new Map<string, CollectionBaseRow[]>();
-  for (const pc of productCollections ?? []) {
-    const collection = (collections ?? []).find(c => c.id === pc.collection_id);
-    if (collection) {
-      const existing = collectionsByProduct.get(pc.product_id) ?? [];
-      existing.push({ ...collection, position: pc.position });
-      collectionsByProduct.set(pc.product_id, existing);
-    }
-  }
-
   return (collections ?? []).map(c => ({
     ...c,
-    product_ids: productCollections?.filter(pc => pc.collection_id === c.id).map(pc => pc.product_id) ?? [],
+    product_ids: [],
   })) as unknown as CollectionBaseRow[];
 }
 
@@ -207,15 +188,9 @@ export async function fetchCategoryOptions(
   supabase: SupabaseClient,
   organizationId: string,
 ): Promise<CategoryOption[]> {
-  const { data, error } = await supabase
-    .from("categories")
-    .select("id, name, status")
-    .eq("organization_id", organizationId)
-    .order("name", { ascending: true });
-
-  if (error) throw error;
-
-  return (data ?? []) as unknown as CategoryOption[];
+  void supabase;
+  void organizationId;
+  return [];
 }
 
 export function assembleProducts(
@@ -226,7 +201,7 @@ export function assembleProducts(
   collectionRows: CollectionBaseRow[],
   categoryRows: CategoryOption[],
 ): ProductRow[] {
-  const categoryById = new Map(categoryRows.map((row) => [row.id, row]));
+  void categoryRows;
 
   const variantsByProduct = new Map<string, VariantRow[]>();
   for (const variant of variantRows) {
@@ -278,9 +253,7 @@ export function assembleProducts(
 
   return productRows.map((row) => ({
     ...row,
-    categories: row.category_id
-      ? (categoryById.get(row.category_id) ?? null)
-      : null,
+    categories: null,
     product_variants: variantsByProduct.get(row.id) ?? [],
     product_options: optionsByProduct.get(row.id) ?? [],
     product_images: imagesByProduct.get(row.id) ?? [],
@@ -373,20 +346,11 @@ export async function fetchProductById(
       .eq("organization_id", organizationId)
       .eq("product_id", productId)
       .order("position", { ascending: true }),
-    supabase
-      .from("product_collections")
-      .select("collection_id, position")
-      .eq("organization_id", organizationId)
-      .eq("product_id", productId)
-      .order("position", { ascending: true }),
-    product.category_id
-      ? supabase
-          .from("categories")
-          .select("id, name")
-          .eq("organization_id", organizationId)
-          .eq("id", product.category_id)
-          .maybeSingle()
-      : Promise.resolve({ data: null, error: null }),
+    Promise.resolve({
+      data: [] as Array<{ collection_id: string; position: number }>,
+      error: null,
+    }),
+    Promise.resolve({ data: null, error: null }),
   ]);
 
   if (variants.error) throw variants.error;
@@ -417,7 +381,7 @@ export async function fetchProductById(
 
   return {
     ...base,
-    categories: category.data ?? null,
+    categories: null,
     product_variants: (variants.data ?? []) as unknown as VariantRow[],
     product_options: (options.data ?? []) as unknown as ProductOption[],
     product_images: (images.data ?? []) as unknown as ProductImage[],

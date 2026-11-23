@@ -42,7 +42,7 @@ export function ShopifyCategoryPicker({ form }: { form: UseFormReturn<ProductFor
   const loadCategories = React.useCallback(async (parentId: string | null, search: string) => {
     setLoading(true);
     const supabase = createBrowserSupabaseClient();
-    let request = supabase.from("shopify_product_categories").select("shopify_category_id, name, full_name, parent_shopify_category_id, level, is_leaf, attributes").order("name", { ascending: true }).limit(search.trim() ? 100 : 200);
+    let request = supabase.from("categories").select("shopify_category_id, name, full_name, parent_shopify_category_id, level, is_leaf, attributes").order("name", { ascending: true }).limit(search.trim() ? 100 : 200);
     if (search.trim()) request = request.ilike("full_name", `%${search.trim()}%`);
     else if (parentId) request = request.eq("parent_shopify_category_id", parentId);
     else request = request.is("parent_shopify_category_id", null);
@@ -53,9 +53,9 @@ export function ShopifyCategoryPicker({ form }: { form: UseFormReturn<ProductFor
 
   React.useEffect(() => {
     let cancelled = false;
-    if (!selectedId) { setSelected(null); return; }
+    if (!selectedId) return;
     const supabase = createBrowserSupabaseClient();
-    void supabase.from("shopify_product_categories").select("shopify_category_id, name, full_name, parent_shopify_category_id, level, is_leaf, attributes").eq("shopify_category_id", selectedId).maybeSingle().then(({ data }) => {
+    void supabase.from("categories").select("shopify_category_id, name, full_name, parent_shopify_category_id, level, is_leaf, attributes").eq("shopify_category_id", selectedId).maybeSingle().then(({ data }) => {
       if (!cancelled) setSelected((data as TaxonomyRow | null) ?? null);
     });
     return () => { cancelled = true; };

@@ -34,6 +34,7 @@ interface DataTableProps<TData> {
   enablePagination?: boolean;
   className?: string;
   selectedProducts?: string[];
+  selectedCustomers?: Set<string> | undefined;
   emptyState?: React.ReactNode;
   /** Optional toolbar rendered at the top of the table (e.g. bulk-selection bar). */
   toolbar?: React.ReactNode;
@@ -50,12 +51,14 @@ export function DataTable<TData>({
   enableSorting = true,
   enablePagination = true,
   selectedProducts = [],
+  selectedCustomers,
   className,
   emptyState = (
     <div className="text-muted-foreground text-center py-8">No data found.</div>
   ),
   toolbar,
 }: DataTableProps<TData>) {
+  const selectedCount = selectedProducts.length + (selectedCustomers?.size ?? 0);
   const table = useReactTable<TData>({
     columns,
     data,
@@ -95,7 +98,7 @@ export function DataTable<TData>({
     <div className={className}>
       <Table>
         <TableHeader>
-          {selectedProducts.length > 0 ? (
+          {selectedCount > 0 ? (
             <TableRow>
               <TableHead colSpan={visibleLeafColumns.length}>
                 {toolbar}
