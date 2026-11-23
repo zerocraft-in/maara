@@ -133,7 +133,7 @@ type MediaFile = {
   name: string;
   size: number;
   contentType: string | null;
-  url: string;
+  downloadUrl: string;
   uploadedBy: string | null;
   lastModified: string | null;
   organizationId: string;
@@ -263,7 +263,7 @@ export function MediaPicker({
       id: f.id,
       key: f.key,
       name: f.name,
-      url: f.url,
+      url: f.downloadUrl,
       contentType: f.contentType,
       size: f.size,
       organizationId: f.organizationId,
@@ -635,11 +635,11 @@ function PickerCard({
             </Button>
           )} />
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onCopyUrl(file.url)}>
+            <DropdownMenuItem onClick={() => onCopyUrl(file.downloadUrl)}>
               <Copy className="size-4 mr-2" />
               Copy URL
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => window.open(file.url, "_blank")}>
+            <DropdownMenuItem onClick={() => window.open(file.downloadUrl, "_blank")}>
               <ExternalLink className="size-4 mr-2" />
               Open
             </DropdownMenuItem>
@@ -652,7 +652,7 @@ function PickerCard({
       </CardHeader>
       {isImageFile && (
         <CardContent className="aspect-video overflow-hidden bg-muted">
-          <img src={file.url} alt={file.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
+          <img src={file.downloadUrl} alt={file.name} className="h-full w-full object-cover" loading="lazy" decoding="async" />
         </CardContent>
       )}
       <CardFooter className="p-3 flex justify-between items-center">
@@ -660,7 +660,7 @@ function PickerCard({
           <Badge variant="outline" className="text-xs">{file.contentType ?? "application/octet-stream"}</Badge>
           {!canUse && <Badge variant="destructive" className="text-xs" title="Type not allowed for this picker">Not allowed</Badge>}
         </div>
-        <Button size="sm" onClick={(e) => { e.stopPropagation(); onCopyUrl(file.url); }} className="w-auto">
+        <Button size="sm" onClick={(e) => { e.stopPropagation(); onCopyUrl(file.downloadUrl); }} className="w-auto">
           <Copy className="size-3 mr-1" />
           Copy
         </Button>

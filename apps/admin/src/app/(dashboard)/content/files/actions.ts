@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 import { deleteFile } from "@/lib/r2";
+import { verifyR2Object } from "@/lib/file-policy";
 
 export type MediaResult =
   | { ok: true; id?: string }
@@ -67,6 +68,22 @@ export async function registerMediaFile(input: unknown): Promise<MediaResult> {
   }
 
   const supabase = await createServerSupabaseClient();
+
+  const objectVerified = await verifyR2Object({
+    key,
+    expectedContentType: contentType || "application/octet-stream",
+  });
+  if (!objectVerified) {
+    try {
+      await deleteFile({ key });
+    } catch (cleanupError) {
+      console.error("Failed to clean up unverified R2 object:", {
+        key,
+        error: cleanupError instanceof Error ? cleanupError.message : "unknown",
+      });
+    }
+    return { ok: false, error: "Uploaded object could not be verified." };
+  }
 
   const { data, error } = await supabase.rpc("create_media", {
     p_organization_id: organization.id,

@@ -6,20 +6,19 @@ import {
   initUpload,
   sanitizeAssetFolder,
   sanitizeAssetFilename,
-  getAssetPublicUrl,
   resetR2ConfigForTesting,
   ASSET_FOLDERS,
   MAX_SIZE_BYTES,
   MIME_TYPES_BY_CATEGORY,
   EXTENSIONS_BY_CATEGORY,
 } from "./storage";
+import { isPrivateR2SignedUrl } from "./r2";
 
 const originalEnv = {
   R2_ACCOUNT_ID: process.env.R2_ACCOUNT_ID,
   R2_ACCESS_KEY_ID: process.env.R2_ACCESS_KEY_ID,
   R2_SECRET_ACCESS_KEY: process.env.R2_SECRET_ACCESS_KEY,
   R2_BUCKET_NAME: process.env.R2_BUCKET_NAME,
-  R2_CUSTOM_DOMAIN: process.env.R2_CUSTOM_DOMAIN,
 };
 
 afterEach(() => {
@@ -27,7 +26,6 @@ afterEach(() => {
   process.env.R2_ACCESS_KEY_ID = originalEnv.R2_ACCESS_KEY_ID;
   process.env.R2_SECRET_ACCESS_KEY = originalEnv.R2_SECRET_ACCESS_KEY;
   process.env.R2_BUCKET_NAME = originalEnv.R2_BUCKET_NAME;
-  process.env.R2_CUSTOM_DOMAIN = originalEnv.R2_CUSTOM_DOMAIN;
   resetR2ConfigForTesting();
 });
 
@@ -74,25 +72,6 @@ describe("sanitizeAssetFilename", () => {
 
   it("defaults fully reserved names to file", () => {
     expect(sanitizeAssetFilename("CON")).toBe("file");
-  });
-});
-
-describe("getAssetPublicUrl", () => {
-  it("builds public URL from readable key using custom domain", () => {
-    setR2Env();
-    const key = "assets/maara-test/products/photo.jpg";
-    expect(getAssetPublicUrl(key)).toBe(
-      "https://cdn.maara.co.in/assets/maara-test/products/photo.jpg",
-    );
-  });
-
-  it("does not include bucket name in public URL", () => {
-    setR2Env();
-    const key = "assets/products/shirt-front.webp";
-    expect(getAssetPublicUrl(key)).not.toContain("/maara/");
-    expect(getAssetPublicUrl(key)).toBe(
-      "https://cdn.maara.co.in/assets/products/shirt-front.webp",
-    );
   });
 });
 
@@ -265,6 +244,22 @@ describe("initUpload", () => {
     });
     expect(result.downloadUrl).toContain("X-Amz-Signature");
     expect(result.downloadUrl).toContain(result.key);
+    expect(isPrivateR2SignedUrl(result.downloadUrl, result.key)).toBe(true);
+  });
+
+  it("rejects custom-domain and unsigned download URLs", () => {
+    expect(
+      isPrivateR2SignedUrl(
+        "https://cdn.maara.co.in/assets/uploads/photo.jpg",
+        "assets/uploads/photo.jpg",
+      ),
+    ).toBe(false);
+    expect(
+      isPrivateR2SignedUrl(
+        "https://acct.r2.cloudflarestorage.com/assets/uploads/photo.jpg",
+        "assets/uploads/photo.jpg",
+      ),
+    ).toBe(false);
   });
 
   it("uploadUrl and downloadUrl are different signed operations", async () => {

@@ -12,7 +12,6 @@ import {
 } from "./file-policy";
 import {
   makeFileKey as r2MakeFileKey,
-  getPublicUrl,
   makeAssetKey,
   resetR2ConfigForTesting,
   sanitizeFilenameForKey,
@@ -146,7 +145,6 @@ describe("validateFileMetadata", () => {
     expect(r.ok).toBe(false);
   });
 });
-
 describe("sanitizeFilename", () => {
   it("takes the basename to block directory traversal", () => {
     expect(sanitizeFilename("../../etc/passwd")).toBe("passwd");
@@ -343,32 +341,3 @@ describe("makeAssetKey", () => {
   });
 });
 
-describe("public URL generation", () => {
-  const originalDomain = process.env.R2_CUSTOM_DOMAIN;
-  const originalAccount = process.env.R2_ACCOUNT_ID;
-  const originalAccessKey = process.env.R2_ACCESS_KEY_ID;
-  const originalSecretKey = process.env.R2_SECRET_ACCESS_KEY;
-  const originalBucket = process.env.R2_BUCKET_NAME;
-
-  afterEach(() => {
-    process.env.R2_CUSTOM_DOMAIN = originalDomain;
-    process.env.R2_ACCOUNT_ID = originalAccount;
-    process.env.R2_ACCESS_KEY_ID = originalAccessKey;
-    process.env.R2_SECRET_ACCESS_KEY = originalSecretKey;
-    process.env.R2_BUCKET_NAME = originalBucket;
-    resetR2ConfigForTesting();
-  });
-
-  it("builds public URL from readable key using custom domain", () => {
-    process.env.R2_ACCOUNT_ID = "acct";
-    process.env.R2_ACCESS_KEY_ID = "key";
-    process.env.R2_SECRET_ACCESS_KEY = "secret";
-    process.env.R2_BUCKET_NAME = "assets";
-    process.env.R2_CUSTOM_DOMAIN = "https://media.maara.co.in";
-
-    resetR2ConfigForTesting();
-    const key = "assets/maara-test/products/photo.jpg";
-    const url = getPublicUrl(key);
-    expect(url).toBe(`https://media.maara.co.in/${key}`);
-  });
-});

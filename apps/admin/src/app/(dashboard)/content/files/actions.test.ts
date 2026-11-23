@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 
-const { supabaseClient, deleteFileMock, requirePermissionMock } = vi.hoisted(
+const {
+  supabaseClient,
+  deleteFileMock,
+  requirePermissionMock,
+  verifyR2ObjectMock,
+} = vi.hoisted(
   () => ({
     supabaseClient: {
       rpc: vi.fn(),
@@ -8,6 +13,7 @@ const { supabaseClient, deleteFileMock, requirePermissionMock } = vi.hoisted(
     },
     deleteFileMock: vi.fn(),
     requirePermissionMock: vi.fn(),
+    verifyR2ObjectMock: vi.fn(),
   }),
 );
 
@@ -17,6 +23,10 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("@/lib/r2", () => ({
   deleteFile: deleteFileMock,
+}));
+
+vi.mock("@/lib/file-policy", () => ({
+  verifyR2Object: verifyR2ObjectMock,
 }));
 
 vi.mock("@/lib/auth/session", () => ({
@@ -58,6 +68,7 @@ describe("registerMediaFile", () => {
   beforeEach(() => {
     vi.resetAllMocks();
     permissionCtx = null;
+    verifyR2ObjectMock.mockResolvedValue(true);
     requirePermissionMock.mockImplementation(async (permission: string) => {
       if (!permissionCtx || !permissionCtx.permissions.has(permission)) {
         throw new Error("Forbidden");
@@ -115,6 +126,29 @@ describe("registerMediaFile", () => {
     expect(deleteFile).toHaveBeenCalledWith({
       key: "assets/uploads/uuid-photo.jpg",
     });
+  });
+
+  it("cleans up an object when post-upload verification fails", async () => {
+    sessionMock(new Set(["media.create"]));
+    verifyR2ObjectMock.mockResolvedValue(false);
+    vi.mocked(deleteFile).mockResolvedValue(undefined);
+
+    const result = await registerMediaFile({
+      key: "assets/uploads/uuid-photo.jpg",
+      name: "photo.jpg",
+      contentType: "image/jpeg",
+      sizeBytes: 1024,
+      url: "r2://assets/uploads/uuid-photo.jpg",
+    });
+
+    expect(result).toEqual({
+      ok: false,
+      error: "Uploaded object could not be verified.",
+    });
+    expect(deleteFile).toHaveBeenCalledWith({
+      key: "assets/uploads/uuid-photo.jpg",
+    });
+    expect(supabaseClient.rpc).not.toHaveBeenCalled();
   });
 
   it("rejects missing media.create permission", async () => {

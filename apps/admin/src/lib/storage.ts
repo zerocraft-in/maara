@@ -2,12 +2,12 @@
  * Centralized asset storage service for Maara Merch.
  *
  * This is the single source of truth for all Cloudflare R2 object operations:
- * key generation, presigned upload URLs, public URLs, metadata inspection,
+ * key generation, presigned upload URLs, signed download URLs, metadata inspection,
  * copy/rename/delete, and folder browsing.
  *
  * All functions are server-only: R2 credentials never reach the browser, and
  * object keys are always generated server-side. Clients never supply keys or
- * public URLs.
+ * storage URLs.
  *
  * Object keys follow the canonical structure:
  *   assets/{folderName}/{filename}
@@ -25,7 +25,6 @@ import {
   createUploadUrl,
   deleteFile,
   getObjectUrl,
-  getPublicUrl,
   headObject,
   listObjectsByPrefix,
   makeAssetKey,
@@ -164,17 +163,6 @@ export function sanitizeAssetFolder(name: string): string {
  */
 export function sanitizeAssetFilename(filename: string): string {
   return sanitizeFilenameForKey(filename);
-}
-
-/**
- * Generates a short-lived signed download URL for an object key.
- *
- * Legacy URL generator retained only for migration compatibility. Runtime
- * media access uses signed URLs from R2 and does not call this function.
- */
-/** @deprecated Public URLs are retained only for legacy migration tooling. */
-export function getAssetPublicUrl(key: string): string {
-  return getPublicUrl(key);
 }
 
 /**

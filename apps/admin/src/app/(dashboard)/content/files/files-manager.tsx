@@ -78,7 +78,7 @@ type MediaFile = {
   name: string;
   size: number;
   contentType: string | null;
-  url: string;
+  downloadUrl: string;
   uploadedBy: string | null;
   lastModified: string | null;
   organizationId: string;
@@ -535,7 +535,7 @@ export default function FilesManager({
         <div>
           <CardTitle className="text-xl">Media Manager</CardTitle>
           <CardDescription>
-            Files stored in Cloudflare R2 and served via custom domain
+            Files stored privately in Cloudflare R2 and served via short-lived signed URLs
           </CardDescription>
         </div>
 
@@ -1086,15 +1086,15 @@ function FileCard({
             </Button>
           )} />
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onOpen(file.url)}>
+            <DropdownMenuItem onClick={() => onOpen(file.downloadUrl)}>
               <ExternalLink className="size-4 mr-2" />
               Open file
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDownload(file.url, file.name)}>
+            <DropdownMenuItem onClick={() => onDownload(file.downloadUrl, file.name)}>
               <Download className="size-4 mr-2" />
               Download
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onCopyUrl(file.url)}>
+            <DropdownMenuItem onClick={() => onCopyUrl(file.downloadUrl)}>
               <Copy className="size-4 mr-2" />
               Copy URL
             </DropdownMenuItem>
@@ -1119,7 +1119,7 @@ function FileCard({
       {isImageFile && (
         <CardContent className="aspect-video overflow-hidden bg-muted">
           <img
-            src={file.url}
+            src={file.downloadUrl}
             alt={file.name}
             className="h-full w-full object-cover"
             loading="lazy"
@@ -1131,7 +1131,7 @@ function FileCard({
         <Badge variant="outline" className="text-xs">
           {file.contentType ?? "application/octet-stream"}
         </Badge>
-        <Button size="sm" onClick={() => onCopyUrl(file.url)} className="w-auto">
+        <Button size="sm" onClick={() => onCopyUrl(file.downloadUrl)} className="w-auto">
           <Copy className="size-3 mr-1" />
           Copy
         </Button>
@@ -1225,7 +1225,7 @@ function FileListTable({
               <td className="h-10 text-muted-foreground">{formatBytes(file.size)}</td>
               <td className="h-10 text-muted-foreground">{formatDate(file.lastModified)}</td>
               <td className="h-10 text-right pr-4">
-                <Button size="sm" onClick={(e) => { e.stopPropagation(); onCopyUrl(file.url); }} className="w-auto p-1">
+                <Button size="sm" onClick={(e) => { e.stopPropagation(); onCopyUrl(file.downloadUrl); }} className="w-auto p-1">
                   <Copy className="size-3" />
                 </Button>
               </td>

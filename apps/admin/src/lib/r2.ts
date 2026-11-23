@@ -47,6 +47,9 @@ interface R2Config {
   readonly customDomain: string;
 }
 
+export const R2_UPLOAD_URL_EXPIRES_IN = 900;
+export const R2_DOWNLOAD_URL_EXPIRES_IN = 300;
+
 let cachedConfig: R2Config | null = null;
 
 function loadConfig(): R2Config {
@@ -94,15 +97,29 @@ export function createR2Client(configOverrides?: Partial<S3ClientConfig>) {
   });
 }
 
-/** Public URL for an object key, served via the R2 custom domain. */
-export function getPublicUrl(key: string): string {
-  const { customDomain } = getR2Config();
-  if (customDomain) {
-    return `${customDomain.replace(/\/$/, "")}/${key}`;
+/** Returns true only for a signed R2 S3 URL; custom-domain URLs are rejected. */
+export function isPrivateR2SignedUrl(url: string, key?: string): boolean {
+  try {
+    const parsed = new URL(url);
+    const { accountId, bucket } = getR2Config();
+    const allowedHosts = new Set([
+      `${accountId}.r2.cloudflarestorage.com`,
+      `${bucket}.${accountId}.r2.cloudflarestorage.com`,
+    ]);
+    if (
+      parsed.protocol !== "https:" ||
+      !allowedHosts.has(parsed.hostname) ||
+      !parsed.searchParams.has("X-Amz-Signature") ||
+      !parsed.searchParams.has("X-Amz-Expires")
+    ) {
+      return false;
+    }
+    if (!key) return true;
+    const path = decodeURIComponent(parsed.pathname.replace(/^\//, ""));
+    return path === key || path.endsWith(`/${key}`);
+  } catch {
+    return false;
   }
-
-  const { accountId, bucket } = getR2Config();
-  return `https://${bucket}.${accountId}.r2.cloudflarestorage.com/${key}`;
 }
 
 /**
@@ -300,7 +317,7 @@ export async function listFiles({
 export async function createUploadUrl({
   key,
   contentType,
-  expiresIn = 900, // 15 minutes
+  expiresIn = R2_UPLOAD_URL_EXPIRES_IN,
 }: {
   readonly key: string;
   readonly contentType: string;
@@ -365,7 +382,7 @@ export async function renameFile({
 /** Returns a presigned GET URL for temporary private access to an object. */
 export async function getObjectUrl({
   key,
-  expiresIn = 300,
+  expiresIn = R2_DOWNLOAD_URL_EXPIRES_IN,
 }: {
   readonly key: string;
   readonly expiresIn?: number;

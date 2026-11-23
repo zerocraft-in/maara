@@ -2,7 +2,8 @@
  * Cloudflare R2 media file API — database-backed.
  *
  * File bytes live in Cloudflare R2; metadata (key, name, content type, size,
- * public URL) lives in `public.media` with organization-scoped RLS.
+ * and an internal r2:// reference) lives in `public.media` with
+ * organization-scoped RLS.
  *
  * Routes:
  *   GET    /api/content/files?cursor=&limit=&search=&type=&sort=
@@ -37,7 +38,12 @@ import {
   requireOrganization,
 } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { deleteFile, getObjectUrl, renameFile } from "@/lib/r2";
+import {
+  deleteFile,
+  getObjectUrl,
+  isPrivateR2SignedUrl,
+  renameFile,
+} from "@/lib/r2";
 import { initUpload, ASSET_FOLDERS, sanitizeAssetFilename } from "@/lib/storage";
 import { requestIdFrom } from "@/lib/http";
 
@@ -230,19 +236,27 @@ export async function GET(request: Request) {
       nextCursor = Buffer.from(JSON.stringify(cursorPayload)).toString("base64");
     }
 
-    const files = await Promise.all(page.map(async (row) => ({
-      id: row.id,
-      key: row.key,
-      name: row.name,
-      contentType: row.content_type,
-      size: row.size_bytes,
-      url: await getObjectUrl({ key: row.key, expiresIn: 300 }),
-      uploadedBy: row.uploaded_by,
-      lastModified: row.updated_at,
-      category: categoryFromContentType(row.content_type),
-      extension: extensionFromName(row.name),
-      organizationId,
-    })));
+    const files = await Promise.all(
+      page.map(async (row) => {
+        const downloadUrl = await getObjectUrl({ key: row.key, expiresIn: 300 });
+        if (!isPrivateR2SignedUrl(downloadUrl, row.key)) {
+          throw new Error("R2 signing returned an invalid private download URL");
+        }
+        return {
+          id: row.id,
+          key: row.key,
+          name: row.name,
+          contentType: row.content_type,
+          size: row.size_bytes,
+          downloadUrl,
+          uploadedBy: row.uploaded_by,
+          lastModified: row.updated_at,
+          category: categoryFromContentType(row.content_type),
+          extension: extensionFromName(row.name),
+          organizationId,
+        };
+      }),
+    );
 
     return NextResponse.json({
       files,
@@ -282,7 +296,7 @@ export async function POST(request: Request) {
     // --- Use the centralized storage service for upload initialization ---
     // This validates the file policy, generates a server-controlled object key
     // under assets/{folder}/{uuid}-{filename}, creates a short-lived
-    // presigned PUT URL, and returns the permanent public URL.
+    // presigned PUT URL, and returns a short-lived signed download URL.
     // Organization isolation is enforced at the database layer via
     // public.media.organization_id + RLS, not in the object key.
     const result = await initUpload({
@@ -291,6 +305,13 @@ export async function POST(request: Request) {
       size,
       folder,
     });
+
+    if (!isPrivateR2SignedUrl(result.uploadUrl, result.key)) {
+      throw new Error("R2 signing returned an invalid private upload URL");
+    }
+    if (!isPrivateR2SignedUrl(result.downloadUrl, result.key)) {
+      throw new Error("R2 signing returned an invalid private download URL");
+    }
 
     return NextResponse.json({
       key: result.key,
@@ -515,12 +536,20 @@ export async function PATCH(request: Request) {
       // Non-fatal: the new object is in place and metadata is correct.
     }
 
+    const downloadUrl = await getObjectUrl({
+      key: updated.key,
+      expiresIn: 300,
+    });
+    if (!isPrivateR2SignedUrl(downloadUrl, updated.key)) {
+      throw new Error("R2 signing returned an invalid private download URL");
+    }
+
     return NextResponse.json({
       ok: true,
       mediaId: updated.id,
       name: updated.name,
       key: updated.key,
-      url: await getObjectUrl({ key: updated.key, expiresIn: 300 }),
+      downloadUrl,
     });
   } catch (error) {
     console.error("Media rename error:", error);
