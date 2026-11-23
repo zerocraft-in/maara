@@ -32,7 +32,9 @@ import {
   sanitizeFilenameForKey,
   resetR2ConfigForTesting,
   R2_OBJECT_ROOT_PREFIX,
+  getPublicCdnUrl,
 } from "./r2";
+import { mediaVisibilityForFolder, type MediaVisibility } from "./media-visibility";
 
 /** Canonical asset categories (folders) under the `assets/` root prefix. */
 export const ASSET_FOLDERS: Readonly<{
@@ -132,6 +134,9 @@ export interface InitUploadResult {
   readonly uploadUrl: string;
   /** Short-lived signed GET URL. */
   readonly downloadUrl: string;
+  /** Durable CDN URL for public assets, or the signed URL for private assets. */
+  readonly deliveryUrl: string;
+  readonly visibility: MediaVisibility;
   /** Presigned URL expiration in seconds. */
   readonly expiresIn: number;
 }
@@ -225,8 +230,9 @@ export async function initUpload({
   // Generate the server-controlled object key. Collisions are detected via a
   // HEAD-object check against R2 so concurrent uploads never overwrite one
   // another. UUIDs are already unique, so collisions are essentially impossible.
+  const visibility = mediaVisibilityForFolder(resolvedFolder);
   const key = await makeAssetKey({
-    folder: resolvedFolder,
+    folder: `${visibility}/${resolvedFolder}`,
     filename: safeName,
     checkExisting: async (candidateKey: string) => {
       const metadata = await headObject({ key: candidateKey });
@@ -240,7 +246,12 @@ export async function initUpload({
     expiresIn: 900, // 15 minutes
   });
 
-  const downloadUrl = await getObjectUrl({ key, expiresIn: 300 });
+  const downloadUrl = visibility === "private"
+    ? await getObjectUrl({ key, expiresIn: 300 })
+    : "";
+  const deliveryUrl = visibility === "public"
+    ? getPublicCdnUrl(key)
+    : downloadUrl;
 
   return {
     key,
@@ -250,6 +261,8 @@ export async function initUpload({
     folder: resolvedFolder,
     uploadUrl,
     downloadUrl,
+    deliveryUrl,
+    visibility,
     expiresIn: 900,
   };
 }

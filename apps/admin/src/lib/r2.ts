@@ -25,6 +25,7 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { isPublicMediaKey } from "./media-visibility";
 
 export interface R2File {
   /** Full object key, e.g. `org_123/a1b2c3d4-image.jpg` */
@@ -49,6 +50,7 @@ interface R2Config {
 
 export const R2_UPLOAD_URL_EXPIRES_IN = 900;
 export const R2_DOWNLOAD_URL_EXPIRES_IN = 300;
+export const PUBLIC_CDN_BASE_URL = "https://cdn.maara.co.in";
 
 let cachedConfig: R2Config | null = null;
 
@@ -81,6 +83,19 @@ export function resetR2ConfigForTesting(): void {
 
 export function getR2Config(): R2Config {
   return loadConfig();
+}
+
+/** Builds a CDN URL only for the explicit public namespace. */
+export function getPublicCdnUrl(key: string): string {
+  if (!isPublicMediaKey(key)) {
+    throw new Error("Only assets under the public namespace can use the CDN");
+  }
+  const base = process.env.PUBLIC_CDN_BASE_URL || PUBLIC_CDN_BASE_URL;
+  const parsed = new URL(base);
+  if (parsed.protocol !== "https:" || parsed.pathname !== "/" || parsed.search || parsed.hash) {
+    throw new Error("PUBLIC_CDN_BASE_URL must be an HTTPS origin");
+  }
+  return `${parsed.origin}/${key}`;
 }
 
 export function createR2Client(configOverrides?: Partial<S3ClientConfig>) {
@@ -208,7 +223,13 @@ export async function makeAssetKey({
   readonly filename: string;
   readonly checkExisting?: (key: string) => Promise<boolean>;
 }): Promise<string> {
-  const safeFolder = folder ? sanitizeFilenameForKey(folder) : "uploads";
+  const safeFolder = folder
+    ? folder
+        .split("/")
+        .map((segment) => sanitizeFilenameForKey(segment))
+        .filter((segment) => segment && segment !== "file")
+        .join("/") || "uploads"
+    : "uploads";
   const safeFilename = sanitizeFilenameForKey(filename);
 
   // Split filename into base and extension for suffix insertion.

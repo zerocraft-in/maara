@@ -41,11 +41,13 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import {
   deleteFile,
   getObjectUrl,
+  getPublicCdnUrl,
   isPrivateR2SignedUrl,
   renameFile,
 } from "@/lib/r2";
 import { initUpload, ASSET_FOLDERS, sanitizeAssetFilename } from "@/lib/storage";
 import { requestIdFrom } from "@/lib/http";
+import { mediaVisibilityForKey } from "@/lib/media-visibility";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -100,6 +102,21 @@ function extensionFromName(name: string): string | undefined {
   const dot = name.lastIndexOf(".");
   if (dot <= 0 || dot === name.length - 1) return undefined;
   return name.slice(dot + 1).toLowerCase();
+}
+
+async function mediaDelivery(key: string): Promise<{
+  visibility: "public" | "private";
+  deliveryUrl: string;
+  downloadUrl?: string;
+}> {
+  if (mediaVisibilityForKey(key) === "public") {
+    return { visibility: "public", deliveryUrl: getPublicCdnUrl(key) };
+  }
+  const downloadUrl = await getObjectUrl({ key, expiresIn: 300 });
+  if (!isPrivateR2SignedUrl(downloadUrl, key)) {
+    throw new Error("R2 signing returned an invalid private download URL");
+  }
+  return { visibility: "private", deliveryUrl: downloadUrl, downloadUrl };
 }
 
 function typeFilterClause(category: string) {
@@ -238,17 +255,14 @@ export async function GET(request: Request) {
 
     const files = await Promise.all(
       page.map(async (row) => {
-        const downloadUrl = await getObjectUrl({ key: row.key, expiresIn: 300 });
-        if (!isPrivateR2SignedUrl(downloadUrl, row.key)) {
-          throw new Error("R2 signing returned an invalid private download URL");
-        }
+        const delivery = await mediaDelivery(row.key);
         return {
           id: row.id,
           key: row.key,
           name: row.name,
           contentType: row.content_type,
           size: row.size_bytes,
-          downloadUrl,
+          ...delivery,
           uploadedBy: row.uploaded_by,
           lastModified: row.updated_at,
           category: categoryFromContentType(row.content_type),
@@ -309,7 +323,7 @@ export async function POST(request: Request) {
     if (!isPrivateR2SignedUrl(result.uploadUrl, result.key)) {
       throw new Error("R2 signing returned an invalid private upload URL");
     }
-    if (!isPrivateR2SignedUrl(result.downloadUrl, result.key)) {
+    if (result.visibility === "private" && !isPrivateR2SignedUrl(result.downloadUrl, result.key)) {
       throw new Error("R2 signing returned an invalid private download URL");
     }
 
@@ -321,7 +335,9 @@ export async function POST(request: Request) {
       category: categoryFromContentType(result.contentType),
       folder: result.folder,
       uploadUrl: result.uploadUrl,
-      downloadUrl: result.downloadUrl,
+      visibility: result.visibility,
+      deliveryUrl: result.deliveryUrl,
+      ...(result.visibility === "private" ? { downloadUrl: result.downloadUrl } : {}),
       expiresIn: result.expiresIn,
     });
   } catch (error) {
@@ -536,20 +552,14 @@ export async function PATCH(request: Request) {
       // Non-fatal: the new object is in place and metadata is correct.
     }
 
-    const downloadUrl = await getObjectUrl({
-      key: updated.key,
-      expiresIn: 300,
-    });
-    if (!isPrivateR2SignedUrl(downloadUrl, updated.key)) {
-      throw new Error("R2 signing returned an invalid private download URL");
-    }
+    const delivery = await mediaDelivery(updated.key);
 
     return NextResponse.json({
       ok: true,
       mediaId: updated.id,
       name: updated.name,
       key: updated.key,
-      downloadUrl,
+      ...delivery,
     });
   } catch (error) {
     console.error("Media rename error:", error);

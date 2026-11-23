@@ -78,7 +78,9 @@ type MediaFile = {
   name: string;
   size: number;
   contentType: string | null;
-  downloadUrl: string;
+  visibility: "public" | "private";
+  deliveryUrl: string;
+  downloadUrl?: string;
   uploadedBy: string | null;
   lastModified: string | null;
   organizationId: string;
@@ -1086,15 +1088,15 @@ function FileCard({
             </Button>
           )} />
           <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => onOpen(file.downloadUrl)}>
+            <DropdownMenuItem onClick={() => onOpen(file.deliveryUrl)}>
               <ExternalLink className="size-4 mr-2" />
               Open file
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onDownload(file.downloadUrl, file.name)}>
+            <DropdownMenuItem onClick={() => onDownload(file.deliveryUrl, file.name)}>
               <Download className="size-4 mr-2" />
               Download
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onCopyUrl(file.downloadUrl)}>
+            <DropdownMenuItem onClick={() => onCopyUrl(file.deliveryUrl)}>
               <Copy className="size-4 mr-2" />
               Copy URL
             </DropdownMenuItem>
@@ -1119,7 +1121,7 @@ function FileCard({
       {isImageFile && (
         <CardContent className="aspect-video overflow-hidden bg-muted">
           <img
-            src={file.downloadUrl}
+            src={file.deliveryUrl}
             alt={file.name}
             className="h-full w-full object-cover"
             loading="lazy"
@@ -1131,7 +1133,7 @@ function FileCard({
         <Badge variant="outline" className="text-xs">
           {file.contentType ?? "application/octet-stream"}
         </Badge>
-        <Button size="sm" onClick={() => onCopyUrl(file.downloadUrl)} className="w-auto">
+        <Button size="sm" onClick={() => onCopyUrl(file.deliveryUrl)} className="w-auto">
           <Copy className="size-3 mr-1" />
           Copy
         </Button>
@@ -1225,7 +1227,7 @@ function FileListTable({
               <td className="h-10 text-muted-foreground">{formatBytes(file.size)}</td>
               <td className="h-10 text-muted-foreground">{formatDate(file.lastModified)}</td>
               <td className="h-10 text-right pr-4">
-                <Button size="sm" onClick={(e) => { e.stopPropagation(); onCopyUrl(file.downloadUrl); }} className="w-auto p-1">
+                <Button size="sm" onClick={(e) => { e.stopPropagation(); onCopyUrl(file.deliveryUrl); }} className="w-auto p-1">
                   <Copy className="size-3" />
                 </Button>
               </td>

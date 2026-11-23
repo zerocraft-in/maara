@@ -128,8 +128,10 @@ describe("initUpload", () => {
       size: 1024,
       folder: ASSET_FOLDERS.products,
     });
-    expect(result.key).toBe("assets/products/IMG_20261105_193751112.jpg");
-    expect(result.downloadUrl).toContain(result.key);
+    expect(result.key).toBe("assets/public/products/IMG_20261105_193751112.jpg");
+    expect(result.downloadUrl).toBe("");
+    expect(result.deliveryUrl).toBe(`https://cdn.maara.co.in/${result.key}`);
+    expect(result.visibility).toBe("public");
     expect(result.uploadUrl).toBeDefined();
     expect(result.contentType).toBe("image/jpeg");
     expect(result.name).toBe("IMG_20261105_193751112.jpg");
@@ -143,8 +145,8 @@ describe("initUpload", () => {
       size: 1024,
       folder: "products",
     });
-    expect(result.key.startsWith("assets/products/")).toBe(true);
-    expect(result.key).toBe("assets/products/photo.jpg");
+    expect(result.key.startsWith("assets/public/products/")).toBe(true);
+    expect(result.key).toBe("assets/public/products/photo.jpg");
   });
 
   it("sanitizes the folder name", async () => {
@@ -154,7 +156,7 @@ describe("initUpload", () => {
       size: 1024,
       folder: "My Folder!",
     });
-    expect(result.key).toBe("assets/My_Folder/file.jpg");
+    expect(result.key).toBe("assets/private/My_Folder/file.jpg");
   });
 
   it("rejects path traversal in filename", async () => {
@@ -175,7 +177,7 @@ describe("initUpload", () => {
       size: 1024,
       folder: "",
     });
-    expect(result.key).toBe("assets/uploads/file.jpg");
+    expect(result.key).toBe("assets/private/uploads/file.jpg");
   });
 
   it("rejects files with no extension", async () => {
@@ -218,7 +220,7 @@ describe("initUpload", () => {
       size: 50000,
       folder: "fonts",
     });
-    expect(result.key).toBe("assets/fonts/maara-sans.woff2");
+    expect(result.key).toBe("assets/private/fonts/maara-sans.woff2");
     expect(result.contentType).toBe("font/woff2");
   });
 

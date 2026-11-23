@@ -14,7 +14,7 @@ import { CustomerRow, customerDisplayName } from "../types";
 export default async function CustomerDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   try {
     await requireOrganization();
@@ -35,12 +35,13 @@ export default async function CustomerDetailPage({
   }
 
   const canManage = context.permissions.has("customers.manage");
+  const { id } = await params;
 
   const supabase = await createServerSupabaseClient();
   const { data: customer, error } = await supabase
     .from("customers")
     .select("*")
-    .eq("id", params.id)
+    .eq("id", id)
     .eq("organization_id", organizationId)
     .single();
 

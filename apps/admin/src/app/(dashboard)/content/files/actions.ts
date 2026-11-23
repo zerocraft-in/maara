@@ -60,6 +60,7 @@ export async function registerMediaFile(input: unknown): Promise<MediaResult> {
   // Registration is the second authorization boundary after upload-init.
   // Never allow a caller to attach arbitrary bucket paths to its metadata.
   if (
+    !/^assets\/(?:public|private)\/[a-z0-9._-]+\/[a-z0-9._-]+$/i.test(key) &&
     !/^assets\/[a-z0-9._-]+\/[a-z0-9._-]+$/i.test(key) ||
     key.includes("..") ||
     key.startsWith("/")

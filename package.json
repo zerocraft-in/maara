@@ -1,6 +1,6 @@
 {
   "name": "maara-merch",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Maara Merch — clothing retail management SaaS (admin application)",
   "packageManager": "pnpm@10.18.3",

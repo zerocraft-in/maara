@@ -1,0 +1,9 @@
+name = "maara-public-cdn"
+main = "src/index.ts"
+compatibility_date = "2026-11-23"
+
+routes = [{ pattern = "cdn.maara.co.in/*", zone_name = "maara.co.in" }]
+
+[[r2_buckets]]
+binding = "PUBLIC_MEDIA"
+bucket_name = "maara"
