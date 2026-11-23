@@ -36,11 +36,7 @@ const mediaFileSchema = z.object({
     .number()
     .int()
     .nonnegative("File size must be zero or greater"),
-  url: z
-    .string()
-    .trim()
-    .min(1, "File URL is required")
-    .max(2048, "File URL must be at most 2048 characters"),
+  url: z.string().trim().max(2048).optional().or(z.literal("")),
 });
 
 export async function registerMediaFile(input: unknown): Promise<MediaResult> {
@@ -58,7 +54,17 @@ export async function registerMediaFile(input: unknown): Promise<MediaResult> {
     };
   }
 
-  const { key, name, contentType, sizeBytes, url } = parseResult.data;
+  const { key, name, contentType, sizeBytes } = parseResult.data;
+
+  // Registration is the second authorization boundary after upload-init.
+  // Never allow a caller to attach arbitrary bucket paths to its metadata.
+  if (
+    !/^assets\/[a-z0-9._-]+\/[a-z0-9._-]+$/i.test(key) ||
+    key.includes("..") ||
+    key.startsWith("/")
+  ) {
+    return { ok: false, error: "Invalid storage object key." };
+  }
 
   const supabase = await createServerSupabaseClient();
 
@@ -68,7 +74,7 @@ export async function registerMediaFile(input: unknown): Promise<MediaResult> {
     p_name: name,
     p_content_type: contentType ?? null,
     p_size_bytes: sizeBytes,
-    p_url: url,
+    p_url: `r2://${key}`,
   });
 
   if (error) {

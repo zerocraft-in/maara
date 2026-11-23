@@ -1,6 +1,6 @@
-import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/session";
+import { apiError, apiSuccess, errorCode, requestIdFrom } from "@/lib/http";
 
 import {
   fetchCollections,
@@ -12,15 +12,11 @@ import {
 } from "@/app/(dashboard)/products/_components/data";
 
 export async function GET(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
-    await requirePermission("products.view");
-
-    const { searchParams } = new URL(request.url);
-    const organizationId = searchParams.get("organization_id");
-
-    if (!organizationId) {
-      return NextResponse.json({ error: "Organization ID required" }, { status: 400 });
-    }
+    const context = await requirePermission("products.view");
+    const organizationId = context.activeOrganization?.id;
+    if (!organizationId) return apiError("FORBIDDEN", requestId);
 
     const supabase = await createServerSupabaseClient();
 
@@ -52,16 +48,13 @@ export async function GET(request: Request) {
       ...new Set(assembledProducts.map(p => p.product_type).filter(Boolean)),
     ] as string[];
 
-    return NextResponse.json({
+    return apiSuccess({
       products: assembledProducts,
       vendors,
       productTypes,
-    });
+    }, requestId);
   } catch (error) {
-    console.error("Products API error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to load products" },
-      { status: 500 }
-    );
+    console.error("Products API error", { requestId, error });
+    return apiError(errorCode(error), requestId);
   }
 }

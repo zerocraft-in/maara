@@ -8,6 +8,7 @@
  */
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
 export type SessionUser = {
   id: string;
@@ -34,6 +35,8 @@ export type PermissionKey = string;
  * Callers can use this to redirect to onboarding instead of surfacing an error.
  */
 export const NO_ACTIVE_MEMBERSHIP_ERROR = "No active organization membership";
+export const ORGANIZATION_SELECTION_REQUIRED_ERROR = "Organization selection required";
+export const ACTIVE_ORGANIZATION_COOKIE = "maara_active_organization";
 
 export type SessionContext = {
   user: SessionUser;
@@ -66,8 +69,8 @@ export async function requireUser(): Promise<SessionUser> {
 
 /**
  * Resolves the active organization from the caller's verified memberships.
- * The organization cookie is only a preference hint; membership is always
- * re-read from the database.
+ * A cookie is only a selection hint; membership is always re-read from the
+ * database. Multiple memberships without a valid selection fail closed.
  */
 export async function requireOrganization(): Promise<SessionContext> {
   const user = await requireUser();
@@ -99,9 +102,19 @@ export async function requireOrganization(): Promise<SessionContext> {
     throw new Error("Unable to resolve organization membership");
   }
 
-  const activeMembership = memberships?.[0];
-  if (!activeMembership) {
+  if (!memberships || memberships.length === 0) {
     throw new Error(NO_ACTIVE_MEMBERSHIP_ERROR);
+  }
+
+  const selectedOrganizationId = (await cookies()).get(ACTIVE_ORGANIZATION_COOKIE)?.value;
+  const activeMembership = selectedOrganizationId
+    ? memberships.find((membership) => membership.organization_id === selectedOrganizationId)
+    : memberships.length === 1
+      ? memberships[0]
+      : undefined;
+
+  if (!activeMembership) {
+    throw new Error(ORGANIZATION_SELECTION_REQUIRED_ERROR);
   }
 
   // `organizations` and `roles` are many-to-one embeds (organization_members

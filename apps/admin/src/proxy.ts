@@ -25,10 +25,9 @@ const AUTH_ROUTES = [
 ];
 
 // ---------------------------------------------------------------------------
-// Rate limiting (token-bucket, in-memory store)
+// Rate limiting (distributed Redis counter with an in-memory development fallback)
 //
-// In production (multi-instance), swap the store for Redis (e.g. Upstash).
-// The interface (increment + remaining + reset) maps directly to Redis.
+// Set UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN in hosted environments.
 // ---------------------------------------------------------------------------
 
 interface RateLimitConfig {
@@ -54,11 +53,54 @@ const RATE_LIMITS: Record<string, RateLimitConfig> = {
   "/api/search": { max: 20, window: 60 },
 };
 
-function rateLimit(
+async function rateLimit(
   key: string,
   config: RateLimitConfig
-): { allowed: boolean; remaining: number; resetAt: number } {
+): Promise<{ allowed: boolean; remaining: number; resetAt: number }> {
   const now = Date.now();
+
+  const redisUrl = process.env.UPSTASH_REDIS_REST_URL;
+  const redisToken = process.env.UPSTASH_REDIS_REST_TOKEN;
+  if (redisUrl && redisToken) {
+    try {
+      const redisKey = `maara:${key}`;
+      const incrementResponse = await fetch(redisUrl, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${redisToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(["INCR", redisKey]),
+        cache: "no-store",
+      });
+      if (!incrementResponse.ok) throw new Error("rate-limit-store-failed");
+      const incrementResult = (await incrementResponse.json()) as { result?: number };
+      const count = Number(incrementResult.result);
+      if (!Number.isFinite(count)) throw new Error("rate-limit-store-invalid");
+
+      if (count === 1) {
+        await fetch(redisUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${redisToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(["EXPIRE", redisKey, config.window]),
+          cache: "no-store",
+        });
+      }
+
+      const resetAt = now + config.window * 1000;
+      return {
+        allowed: count <= config.max,
+        remaining: Math.max(0, config.max - count),
+        resetAt,
+      };
+    } catch (error) {
+      console.error("Distributed rate-limit store unavailable; using local fallback.", error);
+    }
+  }
+
   const entry = stores.get(key);
 
   if (!entry || now > entry.resetAt) {
@@ -107,7 +149,7 @@ function getClientIp(request: NextRequest): string {
 
 export const config = {
   matcher: [
-    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+    "/((?!_next/static|_next/image|favicon.ico).*)",
   ],
 };
 
@@ -120,16 +162,16 @@ export async function proxy(request: NextRequest) {
     if (config) {
       maybeCleanup();
 
-      const orgHeader = request.headers.get("x-organization-id");
       const ip = getClientIp(request);
-      const rateKey = `ratelimit:${orgHeader ?? ip}:${reqPathname}`;
+      const rateKey = `ratelimit:${ip}:${reqPathname}`;
 
-      const result = rateLimit(rateKey, config);
+      const result = await rateLimit(rateKey, config);
 
       if (!result.allowed) {
+        const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
         return NextResponse.json(
           {
-            error: "Too many requests. Please try again later.",
+            error: { code: "RATE_LIMITED", requestId },
             retryAfter: Math.ceil((result.resetAt - Date.now()) / 1000),
           },
           {
@@ -141,6 +183,7 @@ export async function proxy(request: NextRequest) {
               "X-RateLimit-Limit": String(config.max),
               "X-RateLimit-Remaining": String(result.remaining),
               "X-RateLimit-Reset": String(Math.ceil(result.resetAt / 1000)),
+              "X-Request-Id": requestId,
             },
           }
         );
@@ -148,11 +191,21 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  const requestHeaders = new Headers(request.headers);
+  const requestId = request.headers.get("x-request-id") ?? crypto.randomUUID();
+  requestHeaders.set("x-request-id", requestId);
+
   const response = NextResponse.next({
     request: {
-      headers: request.headers,
+      headers: requestHeaders,
     },
   });
+
+  response.headers.set("X-Request-Id", requestId);
+
+  // API handlers own authentication and must return JSON errors rather than
+  // receiving browser redirects to the login page.
+  if (reqPathname.startsWith("/api/")) return response;
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,

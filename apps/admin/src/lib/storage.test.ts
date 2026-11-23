@@ -150,9 +150,7 @@ describe("initUpload", () => {
       folder: ASSET_FOLDERS.products,
     });
     expect(result.key).toBe("assets/products/IMG_20261105_193751112.jpg");
-    expect(result.publicUrl).toBe(
-      `https://cdn.maara.co.in/${result.key}`,
-    );
+    expect(result.downloadUrl).toContain(result.key);
     expect(result.uploadUrl).toBeDefined();
     expect(result.contentType).toBe("image/jpeg");
     expect(result.name).toBe("IMG_20261105_193751112.jpg");
@@ -258,26 +256,25 @@ describe("initUpload", () => {
     expect(result.uploadUrl).toContain(result.key);
   });
 
-  it("publicUrl uses CDN domain, not R2 S3 endpoint", async () => {
+  it("downloadUrl is a signed private URL", async () => {
     const result = await initUpload({
       filename: "photo.jpg",
       clientContentType: "image/jpeg",
       size: 1024,
       folder: "uploads",
     });
-    // Permanent public URL must use the CDN custom domain
-    expect(result.publicUrl).toBe(`https://cdn.maara.co.in/${result.key}`);
-    expect(result.publicUrl).not.toContain(".r2.cloudflarestorage.com/");
+    expect(result.downloadUrl).toContain("X-Amz-Signature");
+    expect(result.downloadUrl).toContain(result.key);
   });
 
-  it("uploadUrl and publicUrl are different URLs", async () => {
+  it("uploadUrl and downloadUrl are different signed operations", async () => {
     const result = await initUpload({
       filename: "photo.jpg",
       clientContentType: "image/jpeg",
       size: 1024,
       folder: "uploads",
     });
-    expect(result.uploadUrl).not.toBe(result.publicUrl);
+    expect(result.uploadUrl).not.toBe(result.downloadUrl);
   });
 
   it("signed contentType matches the client-supplied MIME type for known types", async () => {

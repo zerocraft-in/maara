@@ -180,7 +180,6 @@ export default function FilesManager({
 
   const buildParams = () => {
     const params = new URLSearchParams();
-    params.set("organization_id", organizationId);
     if (nextCursor) params.set("cursor", nextCursor);
     params.set("limit", String(PAGE_SIZE));
     if (search) params.set("search", search);
@@ -307,12 +306,12 @@ export default function FilesManager({
         const err = await initRes.json().catch(() => ({}));
         throw new Error(err.error || "Failed to initiate upload");
       }
-      const { uploadUrl, key, contentType: signedContentType, publicUrl } =
+      const { uploadUrl, key, contentType: signedContentType } =
         (await initRes.json()) as {
           uploadUrl: string;
           key: string;
           contentType: string;
-          publicUrl: string;
+          downloadUrl: string;
         };
 
       await new Promise<void>((resolve, reject) => {
@@ -371,7 +370,7 @@ export default function FilesManager({
         name: file.name,
         contentType: signedContentType,
         sizeBytes: file.size,
-        url: publicUrl,
+        url: `r2://${key}`,
       });
 
       if (!registerResult.ok) {

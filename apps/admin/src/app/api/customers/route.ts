@@ -1,6 +1,7 @@
-import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/session";
+import { apiError, apiSuccess, errorCode, requestIdFrom } from "@/lib/http";
+import { Address } from "@/app/(dashboard)/customers/types";
 
 type CustomerRow = {
   id: string;
@@ -16,8 +17,8 @@ type CustomerRow = {
   marketing_opt_in_level: string;
   state: string;
   verified_email: boolean;
-  default_address: any;
-  addresses: any[];
+  default_address: Address | null;
+  addresses: Address[];
   orders_count: number;
   total_spent: number;
   last_order_at: string | null;
@@ -26,21 +27,19 @@ type CustomerRow = {
 };
 
 export async function GET(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
-    await requirePermission("customers.view");
+    const context = await requirePermission("customers.view");
+    const organizationId = context.activeOrganization?.id;
+    if (!organizationId) return apiError("FORBIDDEN", requestId);
 
     const { searchParams } = new URL(request.url);
-    const organizationId = searchParams.get("organization_id");
     const search = searchParams.get("q") ?? "";
     const state = searchParams.get("state") ?? "";
     const page = Math.max(1, Number(searchParams.get("page")) || 1);
     const pageSize = Math.min(100, Math.max(1, Number(searchParams.get("page_size")) || 25));
     const sort = searchParams.get("sort") ?? "created_at";
     const dir = searchParams.get("dir") === "asc" ? "asc" : "desc";
-
-    if (!organizationId) {
-      return NextResponse.json({ error: "Organization ID required" }, { status: 400 });
-    }
 
     const supabase = await createServerSupabaseClient();
 
@@ -113,18 +112,15 @@ export async function GET(request: Request) {
       name: `${c.first_name ?? ""} ${c.last_name ?? ""}`.trim() || c.email || "",
     })) as unknown as CustomerRow[];
 
-    return NextResponse.json({
+    return apiSuccess({
       customers,
       total: count ?? 0,
       page,
       pageSize,
       totalPages: Math.ceil((count ?? 0) / pageSize),
-    });
+    }, requestId);
   } catch (error) {
-    console.error("Customers API error:", error);
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Failed to load customers" },
-      { status: 500 }
-    );
+    console.error("Customers API error", { requestId, error });
+    return apiError(errorCode(error), requestId);
   }
 }

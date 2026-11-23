@@ -11,22 +11,21 @@ import {
   customerFormSchema,
   type CustomerFormValues,
 } from "@/app/(dashboard)/customers/lib/customer-schema";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Mail, Phone, Tag, Edit, ArrowLeft, Save, Trash2, MoreHorizontal } from "lucide-react";
+import { Plus, Tag, Edit, ArrowLeft, MoreHorizontal } from "lucide-react";
 
 function FieldError({ error }: { error: string | undefined }) {
   if (!error) return null;
@@ -103,13 +102,13 @@ export default function NewCustomerPage() {
     <div className="relative mx-auto flex max-w-[1088px] flex-col overflow-visible px-4 py-4 sm:px-0 lg:py-6">
       {/* Header */}
       <div className="flex items-center gap-2 mb-6">
-        <a
+        <Link
           href="/customers"
           className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-muted text-body transition-colors hover:bg-muted/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
           aria-label="Back to Customers"
         >
           <ArrowLeft className="size-4" />
-        </a>
+        </Link>
         <h1 className="text-[22px] font-semibold leading-7 tracking-[-0.02em] text-[#202223]">
           New customer
         </h1>
@@ -310,7 +309,7 @@ export default function NewCustomerPage() {
                   <SelectContent>
                     <SelectItem value="Collect tax">Collect tax</SelectItem>
                     <SelectItem value="Collect tax unless exemptions apply">Collect tax unless exemptions apply</SelectItem>
-                    <SelectItem value="Don't collect tax">Don't collect tax</SelectItem>
+                    <SelectItem value="Don&apos;t collect tax">Don&apos;t collect tax</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

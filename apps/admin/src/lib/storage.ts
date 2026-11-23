@@ -24,6 +24,7 @@ import {
   createR2Client,
   createUploadUrl,
   deleteFile,
+  getObjectUrl,
   getPublicUrl,
   headObject,
   listObjectsByPrefix,
@@ -130,8 +131,8 @@ export interface InitUploadResult {
   readonly folder: string;
   /** Temporary presigned PUT URL (short-lived). */
   readonly uploadUrl: string;
-  /** Permanent public CDN URL. */
-  readonly publicUrl: string;
+  /** Short-lived signed GET URL. */
+  readonly downloadUrl: string;
   /** Presigned URL expiration in seconds. */
   readonly expiresIn: number;
 }
@@ -144,7 +145,7 @@ export interface AssetMetadata {
   readonly contentType: string | null;
   readonly eTag: string | null;
   readonly lastModified: Date | null;
-  readonly publicUrl: string;
+  readonly downloadUrl: string;
 }
 
 /**
@@ -166,12 +167,12 @@ export function sanitizeAssetFilename(filename: string): string {
 }
 
 /**
- * Generates the permanent public CDN URL for an object key.
+ * Generates a short-lived signed download URL for an object key.
  *
- * This is the single canonical public-URL generator. All callers (API routes,
- * server actions, React components) must use this instead of constructing URLs
- * independently.
+ * Legacy URL generator retained only for migration compatibility. Runtime
+ * media access uses signed URLs from R2 and does not call this function.
  */
+/** @deprecated Public URLs are retained only for legacy migration tooling. */
 export function getAssetPublicUrl(key: string): string {
   return getPublicUrl(key);
 }
@@ -182,10 +183,10 @@ export function getAssetPublicUrl(key: string): string {
  * 1. Validates the file against the centralized policy.
  * 2. Generates a server-controlled object key under `assets/{folder}/`.
  * 3. Creates a short-lived presigned PUT URL.
- * 4. Returns the permanent public URL alongside the presigned URL.
+ * 4. Returns a short-lived signed GET URL alongside the upload URL.
  *
  * @param input - filename, client content type, size, folder.
- * @returns upload init result with key, uploadUrl, publicUrl.
+ * @returns upload init result with key, uploadUrl, downloadUrl.
  */
 export async function initUpload({
   filename,
@@ -251,7 +252,7 @@ export async function initUpload({
     expiresIn: 900, // 15 minutes
   });
 
-  const publicUrl = getAssetPublicUrl(key);
+  const downloadUrl = await getObjectUrl({ key, expiresIn: 300 });
 
   return {
     key,
@@ -260,7 +261,7 @@ export async function initUpload({
     size,
     folder: resolvedFolder,
     uploadUrl,
-    publicUrl,
+    downloadUrl,
     expiresIn: 900,
   };
 }
@@ -328,7 +329,7 @@ export async function verifyAssetObject({
     contentType: metadata.contentType,
     eTag: metadata.eTag,
     lastModified: metadata.lastModified,
-    publicUrl: getAssetPublicUrl(key),
+    downloadUrl: await getObjectUrl({ key, expiresIn: 300 }),
   };
 }
 

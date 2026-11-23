@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 
 import { type NavGroup, NAV_GROUPS } from "./sidebar/nav";
 import { AppSidebar, type AppSidebarData } from "@/components/layout/sidebar";
@@ -12,6 +12,7 @@ import { SettingsSidebar } from "./sidebar/settings-sidebar";
 import {
   PageHeaderScrollContainerProvider,
 } from "@/components/layout/page-header";
+import { selectActiveOrganization } from "@/app/(dashboard)/organization/actions";
 
 function readSidebarState(pathname: string): boolean {
   if (typeof document !== "undefined") {
@@ -68,6 +69,7 @@ export default function DashboardShell({
   readonly installedSalesChannelKeys?: string[];
 }) {
   const pathname = usePathname();
+  const router = useRouter();
   const scrollContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Controlled sidebar open state. Shopify Admin auto-condenses the global
@@ -106,6 +108,7 @@ export default function DashboardShell({
 
   const sidebarData: AppSidebarData = React.useMemo(() => {
     const teams: AppSidebarData["teams"] = (memberships ?? []).map((m) => ({
+      id: m.organizationId,
       name: m.organizationName,
       logo: GalleryVerticalEnd,
       plan: m.roleKey,
@@ -143,6 +146,7 @@ export default function DashboardShell({
           ? teams
           : [
               {
+                id: activeOrganization?.id ?? "single-organization",
                 name: activeOrganization?.name ?? "My Org",
                 logo: GalleryVerticalEnd,
                 plan: fallbackPlan,
@@ -153,6 +157,14 @@ export default function DashboardShell({
       projects,
     };
   }, [user, memberships, activeOrganization, installedSalesChannelKeys]);
+
+  const handleOrganizationChange = React.useCallback(
+    async (organizationId: string) => {
+      const result = await selectActiveOrganization(organizationId);
+      if (result.ok) router.refresh();
+    },
+    [router],
+  );
 
   const headerUser = user
     ? {
@@ -170,7 +182,13 @@ export default function DashboardShell({
         style={{ visibility: sidebarReady ? "visible" : "hidden" }}
       >
         {/* Single persistent global sidebar — no remount flicker between routes. */}
-        <AppSidebar variant="sidebar" collapsible="icon" data={sidebarData} />
+        <AppSidebar
+          variant="sidebar"
+          collapsible="icon"
+          data={sidebarData}
+          activeOrganizationId={activeOrganization?.id}
+          onOrganizationChange={handleOrganizationChange}
+        />
 
         {/* Settings secondary nav — only on /settings routes. Sits between the
             condensed global nav and the content, like Shopify Admin. */}

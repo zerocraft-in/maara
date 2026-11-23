@@ -1,5 +1,6 @@
 ﻿import { requireOrganization, NO_ACTIVE_MEMBERSHIP_ERROR } from "@/lib/auth/session";
 import DashboardShell from "@/components/layout/dashboard-shell";
+import { ORGANIZATION_SELECTION_REQUIRED_ERROR } from "@/lib/auth/session";
 import { DirtyProvider } from "@/components/providers/dirty-provider";
 import { redirect } from "next/navigation";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
@@ -17,6 +18,9 @@ export default async function DashboardLayout({
     // Unauthenticated → login. No active membership → onboarding.
     if (message === NO_ACTIVE_MEMBERSHIP_ERROR) {
       redirect("/onboarding");
+    }
+    if (message === ORGANIZATION_SELECTION_REQUIRED_ERROR) {
+      redirect("/select-organization");
     }
     redirect("/login");
   }

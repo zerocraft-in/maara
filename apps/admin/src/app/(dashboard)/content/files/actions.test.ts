@@ -74,22 +74,22 @@ describe("registerMediaFile", () => {
     });
 
     const result = await registerMediaFile({
-      key: "org-1/uuid-photo.jpg",
+      key: "assets/uploads/uuid-photo.jpg",
       name: "photo.jpg",
       contentType: "image/jpeg",
       sizeBytes: 1024,
-      url: "https://media.maara.co.in/org-1/uuid-photo.jpg",
+      url: "r2://assets/uploads/uuid-photo.jpg",
     });
 
     expect(result.ok).toBe(true);
     expect((result as { ok: true; id: string }).id).toBe("media-1");
     expect(supabaseClient.rpc).toHaveBeenCalledWith("create_media", {
       p_organization_id: "org-1",
-      p_key: "org-1/uuid-photo.jpg",
+      p_key: "assets/uploads/uuid-photo.jpg",
       p_name: "photo.jpg",
       p_content_type: "image/jpeg",
       p_size_bytes: 1024,
-      p_url: "https://media.maara.co.in/org-1/uuid-photo.jpg",
+      p_url: "r2://assets/uploads/uuid-photo.jpg",
     });
   });
 
@@ -104,16 +104,16 @@ describe("registerMediaFile", () => {
     vi.mocked(deleteFile).mockResolvedValue(undefined);
 
     const result = await registerMediaFile({
-      key: "org-1/uuid-photo.jpg",
+      key: "assets/uploads/uuid-photo.jpg",
       name: "photo.jpg",
       contentType: "image/jpeg",
       sizeBytes: 1024,
-      url: "https://media.maara.co.in/org-1/uuid-photo.jpg",
+      url: "r2://assets/uploads/uuid-photo.jpg",
     });
 
     expect(result.ok).toBe(false);
     expect(deleteFile).toHaveBeenCalledWith({
-      key: "org-1/uuid-photo.jpg",
+      key: "assets/uploads/uuid-photo.jpg",
     });
   });
 
@@ -145,7 +145,7 @@ describe("deleteMediaFile", () => {
       single: vi.fn().mockResolvedValue({
         data: {
           id: "m-1",
-          key: "org-1/uuid-photo.jpg",
+          key: "assets/uploads/uuid-photo.jpg",
           organization_id: "org-1",
         },
         error: null,
@@ -158,7 +158,7 @@ describe("deleteMediaFile", () => {
 
     expect(result.ok).toBe(true);
     expect(deleteFile).toHaveBeenCalledWith({
-      key: "org-1/uuid-photo.jpg",
+      key: "assets/uploads/uuid-photo.jpg",
     });
     expect(supabaseClient.rpc).toHaveBeenCalledWith("delete_media", {
       p_media_id: "123e4567-e89b-12d3-a456-426614174000",
@@ -173,7 +173,7 @@ describe("deleteMediaFile", () => {
       single: vi.fn().mockResolvedValue({
         data: {
           id: "m-1",
-          key: "org-1/uuid-photo.jpg",
+          key: "assets/uploads/uuid-photo.jpg",
           organization_id: "org-1",
         },
         error: null,
@@ -199,7 +199,7 @@ describe("deleteMediaFile", () => {
       single: vi.fn().mockResolvedValue({
         data: {
           id: "m-1",
-          key: "org-1/uuid-photo.jpg",
+          key: "assets/uploads/uuid-photo.jpg",
           organization_id: "org-1",
         },
         error: null,

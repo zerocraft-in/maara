@@ -1,4 +1,4 @@
-type Address = {
+export type Address = {
   first_name?: string | null;
   last_name?: string | null;
   company?: string | null;
@@ -62,8 +62,8 @@ export type CustomerFormInput = {
   accepts_marketing: boolean;
   marketing_opt_in_level: string;
   state: string;
-  default_address: any;
-  addresses: any[];
+  default_address: Address | null;
+  addresses: Address[];
 };
 
 export function customerDisplayName(customer: CustomerRow): string {

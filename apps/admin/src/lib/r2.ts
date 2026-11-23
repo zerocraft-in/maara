@@ -8,8 +8,8 @@
  * Files are organized under a readable root prefix:
  *   `assets/{organizationSlug}/{folderName}/{filename}`
  *
- * Public URLs are served through the configured R2 custom domain
- * (e.g. https://cdn.maara.co.in/assets/{key}).
+ * Objects are private. Callers receive short-lived presigned GET URLs only
+ * after the database layer has verified media ownership.
  */
 
 import "server-only";
@@ -34,7 +34,7 @@ export interface R2File {
   readonly size: number;
   readonly contentType: string | null;
   readonly lastModified: Date | null;
-  /** Public URL reachable via the R2 custom domain */
+  /** Short-lived signed URL for the object */
   readonly url: string;
   readonly organizationId: string;
 }
@@ -274,7 +274,7 @@ export async function listFiles({
       }),
     );
 
-  const files: R2File[] = (Contents ?? []).map((object) => {
+  const files: R2File[] = await Promise.all((Contents ?? []).map(async (object) => {
     const key = object.Key ?? "";
     // Skip the "folder" placeholder object itself (prefix with no filename).
     const name = keyToName(key);
@@ -284,10 +284,10 @@ export async function listFiles({
       size: object.Size ?? 0,
       contentType: contentTypeFromName(name),
       lastModified: object.LastModified ?? null,
-      url: getPublicUrl(key),
+      url: await getObjectUrl({ key }),
       organizationId: "",
     };
-  });
+  }));
 
   return {
     files,
@@ -448,7 +448,7 @@ export async function listObjectsByPrefix({
       }),
     );
 
-  const files: R2File[] = (Contents ?? []).map((object) => {
+  const files: R2File[] = await Promise.all((Contents ?? []).map(async (object) => {
     const key = object.Key ?? "";
     const name = keyToName(key);
     return {
@@ -457,10 +457,10 @@ export async function listObjectsByPrefix({
       size: object.Size ?? 0,
       contentType: contentTypeFromName(name),
       lastModified: object.LastModified ?? null,
-      url: getPublicUrl(key),
+      url: await getObjectUrl({ key }),
       organizationId: "",
     };
-  });
+  }));
 
   return {
     files,

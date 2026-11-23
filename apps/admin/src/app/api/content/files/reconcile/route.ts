@@ -16,8 +16,10 @@ import {
 } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { headObject } from "@/lib/r2";
+import { requestIdFrom } from "@/lib/http";
 
 export async function POST(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     await requirePermission("media.delete");
     await requireRoles("admin", "owner", "manager");
@@ -80,9 +82,11 @@ export async function POST(request: Request) {
     console.error("Media reconcile error:", error);
     const message =
       error instanceof Error ? error.message : "Failed to reconcile media";
-    const status =
-      message === "Forbidden" || message === "Unauthenticated" ? 403 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const status = message === "Unauthenticated" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json(
+      { error: status === 500 ? "Unable to reconcile media." : message },
+      { status, headers: { "X-Request-Id": requestId, "Cache-Control": "no-store" } },
+    );
   }
 }
 

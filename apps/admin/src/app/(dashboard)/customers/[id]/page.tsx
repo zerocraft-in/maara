@@ -9,31 +9,7 @@ import {
 
 import { PageHeader } from "@/components/layout/page-header";
 import { CustomerDetail } from "./client-detail";
-import { customerDisplayName } from "../types";
-
-type CustomerRow = {
-  id: string;
-  organization_id: string;
-  email: string | null;
-  phone: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  note: string | null;
-  tags: string[];
-  tax_exempt: boolean;
-  accepts_marketing: boolean;
-  marketing_opt_in_level: string;
-  state: string;
-  verified_email: boolean;
-  default_address: any;
-  addresses: any[];
-  orders_count: number;
-  total_spent: number;
-  last_order_at: string | null;
-  created_at: string;
-  updated_at: string;
-  name: string;
-};
+import { CustomerRow, customerDisplayName } from "../types";
 
 export default async function CustomerDetailPage({
   params,
@@ -74,7 +50,7 @@ export default async function CustomerDetailPage({
 
   const customerRow: CustomerRow = {
     ...customer,
-    name: customerDisplayName(customer as any),
+    name: customerDisplayName(customer),
   };
 
   return (

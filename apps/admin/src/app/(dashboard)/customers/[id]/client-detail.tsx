@@ -2,11 +2,10 @@
 
 import * as React from "react";
 import { useForm } from "react-hook-form";
-import type { Resolver } from "react-hook-form";
+import type { Resolver, UseFormReturn } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { toast } from "@/components/ui/toast";
-import Link from "next/link";
 
 import { z } from "zod";
 
@@ -53,35 +52,11 @@ import {
 import {
   formatCurrency,
   stateLabel,
-  marketingLabel,
   customerDisplayName,
   initials,
+  CustomerRow,
 } from "../types";
 import { updateCustomer, archiveCustomer, enableCustomer } from "../actions";
-
-type CustomerRow = {
-  id: string;
-  organization_id: string;
-  email: string | null;
-  phone: string | null;
-  first_name: string | null;
-  last_name: string | null;
-  note: string | null;
-  tags: string[];
-  tax_exempt: boolean;
-  accepts_marketing: boolean;
-  marketing_opt_in_level: string;
-  state: string;
-  verified_email: boolean;
-  default_address: any;
-  addresses: any[];
-  orders_count: number;
-  total_spent: number;
-  last_order_at: string | null;
-  created_at: string;
-  updated_at: string;
-  name: string;
-};
 
 const editCustomerSchema = z.object({
   first_name: z.string().trim().min(1).max(100),
@@ -346,26 +321,26 @@ export function CustomerDetail({
               {customer.default_address ? (
                 <div className="text-sm text-muted-foreground space-y-1">
                   <p className="text-body font-medium">
-                    {(customer.default_address as any).first_name || ""}{" "}
-                    {(customer.default_address as any).last_name || ""}
+                    {customer.default_address?.first_name || ""}{" "}
+                    {customer.default_address?.last_name || ""}
                   </p>
                   <p>
-                    {(customer.default_address as any).address1 || ""}{" "}
-                    {(customer.default_address as any).address2
+                    {customer.default_address?.address1 || ""}{" "}
+                    {customer.default_address?.address2
                       ? " " +
-                        (customer.default_address as any).address2
+                        customer.default_address?.address2
                       : ""}
                   </p>
                   <p>
-                    {(customer.default_address as any).city || ""},{" "}
-                    {(customer.default_address as any).state || ""}{" "}
-                    {(customer.default_address as any).zip
+                    {customer.default_address?.city || ""},{" "}
+                    {customer.default_address?.state || ""}{" "}
+                    {customer.default_address?.zip
                       ? " " +
-                        (customer.default_address as any).zip
+                        customer.default_address?.zip
                       : ""}
                   </p>
                   <p>
-                    {(customer.default_address as any).country || ""}
+                    {customer.default_address?.country || ""}
                   </p>
                 </div>
               ) : (
@@ -540,7 +515,7 @@ function EditCustomerForm({
   onClose,
 }: {
   customer: CustomerRow;
-  form: any;
+  form: UseFormReturn<z.infer<typeof editCustomerSchema>>;
   onSave: (values: z.infer<typeof editCustomerSchema>) => void;
   onClose: () => void;
 }) {

@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 
 type Team = {
+  id: string;
   name: string;
   logo: LucideIcon;
   plan: string;
@@ -53,9 +54,13 @@ export type AppSidebarData = {
 
 export function AppSidebar({
   data,
+  activeOrganizationId,
+  onOrganizationChange,
   ...sidebarProps
 }: React.ComponentProps<typeof Sidebar> & {
   data?: AppSidebarData;
+  activeOrganizationId?: string;
+  onOrganizationChange?: (organizationId: string) => void;
 }) {
   const pathname = usePathname();
   const { state } = useSidebar();
@@ -154,6 +159,20 @@ export function AppSidebar({
             Settings
           </span>
         </Link>
+        {sidebarData.teams.length > 1 && (
+          <select
+            aria-label="Active organization"
+            value={activeOrganizationId ?? ""}
+            onChange={(event) => onOrganizationChange?.(event.target.value)}
+            className="h-8 w-full truncate rounded-lg border border-sidebar-border bg-sidebar px-2 text-xs text-sidebar-foreground group-data-[collapsible=icon]:hidden"
+          >
+            {sidebarData.teams.map((team) => (
+              <option key={team.id} value={team.id}>
+                {team.name}
+              </option>
+            ))}
+          </select>
+        )}
         <div className="mx-auto flex h-7 w-full items-center pl-1  justify-center gap-2 group-data-[collapsible=icon]:w-8 group-data-[collapsible=icon]:flex-col-reverse group-data-[collapsible=icon]:h-auto group-data-[collapsible=icon]:gap-1 group-data-[collapsible=icon]:px-0">
           <button className="flex items-center  py-1 pr-2 gap-2 hover:bg-primary-foreground/10 rounded-lg group-data-[collapsible=icon]:p-0">
             <span className="flex size-5 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-sidebar-avatar text-[7px] font-semibold leading-none tracking-tight text-black">

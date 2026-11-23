@@ -37,8 +37,9 @@ import {
   requireOrganization,
 } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
-import { deleteFile, getPublicUrl, renameFile } from "@/lib/r2";
+import { deleteFile, getObjectUrl, renameFile } from "@/lib/r2";
 import { initUpload, ASSET_FOLDERS, sanitizeAssetFilename } from "@/lib/storage";
+import { requestIdFrom } from "@/lib/http";
 
 const DEFAULT_LIMIT = 50;
 const MAX_LIMIT = 100;
@@ -111,6 +112,7 @@ function typeFilterClause(category: string) {
 }
 
 export async function GET(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     await requirePermission("media.view");
     await requireRoles("admin", "owner", "manager");
@@ -228,19 +230,19 @@ export async function GET(request: Request) {
       nextCursor = Buffer.from(JSON.stringify(cursorPayload)).toString("base64");
     }
 
-    const files = page.map((row) => ({
+    const files = await Promise.all(page.map(async (row) => ({
       id: row.id,
       key: row.key,
       name: row.name,
       contentType: row.content_type,
       size: row.size_bytes,
-      url: row.url,
+      url: await getObjectUrl({ key: row.key, expiresIn: 300 }),
       uploadedBy: row.uploaded_by,
       lastModified: row.updated_at,
       category: categoryFromContentType(row.content_type),
       extension: extensionFromName(row.name),
       organizationId,
-    }));
+    })));
 
     return NextResponse.json({
       files,
@@ -251,13 +253,16 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("Media files list error:", error);
     const message = error instanceof Error ? error.message : "Failed to list files";
-    const status =
-      message === "Forbidden" || message === "Unauthenticated" ? 403 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const status = message === "Unauthenticated" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json(
+      { error: status === 500 ? "Unable to list files." : message },
+      { status, headers: { "X-Request-Id": requestId, "Cache-Control": "no-store" } },
+    );
   }
 }
 
 export async function POST(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     await requirePermission("media.create");
     await requireRoles("admin", "owner", "manager");
@@ -295,20 +300,23 @@ export async function POST(request: Request) {
       category: categoryFromContentType(result.contentType),
       folder: result.folder,
       uploadUrl: result.uploadUrl,
-      publicUrl: result.publicUrl,
+      downloadUrl: result.downloadUrl,
       expiresIn: result.expiresIn,
     });
   } catch (error) {
     console.error("Media upload init error:", error);
     const message =
       error instanceof Error ? error.message : "Failed to initiate upload";
-    const status =
-      message === "Forbidden" || message === "Unauthenticated" ? 403 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const status = message === "Unauthenticated" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json(
+      { error: status === 500 ? "Unable to initiate upload." : message },
+      { status, headers: { "X-Request-Id": requestId, "Cache-Control": "no-store" } },
+    );
   }
 }
 
 export async function DELETE(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     await requirePermission("media.delete");
     await requireRoles("admin", "owner", "manager");
@@ -385,13 +393,16 @@ export async function DELETE(request: Request) {
     console.error("Media delete error:", error);
     const message =
       error instanceof Error ? error.message : "Failed to delete file";
-    const status =
-      message === "Forbidden" || message === "Unauthenticated" ? 403 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const status = message === "Unauthenticated" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json(
+      { error: status === 500 ? "Unable to delete file." : message },
+      { status, headers: { "X-Request-Id": requestId, "Cache-Control": "no-store" } },
+    );
   }
 }
 
 export async function PATCH(request: Request) {
+  const requestId = requestIdFrom(request);
   try {
     await requirePermission("media.update");
     await requireRoles("admin", "owner", "manager");
@@ -456,7 +467,7 @@ export async function PATCH(request: Request) {
       .update({
         name: safeName,
         key: destKey,
-        url: getPublicUrl(destKey),
+        url: `r2://${destKey}`,
         updated_at: new Date().toISOString(),
       })
       .eq("id", mediaId)
@@ -509,14 +520,16 @@ export async function PATCH(request: Request) {
       mediaId: updated.id,
       name: updated.name,
       key: updated.key,
-      url: updated.url,
+      url: await getObjectUrl({ key: updated.key, expiresIn: 300 }),
     });
   } catch (error) {
     console.error("Media rename error:", error);
     const message =
       error instanceof Error ? error.message : "Failed to rename file";
-    const status =
-      message === "Forbidden" || message === "Unauthenticated" ? 403 : 500;
-    return NextResponse.json({ error: message }, { status });
+    const status = message === "Unauthenticated" ? 401 : message === "Forbidden" ? 403 : 500;
+    return NextResponse.json(
+      { error: status === 500 ? "Unable to rename file." : message },
+      { status, headers: { "X-Request-Id": requestId, "Cache-Control": "no-store" } },
+    );
   }
 }

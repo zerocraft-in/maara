@@ -10,6 +10,8 @@
  * prefix. Never logged or exposed to the browser.
  */
 
+import "server-only";
+
 import { createClient } from "@supabase/supabase-js";
 
 export function createSupabaseAdminClient() {

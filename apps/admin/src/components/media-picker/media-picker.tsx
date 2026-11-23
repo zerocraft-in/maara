@@ -321,12 +321,12 @@ export function MediaPicker({
         const err = await initRes.json().catch(() => ({}));
         throw new Error(err.error || "Failed to initiate upload");
       }
-      const { uploadUrl, key, contentType: signedContentType, publicUrl } =
+      const { uploadUrl, key, contentType: signedContentType } =
         (await initRes.json()) as {
           uploadUrl: string;
           key: string;
           contentType: string;
-          publicUrl: string;
+          downloadUrl: string;
         };
       await new Promise<void>((resolve, reject) => {
         const xhr = new XMLHttpRequest();
@@ -383,7 +383,7 @@ export function MediaPicker({
         name: file.name,
         contentType: signedContentType,
         sizeBytes: file.size,
-        url: publicUrl,
+        url: `r2://${key}`,
       });
       if (!registerResult.ok) throw new Error(registerResult.error);
       setUploads((prev) =>
