@@ -1,6 +1,7 @@
 "use server";
 
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { fetchTaxonomyManifest } from "@/lib/shopify-taxonomy";
 
 export type CreateOrganizationResult =
   | { ok: true; organizationId: string }
@@ -11,9 +12,18 @@ export async function createOrganization(
   taxonomyRootIds: string[] = [],
 ): Promise<CreateOrganizationResult> {
   const selectedRoots = [...new Set(taxonomyRootIds)];
-  if (selectedRoots.length !== taxonomyRootIds.length ||
-      selectedRoots.some((id) => !/^gid:\/\/shopify\/TaxonomyCategory\/.+$/.test(id))) {
+  if (selectedRoots.length !== taxonomyRootIds.length || selectedRoots.length > 26) {
     return { ok: false, error: "Choose valid Shopify product category groups." };
+  }
+
+  try {
+    const manifest = await fetchTaxonomyManifest();
+    const allowedRootIds = new Set(manifest.roots.map((root) => root.id));
+    if (selectedRoots.some((id) => !allowedRootIds.has(id))) {
+      return { ok: false, error: "Choose valid Shopify product category groups." };
+    }
+  } catch {
+    return { ok: false, error: "Shopify product categories are temporarily unavailable." };
   }
 
   const supabase = await createServerSupabaseClient();
