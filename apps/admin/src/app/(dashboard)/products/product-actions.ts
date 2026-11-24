@@ -56,7 +56,7 @@ async function isValidShopifyCategoryId(value: string | null): Promise<boolean> 
 
 
 const productBaseSchema = z.object({
-  shopify_category_id: z.string().regex(/^gid:\/\/shopify\/TaxonomyCategory\/[a-z]{2}(?:-[0-9]+)*$/, "Invalid Shopify category GID.").nullable(),
+  category_id: z.string().regex(/^gid:\/\/shopify\/TaxonomyCategory\/[a-z]{2}(?:-[0-9]+)*$/, "Invalid Shopify category GID.").nullable(),
   name: z
     .string()
     .trim()
@@ -129,7 +129,7 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
   }
 
   const {
-    shopify_category_id,
+    category_id,
     name,
     description,
     handle: inputHandle,
@@ -150,7 +150,7 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
     options,
   } = parseResult.data;
 
-  if (!(await isValidShopifyCategoryId(shopify_category_id))) {
+  if (!(await isValidShopifyCategoryId(category_id))) {
     return { ok: false, error: "Select a valid Shopify product category." };
   }
 
@@ -194,7 +194,7 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
     p_published_scope: published_scope,
     p_status: status,
     p_published_at: published_at,
-    p_shopify_category_id: shopify_category_id,
+    p_shopify_category_id: category_id,
   });
 
   if (error) {
@@ -252,7 +252,7 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
 
   const {
     id,
-    shopify_category_id,
+    category_id,
     name,
     description,
     handle: inputHandle,
@@ -273,7 +273,7 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
     options,
   } = parseResult.data;
 
-  if (!(await isValidShopifyCategoryId(shopify_category_id))) {
+  if (!(await isValidShopifyCategoryId(category_id))) {
     return { ok: false, error: "Select a valid Shopify product category." };
   }
 
@@ -335,7 +335,7 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
     p_published_scope: published_scope,
     p_status: status,
     p_published_at: published_at,
-    p_shopify_category_id: shopify_category_id,
+    p_shopify_category_id: category_id,
   });
 
   if (error) {
