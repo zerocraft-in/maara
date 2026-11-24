@@ -79,7 +79,7 @@ export default function NewProductPage() {
       vendor: "",
       product_type: "",
       tags: [],
-      shopify_category_id: null,
+      category_id: null,
       price: "",
       compare_at_price: "",
       cost_per_item: "",
@@ -218,7 +218,7 @@ export default function NewProductPage() {
       vendor: values.vendor || null,
       product_type: values.product_type || null,
       tags: values.tags,
-      shopify_category_id: values.shopify_category_id,
+      category_id: values.category_id,
       tax_rate_bps: values.tax_rate_percent
         ? Math.round(Number(values.tax_rate_percent) * 100)
         : 0,
