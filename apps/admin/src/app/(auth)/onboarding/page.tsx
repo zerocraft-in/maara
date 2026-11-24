@@ -10,13 +10,6 @@ import { createOrganization } from "./actions";
 import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const TAXONOMY_ROOTS = [
-  { id: "gid://shopify/TaxonomyCategory/aa", label: "Apparel & Accessories" },
-  { id: "gid://shopify/TaxonomyCategory/bu", label: "Bundles" },
-  { id: "gid://shopify/TaxonomyCategory/na", label: "Uncategorized" },
-  { id: "gid://shopify/TaxonomyCategory/gc", label: "Gift Cards" },
-] as const;
-
 const onboardingSchema = z.object({
   organizationName: z
     .string()
