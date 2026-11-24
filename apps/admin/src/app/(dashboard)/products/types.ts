@@ -62,7 +62,6 @@ export type ProductBaseRow = {
   id: string;
   public_id: number;
   organization_id: string;
-  category_id: string | null;
   shopify_category_id: string | null;
   name: string;
   description: string | null;
@@ -87,18 +86,10 @@ export type ProductBaseRow = {
 };
 
 export type ProductRow = ProductBaseRow & {
-  categories: { id: string; name: string } | null;
   product_variants: VariantRow[];
   product_options: ProductOption[];
   product_images: ProductImage[];
   collections: Collection[];
-};
-
-export type CategoryOption = {
-  id: string;
-  name: string;
-  status: string;
-  parent_id: string | null;
 };
 
 export type StatusFilter = "all" | "draft" | "active" | "archived";
@@ -111,7 +102,6 @@ export type ProductFormInput = {
   vendor?: string;
   product_type?: string;
   tags?: string[];
-  category_id?: string | null;
   tax_rate_percent?: string;
   is_tax_inclusive?: boolean;
   requires_shipping?: boolean;
