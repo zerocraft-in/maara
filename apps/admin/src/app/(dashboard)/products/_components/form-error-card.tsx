@@ -11,7 +11,6 @@ interface FormErrorCardProps {
 const FIELD_LABELS: Record<string, string> = {
   name: "Title",
   description: "Description",
-  category_id: "Category",
   price: "Price",
   compare_at_price: "Compare-at price",
   tax_rate_percent: "Tax rate",
