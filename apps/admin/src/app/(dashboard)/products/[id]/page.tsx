@@ -48,7 +48,6 @@ type ProductData = {
   public_id: number;
   name: string;
   description: string | null;
-  category_id: string | null;
   shopify_category_id: string | null;
   handle: string;
   vendor: string | null;
@@ -194,7 +193,6 @@ export default function EditProductPage() {
       vendor: "",
       product_type: "",
       tags: [],
-      category_id: null,
       shopify_category_id: null,
       price: "",
       compare_at_price: "",
@@ -307,7 +305,7 @@ export default function EditProductPage() {
           supabase
             .from("products")
             .select(
-                "id, public_id, name, category_id, shopify_category_id, description, handle, vendor, product_type, tags, " +
+                "id, public_id, name, shopify_category_id, description, handle, vendor, product_type, tags, " +
                 "tax_rate_bps, is_tax_inclusive, requires_shipping, weight_grams, weight_unit, " +
                 "hs_code, country_of_origin, seo_title, seo_description, published_scope, status",
             )
@@ -371,7 +369,6 @@ export default function EditProductPage() {
         vendor: product.vendor ?? "",
         product_type: product.product_type ?? "",
         tags: product.tags ?? [],
-        category_id: product.category_id,
         shopify_category_id: product.shopify_category_id,
         price: toMoneyInput(primaryVariant?.selling_price_paise ?? null),
         compare_at_price: toMoneyInput(
@@ -523,7 +520,6 @@ export default function EditProductPage() {
       vendor: values.vendor || null,
       product_type: values.product_type || null,
       tags: values.tags,
-      category_id: values.category_id,
       shopify_category_id: values.shopify_category_id,
       tax_rate_bps: values.tax_rate_percent
         ? Math.round(Number(values.tax_rate_percent) * 100)
