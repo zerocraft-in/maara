@@ -44,7 +44,7 @@ async function getExistingHandles(
 // Validate the selected Shopify category against the authoritative Worker taxonomy.
 async function isValidShopifyCategoryId(value: string | null): Promise<boolean> {
   if (value === null) return true;
-  const match = value.match(/^gid:\/\/shopify\/TaxonomyCategory\/([a-z]{2}(?:-\\d+)*)$/);
+  const match = value.match(/^gid:\/\/shopify\/TaxonomyCategory\/([a-z]{2}(?:-[0-9]+)*)$/);
   if (!match) return false;
   try {
     const vertical = await fetchTaxonomyVertical(match[1].slice(0, 2));
@@ -56,7 +56,7 @@ async function isValidShopifyCategoryId(value: string | null): Promise<boolean> 
 
 
 const productBaseSchema = z.object({
-  shopify_category_id: z.string().regex(/^gid:\/\/shopify\/TaxonomyCategory\/[a-z]{2}(?:-\\d+)*$/, "Invalid Shopify category GID.").nullable(),
+  shopify_category_id: z.string().regex(/^gid:\/\/shopify\/TaxonomyCategory\/[a-z]{2}(?:-[0-9]+)*$/, "Invalid Shopify category GID.").nullable(),
   name: z
     .string()
     .trim()
