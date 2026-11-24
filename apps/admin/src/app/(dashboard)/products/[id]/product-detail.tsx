@@ -50,15 +50,10 @@ type VariantRow = {
   updated_at: string;
 };
 
-type CategoryOption = {
-  id: string;
-  name: string;
-} | null;
-
 type ProductRow = {
   id: string;
   organization_id: string;
-  category_id: string | null;
+  shopify_category_id: string | null;
   name: string;
   description: string | null;
   status: string;
@@ -66,7 +61,6 @@ type ProductRow = {
   is_tax_inclusive: boolean;
   created_at: string;
   updated_at: string;
-  categories: CategoryOption;
   product_variants: VariantRow[];
 };
 
@@ -272,17 +266,17 @@ export default function ProductDetail({
             </CardContent>
           </Card>
 
-          {/* Category */}
+          {/* Shopify taxonomy category */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Tag className="size-5" />
-                Category
+                Shopify category
               </CardTitle>
             </CardHeader>
             <CardContent>
               <p className="text-body">
-                {product.categories?.name ?? "No category assigned"}
+                {product.shopify_category_id ?? "No Shopify category assigned"}
               </p>
             </CardContent>
           </Card>
@@ -442,13 +436,13 @@ export default function ProductDetail({
                 </p>
                 <p className="font-mono text-xs text-body break-all">{product.id}</p>
               </div>
-              {product.category_id && (
+              {product.shopify_category_id && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Category ID
+                    Shopify category GID
                   </p>
                   <p className="font-mono text-xs text-body break-all">
-                    {product.category_id}
+                    {product.shopify_category_id}
                   </p>
                 </div>
               )}
