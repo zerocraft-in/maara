@@ -6,7 +6,6 @@ export type CreateOrganizationResult =
   | { ok: true; organizationId: string }
   | { ok: false; error: string };
 
-const TAXONOMY_VERSION = "2026-11";
 export async function createOrganization(
   name: string,
   taxonomyRootIds: string[] = [],
@@ -53,7 +52,6 @@ export async function createOrganization(
   if (error || !data) {
     return { ok: false, error: "Unable to create organization." };
   }
-
 
   return { ok: true, organizationId: data as string };
 }
