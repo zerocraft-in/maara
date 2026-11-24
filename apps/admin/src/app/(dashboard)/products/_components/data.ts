@@ -1,6 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import type {
-  CategoryOption,
   ProductBaseRow,
   ProductRow,
   VariantRow,
@@ -29,7 +28,7 @@ export async function fetchProducts(
       id,
       public_id,
       organization_id,
-      category_id,
+      shopify_category_id,
       name,
       description,
       status,
@@ -184,25 +183,13 @@ export async function fetchCollections(
   })) as unknown as CollectionBaseRow[];
 }
 
-export async function fetchCategoryOptions(
-  supabase: SupabaseClient,
-  organizationId: string,
-): Promise<CategoryOption[]> {
-  void supabase;
-  void organizationId;
-  return [];
-}
-
 export function assembleProducts(
   productRows: ProductBaseRow[],
   variantRows: VariantBaseRow[],
   optionRows: OptionBaseRow[],
   imageRows: ImageBaseRow[],
   collectionRows: CollectionBaseRow[],
-  categoryRows: CategoryOption[],
 ): ProductRow[] {
-  void categoryRows;
-
   const variantsByProduct = new Map<string, VariantRow[]>();
   for (const variant of variantRows) {
     const { product_id, ...rest } = variant;
@@ -253,7 +240,6 @@ export function assembleProducts(
 
   return productRows.map((row) => ({
     ...row,
-    categories: null,
     product_variants: variantsByProduct.get(row.id) ?? [],
     product_options: optionsByProduct.get(row.id) ?? [],
     product_images: imagesByProduct.get(row.id) ?? [],
@@ -302,7 +288,7 @@ export async function fetchProductById(
   if (error) throw error;
   if (!product) return null;
 
-  const [variants, options, images, collections, category] = await Promise.all([
+  const [variants, options, images, collections] = await Promise.all([
     supabase
       .from("product_variants")
       .select(
@@ -350,14 +336,12 @@ export async function fetchProductById(
       data: [] as Array<{ collection_id: string; position: number }>,
       error: null,
     }),
-    Promise.resolve({ data: null, error: null }),
   ]);
 
   if (variants.error) throw variants.error;
   if (options.error) throw options.error;
   if (images.error) throw images.error;
   if (collections.error) throw collections.error;
-  if (category.error) throw category.error;
 
   // Fetch collection details
   let collectionsData: Collection[] = [];
