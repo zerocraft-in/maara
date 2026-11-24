@@ -18,7 +18,7 @@ export async function createOrganization(
 
   try {
     const manifest = await fetchTaxonomyManifest();
-    const allowedRootIds = new Set(manifest.roots.map((root) => root.id));
+    const allowedRootIds = new Set(manifest.roots.map((root) => `gid://shopify/TaxonomyCategory/${root.prefix}`));
     if (selectedRoots.some((id) => !allowedRootIds.has(id))) {
       return { ok: false, error: "Choose valid Shopify product category groups." };
     }
