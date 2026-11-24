@@ -30,7 +30,7 @@ export function ShopifyCategoryPicker({
   form: UseFormReturn<ProductFormValues>;
   organizationId: string;
 }) {
-  const selectedId = form.watch("shopify_category_id");
+  const selectedId = form.watch("category_id");
 
   const [query, setQuery] = React.useState("");
   const [selected, setSelected] = React.useState<TaxonomyRow | null>(null);
@@ -232,7 +232,7 @@ export function ShopifyCategoryPicker({
       return;
     }
 
-    form.setValue("shopify_category_id", item.id, {
+    form.setValue("category_id", item.id, {
       shouldDirty: true,
       shouldValidate: true,
     });
@@ -262,7 +262,7 @@ export function ShopifyCategoryPicker({
             variant="ghost"
             size="sm"
             onClick={() => {
-              form.setValue("shopify_category_id", null, {
+              form.setValue("category_id", null, {
                 shouldDirty: true,
                 shouldValidate: true,
               });
