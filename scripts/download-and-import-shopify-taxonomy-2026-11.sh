@@ -23,4 +23,4 @@ gzip --decompress --keep --force attributes.en.json.gz
 gzip --decompress --keep --force return_reasons.en.json.gz
 
 cd "${ROOT}"
-node scripts/import-shopify-taxonomy-2026-11.mjs "${IMPORT_DIR}"
+NODE_OPTIONS="${NODE_OPTIONS:---max-old-space-size=4096}" node scripts/import-shopify-taxonomy-2026-11.mjs "${IMPORT_DIR}"
