@@ -259,7 +259,7 @@ export async function fetchProductById(
       id,
       public_id,
       organization_id,
-      category_id,
+      shopify_category_id,
       name,
       description,
       status,
@@ -365,7 +365,6 @@ export async function fetchProductById(
 
   return {
     ...base,
-    categories: null,
     product_variants: (variants.data ?? []) as unknown as VariantRow[],
     product_options: (options.data ?? []) as unknown as ProductOption[],
     product_images: (images.data ?? []) as unknown as ProductImage[],
