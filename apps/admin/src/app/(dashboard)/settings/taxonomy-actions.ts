@@ -23,7 +23,7 @@ export async function saveOrganizationTaxonomyRoots(input: unknown): Promise<Sav
 
   try {
     const manifest = await fetchTaxonomyManifest();
-    const allowedRootIds = new Set(manifest.roots.map((root) => root.id));
+    const allowedRootIds = new Set(manifest.roots.map((root) => `gid://shopify/TaxonomyCategory/${root.prefix}`));
     if (parsed.data.some((id) => !allowedRootIds.has(id))) {
       return { ok: false, error: "Choose valid Shopify category groups." };
     }
