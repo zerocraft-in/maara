@@ -94,6 +94,9 @@ for (const vertical of categoriesSource.verticals) {
 }
 const categoryIds = new Set(categories.map((c) => c.id));
 if (categoryIds.size !== categories.length) throw new Error("Duplicate Shopify category GID detected.");
+if ([...categoryIds].some((id) => !id.startsWith("gid://shopify/TaxonomyCategory/"))) {
+  throw new Error("A category ID is not an official Shopify TaxonomyCategory GID.");
+}
 for (const category of categories) {
   if (category.parent_id !== null && !categoryIds.has(category.parent_id)) {
     throw new Error(`Missing parent ${category.parent_id} for ${category.id}`);
@@ -107,6 +110,10 @@ const attributeRows = attributesSource.attributes.map((a) => ({
   raw_data: a,
 }));
 const attributeIds = new Set(attributeRows.map((a) => a.id));
+if (attributeIds.size !== attributeRows.length ||
+    [...attributeIds].some((id) => !id.startsWith("gid://shopify/TaxonomyAttribute/"))) {
+  throw new Error("Duplicate or invalid Shopify TaxonomyAttribute GID detected.");
+}
 const valueRows = [];
 for (const attribute of attributesSource.attributes) {
   for (const value of attribute.values ?? []) {
@@ -121,6 +128,15 @@ const returnReasonRows = reasonsSource.return_reasons.map((r) => ({
   description: r.description ?? null, raw_data: r,
 }));
 const returnReasonIds = new Set(returnReasonRows.map((r) => r.id));
+if (returnReasonIds.size !== returnReasonRows.length ||
+    [...returnReasonIds].some((id) => !id.startsWith("gid://shopify/ReturnReasonDefinition/"))) {
+  throw new Error("Duplicate or invalid Shopify ReturnReasonDefinition GID detected.");
+}
+const valueIds = new Set(valueRows.map((value) => value.id));
+if (valueIds.size !== valueRows.length ||
+    [...valueIds].some((id) => !id.startsWith("gid://shopify/TaxonomyValue/"))) {
+  throw new Error("Duplicate or invalid Shopify TaxonomyValue GID detected.");
+}
 
 const categoryAttributeRows = [];
 const categoryReturnReasonRows = [];
@@ -159,9 +175,10 @@ await request("shopify_taxonomy_releases", {
     version, locale: "en", source_repository: "Shopify/product-taxonomy",
     source_tag: "v2026-11", import_status: "loading",
     source_manifest: {
-      categories: "categories.en.json.gz",
-      attributes: "attributes.en.json.gz",
-      return_reasons: "return_reasons.en.json.gz",
+      release_url: "https://github.com/Shopify/product-taxonomy/releases/tag/v2026-11",
+      categories: { file: "categories.en.json.gz", sha256: "bd4de170a7337dc25439c14ab274ec424f68a49ff6114f79dad3f792d23ea959" },
+      attributes: { file: "attributes.en.json.gz", sha256: "9c25544fef220e6831ebbb01135aed916bc5933b6ca7e51b88239685e3c96246" },
+      return_reasons: { file: "return_reasons.en.json.gz", sha256: "e0c6a50f472004681432d3bf8b836a564962d9103fcf60f00819779abbb0dd61" },
     },
   }]),
 }, "on_conflict=version");
