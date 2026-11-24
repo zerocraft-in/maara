@@ -4,7 +4,7 @@ import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { LucideIcon } from "lucide-react";
-import { Bell, Settings } from "lucide-react";
+import { Bell, Settings, Tags } from "lucide-react";
 
 import { NavMain } from "./nav-main";
 import { NavProjects } from "./nav-projects";
@@ -148,6 +148,17 @@ export function AppSidebar({
         )}
       </SidebarContent>
       <SidebarFooter className="items-center gap-0 border-t border-transparent px-3 py-2 space-y-1">
+        <Link
+          href="/settings/product-categories"
+          aria-current={pathname === "/settings/product-categories" ? "page" : undefined}
+          className="flex !h-7 !w-full items-center gap-2 overflow-hidden rounded-lg !px-2 text-[13px] text-sidebar-foreground hover:bg-sidebar-hover data-[active=true]:bg-sidebar-accent group-data-[collapsible=icon]:!mx-auto group-data-[collapsible=icon]:!w-8 group-data-[collapsible=icon]:justify-center"
+          data-active={pathname === "/settings/product-categories"}
+        >
+          <Tags className="size-4 shrink-0 group-data-[collapsible=icon]:!mx-auto" />
+          <span className="min-w-0 truncate whitespace-nowrap transition-opacity duration-150 group-data-[collapsible=icon]:hidden">
+            Product categories
+          </span>
+        </Link>
         <Link
           href="/settings"
           aria-current={pathname.startsWith("/settings") ? "page" : undefined}
