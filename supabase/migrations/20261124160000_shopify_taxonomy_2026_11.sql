@@ -194,6 +194,77 @@ $$;
 create index if not exists products_shopify_taxonomy_category_idx
   on public.products(shopify_category_id);
 
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conrelid = 'public.products'::regclass
+      and conname = 'products_shopify_category_gid_check'
+  ) then
+    alter table public.products
+      add constraint products_shopify_category_gid_check
+      check (shopify_category_id is null or shopify_category_id ~ '^gid://shopify/TaxonomyCategory/.+
+
+create or replace function private.set_product_shopify_category(
+  p_product_id uuid,
+  p_shopify_category_id text
+) returns void
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_organization_id uuid;
+  v_old_category_id text;
+begin
+  select p.organization_id, p.shopify_category_id
+    into v_organization_id, v_old_category_id
+  from public.products p
+  where p.id = p_product_id
+  for update of p;
+
+  if not found then
+    raise exception 'Product not found';
+  end if;
+
+  if not private.is_member(v_organization_id)
+     or not (private.has_permission(v_organization_id, 'products.update')
+             or private.has_permission(v_organization_id, 'products.create')) then
+    raise exception 'Caller does not have product management permission in this organization';
+  end if;
+
+  if p_shopify_category_id is not null and not exists (
+    select 1 from public.shopify_taxonomy_categories c
+    where c.id = p_shopify_category_id and c.version = '2026-11'
+  ) then
+    raise exception 'Shopify taxonomy category not found in release 2026-11';
+  end if;
+
+  if v_old_category_id is distinct from p_shopify_category_id then
+    update public.products
+      set shopify_category_id = p_shopify_category_id,
+          updated_at = now()
+    where id = p_product_id;
+
+    insert into public.audit_logs
+      (organization_id, actor_user_id, action, entity_type, entity_id, metadata, created_at)
+    values
+      (v_organization_id, auth.uid(), 'product.shopify_category_assigned',
+       'product', p_product_id,
+       jsonb_build_object('old_shopify_category_id', v_old_category_id,
+                          'new_shopify_category_id', p_shopify_category_id),
+       now());
+  end if;
+end;
+$$;
+
+commit;
+)
+      not valid;
+  end if;
+end
+$;
+
 create or replace function private.set_product_shopify_category(
   p_product_id uuid,
   p_shopify_category_id text
