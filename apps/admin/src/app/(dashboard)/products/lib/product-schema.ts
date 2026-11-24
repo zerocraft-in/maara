@@ -106,8 +106,7 @@ export const productFormSchema = z.object({
     .optional()
     .or(z.literal("")),
   tags: z.array(z.string()).default([]),
-  category_id: z.string().uuid("Invalid category ID.").nullable(),
-  shopify_category_id: z.string().trim().min(1).nullable(),
+  shopify_category_id: z.string().regex(/^gid:\/\/shopify\/TaxonomyCategory\/[a-z]{2}(?:-\\d+)*$/, "Invalid Shopify category GID.").nullable(),
 
   // ── Pricing ───────────────────────────────────────────────────────────
   price: z.string().optional().or(z.literal("")),
