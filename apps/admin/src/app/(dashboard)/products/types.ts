@@ -62,7 +62,7 @@ export type ProductBaseRow = {
   id: string;
   public_id: number;
   organization_id: string;
-  shopify_category_id: string | null;
+  category_id: string | null;
   name: string;
   description: string | null;
   status: "draft" | "active" | "archived";
