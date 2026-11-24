@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import { createOrganization } from "./actions";
+import { createBrowserSupabaseClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 
 const TAXONOMY_ROOTS = [
@@ -31,6 +32,23 @@ export default function OnboardingPage() {
   const [submitted, setSubmitted] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
+  const [taxonomyRoots, setTaxonomyRoots] = React.useState<Array<{ id: string; name: string }>>([]);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    async function loadTaxonomyRoots() {
+      const supabase = createBrowserSupabaseClient();
+      const { data, error } = await supabase
+        .from("shopify_taxonomy_categories")
+        .select("id,name")
+        .eq("version", "2026-11")
+        .is("parent_id", null)
+        .order("name", { ascending: true });
+      if (!cancelled && !error) setTaxonomyRoots(data ?? []);
+    }
+    void loadTaxonomyRoots();
+    return () => { cancelled = true; };
+  }, []);
 
   const form = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingSchema),
@@ -139,13 +157,14 @@ export default function OnboardingPage() {
             <p className="text-2xs font-semibold text-meta">Product category groups</p>
             <p className="text-2xs text-meta">Choose the groups this organization needs. Only these selections are saved; the full Shopify taxonomy remains shared.</p>
             <div className="grid grid-cols-2 gap-2">
-              {TAXONOMY_ROOTS.map((root) => (
+              {taxonomyRoots.map((root) => (
                 <label key={root.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
                   <input type="checkbox" value={root.id} {...form.register("taxonomyRootIds")} />
-                  {root.label}
+                  {root.name}
                 </label>
               ))}
             </div>
+            {taxonomyRoots.length === 0 && <p className="text-2xs text-meta">Loading available Shopify groups…</p>}
           </div>
           <p className="text-2xs text-meta">
             Organization creation is rate-limited and happens in a single
