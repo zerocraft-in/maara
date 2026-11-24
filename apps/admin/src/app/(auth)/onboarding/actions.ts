@@ -7,8 +7,15 @@ export type CreateOrganizationResult =
   | { ok: false; error: string };
 
 export async function createOrganization(
-  name: string
+  name: string,
+  taxonomyRootIds: string[] = [],
 ): Promise<CreateOrganizationResult> {
+  const selectedRoots = [...new Set(taxonomyRootIds)];
+  if (selectedRoots.length !== taxonomyRootIds.length ||
+      selectedRoots.some((id) => !/^gid:\/\/shopify\/TaxonomyCategory\/.+$/.test(id))) {
+    return { ok: false, error: "Choose valid Shopify product category groups." };
+  }
+
   const supabase = await createServerSupabaseClient();
 
   const {
@@ -35,10 +42,11 @@ export async function createOrganization(
   // settings, and the Owner membership atomically. This RPC is created by
   // migration 003. Use the server client (not the admin client) so that
   // auth.uid() resolves from the caller's JWT inside the SECURITY DEFINER RPC.
-  const { data, error } = await supabase.rpc("create_organization", {
+  const { data, error } = await supabase.rpc("create_organization_with_taxonomy", {
     p_name: name.trim(),
     p_timezone: "Asia/Kolkata",
     p_currency: "INR",
+    p_taxonomy_root_ids: selectedRoots,
   });
 
   if (error || !data) {

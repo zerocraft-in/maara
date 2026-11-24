@@ -735,6 +735,7 @@ export default function EditProductPage() {
           <div className="space-y-8">
             <ProductIdentityCard
               form={form}
+              organizationId={organizationId}
               selectedMedia={selectedMedia}
               setMediaPickerOpen={setMediaPickerOpen}
             />

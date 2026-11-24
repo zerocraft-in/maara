@@ -17,12 +17,14 @@ interface ProductIdentityCardProps {
   form: ProductForm;
   selectedMedia: Array<{ id: string; url: string; name: string }>;
   setMediaPickerOpen: (open: boolean) => void;
+  organizationId: string;
 }
 
 export function ProductIdentityCard({
   form,
   selectedMedia,
   setMediaPickerOpen,
+  organizationId,
 }: ProductIdentityCardProps) {
   const descriptionRef = React.useRef<HTMLTextAreaElement | null>(null);
   const descriptionField = form.register("description");
@@ -144,7 +146,7 @@ export function ProductIdentityCard({
             <p className="text-xs text-[#616161]">Accepts images, videos, or 3D models</p>
           </div>
         </div>
-        <ShopifyCategoryPicker form={form} />
+        <ShopifyCategoryPicker form={form} organizationId={organizationId} />
       </CardContent>
     </Card>
   );
