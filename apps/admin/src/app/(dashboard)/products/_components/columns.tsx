@@ -187,31 +187,6 @@ export function buildColumns(ctx: ProductColumnCtx) {
       minSize: 80,
       maxSize: 150,
     }),
-    columnHelper.accessor("categories", {
-      id: "category",
-      header: "Category",
-      cell: ({ row }) => {
-        const category = row.original.categories;
-        if (!category) {
-          return (
-            <span className="text-muted-foreground shrink-0 whitespace-nowrap">
-              —
-            </span>
-          );
-        }
-        return (
-          <span
-            className="min-w-0 block overflow-hidden text-ellipsis whitespace-nowrap text-muted-foreground shrink-0"
-            title={category.name}
-          >
-            {category.name}
-          </span>
-        );
-      },
-      size: 120,
-      minSize: 80,
-      maxSize: 200,
-    }),
     columnHelper.accessor("id", {
       id: "channels",
       header: "Channels",
