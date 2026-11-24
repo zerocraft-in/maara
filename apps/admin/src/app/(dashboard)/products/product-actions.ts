@@ -6,6 +6,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 import { slugify } from "@/lib/utils";
+import { fetchTaxonomyVertical } from "@/lib/shopify-taxonomy";
 
 export type ProductResult =
   | { ok: true; id?: string }
@@ -40,9 +41,22 @@ async function getExistingHandles(
 // ============================================================================
 // Product Actions
 // ============================================================================
+// Validate the selected Shopify category against the authoritative Worker taxonomy.
+async function isValidShopifyCategoryId(value: string | null): Promise<boolean> {
+  if (value === null) return true;
+  const match = value.match(/^gid:\/\/shopify\/TaxonomyCategory\/([a-z]{2}(?:-\\d+)*)$/);
+  if (!match) return false;
+  try {
+    const vertical = await fetchTaxonomyVertical(match[1].slice(0, 2));
+    return vertical.categories.some((category) => category.id === match[1]);
+  } catch {
+    return false;
+  }
+}
+
 
 const productBaseSchema = z.object({
-  shopify_category_id: z.string().trim().min(1).nullable(),
+  shopify_category_id: z.string().regex(/^gid:\/\/shopify\/TaxonomyCategory\/[a-z]{2}(?:-\\d+)*$/, "Invalid Shopify category GID.").nullable(),
   name: z
     .string()
     .trim()
@@ -135,6 +149,10 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
     status,
     options,
   } = parseResult.data;
+
+  if (!(await isValidShopifyCategoryId(shopify_category_id))) {
+    return { ok: false, error: "Select a valid Shopify product category." };
+  }
 
   if (status === "archived") {
     return { ok: false, error: "New products cannot be archived." };
@@ -243,7 +261,6 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
 
   const {
     id,
-    category_id,
     shopify_category_id,
     name,
     description,
@@ -264,6 +281,10 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
     status,
     options,
   } = parseResult.data;
+
+  if (!(await isValidShopifyCategoryId(shopify_category_id))) {
+    return { ok: false, error: "Select a valid Shopify product category." };
+  }
 
   const supabase = await createServerSupabaseClient();
 
@@ -305,7 +326,7 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
 
   const { error } = await supabase.rpc("update_product", {
     p_product_id: id,
-    p_category_id: category_id,
+    p_category_id: null,
     p_name: name,
     p_description: description || null,
     p_handle: handle,
