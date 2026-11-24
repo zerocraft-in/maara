@@ -9,8 +9,15 @@ declare
   v_old text;
 begin
   if to_regclass('public.categories_legacy_20261124') is not null then
-    raise exception 'Legacy archive target already exists; refusing to overwrite.';
+    if to_regclass('public.categories') is null then
+      raise exception 'Canonical categories table missing after previous cutover.';
+    end if;
+    if (select count(*) from public.categories) <> 64292 then
+      raise exception 'Canonical taxonomy row count does not match the verified v2026-11 import.';
+    end if;
+    return;
   end if;
+
   if to_regclass('public.shopify_taxonomy_categories') is null
      or to_regclass('public.categories') is null then
     raise exception 'Expected source taxonomy and legacy categories tables are missing.';
