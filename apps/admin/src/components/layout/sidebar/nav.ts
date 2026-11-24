@@ -49,7 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
     href: "/products",
     icon: Tag,
     children: [
-      leaf("/categories", "Collections", Tag),
+      leaf("/settings/product-categories", "Product categories", Tag),
       leaf("/inventory", "Inventory", Boxes),
       leaf("/purchases", "Purchase orders", Inbox),
       leaf("/transfers", "Transfers", Truck),
