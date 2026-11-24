@@ -9,12 +9,20 @@ import * as z from "zod";
 import { createOrganization } from "./actions";
 import { Button } from "@/components/ui/button";
 
+const TAXONOMY_ROOTS = [
+  { id: "gid://shopify/TaxonomyCategory/aa", label: "Apparel & Accessories" },
+  { id: "gid://shopify/TaxonomyCategory/bu", label: "Bundles" },
+  { id: "gid://shopify/TaxonomyCategory/na", label: "Uncategorized" },
+  { id: "gid://shopify/TaxonomyCategory/gc", label: "Gift Cards" },
+] as const;
+
 const onboardingSchema = z.object({
   organizationName: z
     .string()
     .trim()
     .min(2, "Organization name must be at least 2 characters")
     .max(120, "Organization name must be at most 120 characters"),
+  taxonomyRootIds: z.array(z.string()).max(26),
 });
 
 type OnboardingFormValues = z.infer<typeof onboardingSchema>;
@@ -26,7 +34,10 @@ export default function OnboardingPage() {
 
   const form = useForm<OnboardingFormValues>({
     resolver: zodResolver(onboardingSchema),
-    defaultValues: { organizationName: "" },
+    defaultValues: {
+      organizationName: "",
+      taxonomyRootIds: ["gid://shopify/TaxonomyCategory/aa", "gid://shopify/TaxonomyCategory/bu", "gid://shopify/TaxonomyCategory/na", "gid://shopify/TaxonomyCategory/gc"],
+    },
   });
 
   async function handleSubmit(values: OnboardingFormValues) {
@@ -34,7 +45,7 @@ export default function OnboardingPage() {
     setLoading(true);
 
     try {
-      const result = await createOrganization(values.organizationName);
+      const result = await createOrganization(values.organizationName, values.taxonomyRootIds);
 
       if (!result.ok) {
         setError(result.error);
@@ -124,6 +135,18 @@ export default function OnboardingPage() {
             </div>
           )}
 
+          <div className="flex flex-col gap-2">
+            <p className="text-2xs font-semibold text-meta">Product category groups</p>
+            <p className="text-2xs text-meta">Choose the groups this organization needs. Only these selections are saved; the full Shopify taxonomy remains shared.</p>
+            <div className="grid grid-cols-2 gap-2">
+              {TAXONOMY_ROOTS.map((root) => (
+                <label key={root.id} className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
+                  <input type="checkbox" value={root.id} {...form.register("taxonomyRootIds")} />
+                  {root.label}
+                </label>
+              ))}
+            </div>
+          </div>
           <p className="text-2xs text-meta">
             Organization creation is rate-limited and happens in a single
             database transaction.
