@@ -57,3 +57,6 @@ build/
 Thumbs.db
 .vscode/
 supabase/taxonomy/
+
+# Local Wrangler state
+.wrangler/

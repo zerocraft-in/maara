@@ -126,8 +126,8 @@ export function ShopifyCategoryPicker({
 
         if (cancelled) return;
 
-        const allCategories = verticals.flatMap((vertical) =>
-          vertical.categories,
+        const allCategories = verticals.flatMap(
+          (vertical) => vertical.categories,
         );
 
         setCategories(allCategories);
@@ -155,27 +155,22 @@ export function ShopifyCategoryPicker({
     };
   }, [open, rootsLoading, rootPrefixes, loadedRootKey, categories]);
 
-  // Resolve an already-selected category even if its root is no longer enabled.
+  // Resolve an existing selection, even if its root is no longer enabled.
   React.useEffect(() => {
+    if (!selectedId) return;
+
+    const categoryId = selectedId;
+    const gid = categoryId.split("/").at(-1) ?? "";
+    const prefix = gid.split("-")[0];
+
+    if (!/^[a-z]{2}$/.test(prefix)) return;
+
     let cancelled = false;
 
-    if (!selectedId) {
-      setSelected(null);
-      return;
-    }
-
     async function loadSelectedCategory() {
-      const categoryId = selectedId as string;
-      const gid = categoryId.split("/").at(-1) ?? "";
-      const prefix = gid.split("-")[0];
-
-      if (!/^[a-z]{2}$/.test(prefix)) {
-        setSelected(null);
-        return;
-      }
-
       try {
         const vertical = await fetchTaxonomyVertical(prefix);
+
         const category =
           vertical.categories.find((item) => item.id === categoryId) ?? null;
 
@@ -196,7 +191,11 @@ export function ShopifyCategoryPicker({
     };
   }, [selectedId]);
 
-  // Search all loaded categories, or show only the current parent's children.
+  // Display only the category matching the current form value.
+  const displaySelected =
+    selectedId && selected?.id === selectedId ? selected : null;
+
+  // Search loaded categories or show children of the current parent.
   const results = React.useMemo(() => {
     if (!categories) return [];
 
@@ -249,7 +248,7 @@ export function ShopifyCategoryPicker({
     setQuery("");
   };
 
-  const fields = attributeLabels(selected);
+  const fields = attributeLabels(displaySelected);
 
   return (
     <div className="space-y-2">
@@ -274,15 +273,15 @@ export function ShopifyCategoryPicker({
         )}
       </div>
 
-      {selected ? (
+      {displaySelected ? (
         <button
           type="button"
           className="w-full rounded-md border bg-muted/30 px-3 py-2 text-left text-sm"
           onClick={openPicker}
         >
-          <span className="font-medium">{selected.name}</span>
+          <span className="font-medium">{displaySelected.name}</span>
           <span className="block truncate text-xs text-muted-foreground">
-            {selected.full_name}
+            {displaySelected.full_name}
           </span>
         </button>
       ) : (
@@ -401,11 +400,11 @@ export function ShopifyCategoryPicker({
         </div>
       )}
 
-      {selected && fields.length > 0 && (
+      {displaySelected && fields.length > 0 && (
         <div className="rounded-md border bg-muted/10 p-3">
           <p className="text-sm font-medium">Category metafields</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            Shopify fields available for {selected.name}.
+            Shopify fields available for {displaySelected.name}.
           </p>
           <div className="mt-3 grid gap-2 sm:grid-cols-2">
             {fields.map((field) => (
