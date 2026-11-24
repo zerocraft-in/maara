@@ -174,9 +174,8 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
 
   const published_at = status === "active" ? new Date().toISOString() : null;
 
-  const { data, error } = await supabase.rpc("create_product", {
+  const { data, error } = await supabase.rpc("create_product_with_shopify_category", {
     p_organization_id: organization.id,
-    p_category_id: null,
     p_name: name,
     p_description: description || null,
     p_handle: handle,
@@ -195,6 +194,7 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
     p_published_scope: published_scope,
     p_status: status,
     p_published_at: published_at,
+    p_shopify_category_id: shopify_category_id,
   });
 
   if (error) {
@@ -208,15 +208,6 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
   }
 
   const productId = data as string;
-
-  const { error: taxonomyError } = await supabase.rpc("set_product_shopify_category", {
-    p_product_id: productId,
-    p_shopify_category_id: shopify_category_id,
-  });
-  if (taxonomyError) {
-    console.error(`Shopify taxonomy assignment failed: ${taxonomyError.message}`);
-    return { ok: false, error: "Unable to assign the Shopify product category." };
-  }
 
   // Create options if provided
   if (options && options.length > 0) {
@@ -324,9 +315,8 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
   const published_at =
     willBePublished && !wasPublished ? new Date().toISOString() : null;
 
-  const { error } = await supabase.rpc("update_product", {
+  const { error } = await supabase.rpc("update_product_with_shopify_category", {
     p_product_id: id,
-    p_category_id: null,
     p_name: name,
     p_description: description || null,
     p_handle: handle,
@@ -345,6 +335,7 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
     p_published_scope: published_scope,
     p_status: status,
     p_published_at: published_at,
+    p_shopify_category_id: shopify_category_id,
   });
 
   if (error) {
@@ -352,15 +343,6 @@ export async function updateProduct(input: unknown): Promise<ProductResult> {
       `Product update failed. code=${error.code ?? "-"} message=${error.message}`,
     );
     return { ok: false, error: "Unable to update product. Please try again." };
-  }
-
-  const { error: taxonomyError } = await supabase.rpc("set_product_shopify_category", {
-    p_product_id: id,
-    p_shopify_category_id: shopify_category_id,
-  });
-  if (taxonomyError) {
-    console.error(`Shopify taxonomy assignment failed: ${taxonomyError.message}`);
-    return { ok: false, error: "Unable to assign the Shopify product category." };
   }
 
   // Update options (delete and recreate for simplicity)
