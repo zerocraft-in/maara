@@ -32,6 +32,37 @@ const headers = {
   "Content-Type": "application/json",
 };
 
+const storageBucket = "shopify-taxonomy";
+const storageObjects = {
+  "categories.en.json.gz": "categories.en.json.gz",
+  "attributes.en.json.gz": "attributes.en.json.gz",
+  "return_reasons.en.json.gz": "return_reasons.en.json.gz",
+};
+
+async function uploadSourceJsonAssets() {
+  for (const [fileName, objectName] of Object.entries(storageObjects)) {
+    const filePath = path.join(directory, fileName);
+    const body = await fs.readFile(filePath);
+    const response = await fetch(
+      `${supabaseUrl.replace(/\\/$/, "")}/storage/v1/object/${storageBucket}/${version}/${objectName}`,
+      {
+        method: "POST",
+        headers: {
+          apikey: serviceRoleKey,
+          Authorization: `Bearer ${serviceRoleKey}`,
+          "Content-Type": "application/gzip",
+          "x-upsert": "true",
+        },
+        body,
+      },
+    );
+    if (!response.ok) {
+      throw new Error(`Supabase Storage upload failed for ${fileName}: ${response.status} ${(await response.text()).slice(0, 1000)}`);
+    }
+    console.log(`Uploaded shared taxonomy JSON: ${version}/${objectName} (${body.length} bytes)`);
+  }
+}
+
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 async function request(table, init = {}, query = "") {
   const url = `${base}/${table}${query ? `?${query}` : ""}`;
@@ -213,11 +244,22 @@ await request("shopify_taxonomy_releases", {
       categories: { file: "categories.en.json.gz", sha256: "bd4de170a7337dc25439c14ab274ec424f68a49ff6114f79dad3f792d23ea959" },
       attributes: { file: "attributes.en.json.gz", sha256: "9c25544fef220e6831ebbb01135aed916bc5933b6ca7e51b88239685e3c96246" },
       return_reasons: { file: "return_reasons.en.json.gz", sha256: "e0c6a50f472004681432d3bf8b836a564962d9103fcf60f00819779abbb0dd61" },
+      storage_bucket: "shopify-taxonomy",
+      storage_prefix: `${version}/`,
+      objects: [
+        "categories.en.json.gz",
+        "attributes.en.json.gz",
+        "return_reasons.en.json.gz",
+      ],
     },
   }]),
 }, "on_conflict=version");
 
 try {
+  // Keep the official compressed JSON source assets in one shared private bucket.
+  // The normalized tables below are query indexes/read models, not per-org copies.
+  await uploadSourceJsonAssets();
+
   await upsert("shopify_taxonomy_verticals", verticals, "version,prefix", 100);
   await upsert("shopify_taxonomy_attributes", attributeRows, "version,id", 250);
   await upsert("shopify_taxonomy_attribute_values", valueRows, "version,id", 300);
