@@ -7,20 +7,13 @@ export type CreateOrganizationResult =
   | { ok: false; error: string };
 
 const TAXONOMY_VERSION = "2026-11";
-const TAXONOMY_ROOT_IDS = new Set([
-  "gid://shopify/TaxonomyCategory/aa",
-  "gid://shopify/TaxonomyCategory/bu",
-  "gid://shopify/TaxonomyCategory/na",
-  "gid://shopify/TaxonomyCategory/gc",
-]);
-
 export async function createOrganization(
   name: string,
   taxonomyRootIds: string[] = [],
 ): Promise<CreateOrganizationResult> {
   const selectedRoots = [...new Set(taxonomyRootIds)];
   if (selectedRoots.length !== taxonomyRootIds.length ||
-      selectedRoots.some((id) => !TAXONOMY_ROOT_IDS.has(id))) {
+      selectedRoots.some((id) => !/^gid:\/\/shopify\/TaxonomyCategory\/.+$/.test(id))) {
     return { ok: false, error: "Choose valid Shopify product category groups." };
   }
 
