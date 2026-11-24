@@ -175,7 +175,12 @@ grant all on public.shopify_taxonomy_releases, public.shopify_taxonomy_verticals
   public.shopify_taxonomy_return_reasons, public.shopify_taxonomy_category_return_reasons
 to service_role;
 
-do $$
+-- The prior category table used non-GID slug values. Remove its FK so the
+-- product field can be constrained to official Shopify category GIDs instead.
+alter table public.products
+  drop constraint if exists products_shopify_category_fk;
+
+do $
 begin
   if not exists (
     select 1 from pg_constraint
