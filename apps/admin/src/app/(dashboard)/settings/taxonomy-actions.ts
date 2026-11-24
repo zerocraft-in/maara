@@ -4,6 +4,7 @@ import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { fetchTaxonomyManifest } from "@/lib/shopify-taxonomy";
 
 const TAXONOMY_VERSION = "2026-11";
 const inputSchema = z.array(z.string().regex(/^gid:\/\/shopify\/TaxonomyCategory\/.+$/)).max(26);
@@ -18,6 +19,16 @@ export async function saveOrganizationTaxonomyRoots(input: unknown): Promise<Sav
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success || new Set(parsed.data ?? []).size !== (parsed.data ?? []).length) {
     return { ok: false, error: "Choose valid, unique Shopify category groups." };
+  }
+
+  try {
+    const manifest = await fetchTaxonomyManifest();
+    const allowedRootIds = new Set(manifest.roots.map((root) => root.id));
+    if (parsed.data.some((id) => !allowedRootIds.has(id))) {
+      return { ok: false, error: "Choose valid Shopify category groups." };
+    }
+  } catch {
+    return { ok: false, error: "Shopify product categories are temporarily unavailable." };
   }
 
   const supabase = await createServerSupabaseClient();
