@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 
 import { createOrganization } from "./actions";
-import { createBrowserSupabaseClient } from "@/lib/supabase/client";
+import { fetchTaxonomyManifest } from "@/lib/shopify-taxonomy";
 import { Button } from "@/components/ui/button";
 
 const onboardingSchema = z.object({
@@ -26,21 +26,49 @@ export default function OnboardingPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [loading, setLoading] = React.useState(false);
   const [taxonomyRoots, setTaxonomyRoots] = React.useState<Array<{ id: string; name: string }>>([]);
+  const [taxonomyRootsLoading, setTaxonomyRootsLoading] = React.useState(true);
+  const [taxonomyLoadError, setTaxonomyLoadError] = React.useState<string | null>(null);
 
   React.useEffect(() => {
     let cancelled = false;
+
     async function loadTaxonomyRoots() {
-      const supabase = createBrowserSupabaseClient();
-      const { data, error } = await supabase
-        .from("shopify_taxonomy_categories")
-        .select("id,name")
-        .eq("version", "2026-11")
-        .is("parent_id", null)
-        .order("name", { ascending: true });
-      if (!cancelled && !error) setTaxonomyRoots(data ?? []);
+      setTaxonomyRootsLoading(true);
+      setTaxonomyLoadError(null);
+
+      try {
+        const manifest = await fetchTaxonomyManifest();
+
+        if (!cancelled) {
+          const roots = manifest.roots
+            .map((root) => ({
+              id: `gid://shopify/TaxonomyCategory/${root.prefix}`,
+              name: root.name,
+            }))
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          setTaxonomyRoots(roots);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setTaxonomyLoadError(
+            err instanceof Error
+              ? err.message
+              : "Unable to load Shopify product categories."
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setTaxonomyRootsLoading(false);
+        }
+      }
     }
+
     void loadTaxonomyRoots();
-    return () => { cancelled = true; };
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const form = useForm<OnboardingFormValues>({
@@ -157,14 +185,24 @@ export default function OnboardingPage() {
                 </label>
               ))}
             </div>
-            {taxonomyRoots.length === 0 && <p className="text-2xs text-meta">Loading available Shopify groups…</p>}
+            {taxonomyRootsLoading && (
+              <p className="text-2xs text-meta">Loading Shopify groups…</p>
+            )}
+            {taxonomyLoadError && (
+              <p role="alert" className="text-2xs text-destructive">
+                Unable to load product groups: {taxonomyLoadError}
+              </p>
+            )}
+            {!taxonomyRootsLoading && !taxonomyLoadError && taxonomyRoots.length === 0 && (
+              <p className="text-2xs text-meta">No Shopify groups are available.</p>
+            )}
           </div>
           <p className="text-2xs text-meta">
             Organization creation is rate-limited and happens in a single
             database transaction.
           </p>
 
-          <Button type="submit" size="lg" disabled={loading} className="w-full">
+          <Button type="submit" size="lg" disabled={loading || taxonomyRootsLoading || !!taxonomyLoadError || taxonomyRoots.length === 0} className="w-full">
             {loading ? "Creating…" : "Create organization"}
           </Button>
         </form>
@@ -182,3 +220,4 @@ export default function OnboardingPage() {
     </div>
   );
 }
+

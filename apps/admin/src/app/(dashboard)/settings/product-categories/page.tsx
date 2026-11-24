@@ -1,9 +1,9 @@
 import { redirect } from "next/navigation";
 import { requireOrganization, NO_ACTIVE_MEMBERSHIP_ERROR } from "@/lib/auth/session";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { fetchTaxonomyManifest } from "@/lib/shopify-taxonomy";
 import { ProductCategoryGroupsForm } from "./product-category-groups-form";
 
-const TAXONOMY_VERSION = "2026-11";
 
 export default async function ProductCategorySettingsPage() {
   let context;
@@ -19,27 +19,29 @@ export default async function ProductCategorySettingsPage() {
   if (!context.permissions.has("settings.view")) redirect("/overview");
 
   const supabase = await createServerSupabaseClient();
-  const [{ data: roots, error: rootsError }, { data: enabled, error: enabledError }] = await Promise.all([
-    supabase.from("shopify_taxonomy_categories")
-      .select("id,name,vertical_prefix")
-      .eq("version", TAXONOMY_VERSION)
-      .is("parent_id", null)
-      .order("name", { ascending: true }),
+
+  const [manifest, { data: enabled, error: enabledError }] = await Promise.all([
+    fetchTaxonomyManifest(),
     supabase.from("organization_shopify_taxonomy_roots")
       .select("category_id")
       .eq("organization_id", organizationId)
-      .eq("version", TAXONOMY_VERSION)
+      .eq("version", "2026-11")
       .eq("enabled", true)
       .order("position", { ascending: true }),
   ]);
 
-  if (rootsError || enabledError) {
+  if (enabledError) {
     console.error("Product category settings load failed.", {
-      rootsCode: rootsError?.code,
-      enabledCode: enabledError?.code,
+      enabledCode: enabledError.code,
     });
     throw new Error("Unable to load product category settings.");
   }
+
+  const roots = manifest.roots.map((root) => ({
+    id: `gid://shopify/TaxonomyCategory/${root.prefix}`,
+    name: root.name,
+    vertical_prefix: root.prefix,
+  }));
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-8 sm:px-8">
@@ -50,10 +52,11 @@ export default async function ProductCategorySettingsPage() {
         </p>
       </div>
       <ProductCategoryGroupsForm
-        roots={(roots ?? []) as { id: string; name: string; vertical_prefix: string }[]}
+        roots={roots}
         enabledIds={(enabled ?? []).map((row) => row.category_id)}
         canManage={context.permissions.has("settings.manage")}
       />
     </main>
   );
 }
+
