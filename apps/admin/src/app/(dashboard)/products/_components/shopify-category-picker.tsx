@@ -22,15 +22,11 @@ type TaxonomyRow = {
 const TAXONOMY_VERSION = "2026-11";
 const CATEGORY_SELECT = "id, name, full_name, parent_id, level, children, raw_data, vertical_prefix";
 
-const CATEGORY_FIELDS: Record<string, string[]> = {
-  "clothing accessories": ["Color", "Accessory size", "Fabric", "Material", "Accessory pieces included", "Age group", "Care instructions", "Target gender"],
-};
-
 function attributeLabels(row: TaxonomyRow | null): string[] {
   if (!row) return [];
   const attributes = row.raw_data?.attributes ?? [];
   if (attributes.length > 0) return attributes.map((attribute) => attribute.name ?? attribute.label ?? attribute.key).filter((label): label is string => Boolean(label));
-  return CATEGORY_FIELDS[row.name.toLowerCase()] ?? [];
+  return [];
 }
 
 export function ShopifyCategoryPicker({ form }: { form: UseFormReturn<ProductFormValues> }) {
