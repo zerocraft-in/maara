@@ -42,7 +42,6 @@ async function getExistingHandles(
 // ============================================================================
 
 const productBaseSchema = z.object({
-  category_id: z.string().uuid("Invalid category ID.").nullable(),
   shopify_category_id: z.string().trim().min(1).nullable(),
   name: z
     .string()
@@ -116,7 +115,6 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
   }
 
   const {
-    category_id,
     shopify_category_id,
     name,
     description,
@@ -160,7 +158,7 @@ export async function createProduct(input: unknown): Promise<ProductResult> {
 
   const { data, error } = await supabase.rpc("create_product", {
     p_organization_id: organization.id,
-    p_category_id: category_id,
+    p_category_id: null,
     p_name: name,
     p_description: description || null,
     p_handle: handle,
