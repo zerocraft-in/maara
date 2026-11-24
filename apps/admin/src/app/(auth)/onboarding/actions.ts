@@ -6,8 +6,17 @@ export type CreateOrganizationResult =
   | { ok: true; organizationId: string }
   | { ok: false; error: string };
 
+const TAXONOMY_VERSION = "2026-11";
+const TAXONOMY_ROOT_IDS = new Set([
+  "gid://shopify/TaxonomyCategory/aa",
+  "gid://shopify/TaxonomyCategory/bu",
+  "gid://shopify/TaxonomyCategory/na",
+  "gid://shopify/TaxonomyCategory/gc",
+]);
+
 export async function createOrganization(
-  name: string
+  name: string,
+  taxonomyRootIds: string[] = [],
 ): Promise<CreateOrganizationResult> {
   const supabase = await createServerSupabaseClient();
 
@@ -43,6 +52,24 @@ export async function createOrganization(
 
   if (error || !data) {
     return { ok: false, error: "Unable to create organization." };
+  }
+
+  const selectedRoots = [...new Set(taxonomyRootIds)];
+  if (selectedRoots.length !== taxonomyRootIds.length ||
+      selectedRoots.some((id) => !TAXONOMY_ROOT_IDS.has(id))) {
+    return { ok: false, error: "Choose valid Shopify product category groups." };
+  }
+
+  if (selectedRoots.length > 0) {
+    const { error: taxonomyError } = await supabase.rpc("set_organization_shopify_taxonomy_roots", {
+      p_organization_id: data as string,
+      p_version: TAXONOMY_VERSION,
+      p_category_ids: selectedRoots,
+    });
+    if (taxonomyError) {
+      console.error("Organization taxonomy setup failed.", { code: taxonomyError.code });
+      return { ok: false, error: "Organization created, but product category setup failed. Please contact support." };
+    }
   }
 
   return { ok: true, organizationId: data as string };
