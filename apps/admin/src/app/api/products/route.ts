@@ -37,7 +37,6 @@ export async function GET(request: Request) {
       options,
       images,
       collections,
-      [], // no category data needed for list view
     );
 
     // Get unique vendors and product types for filters
