@@ -160,12 +160,46 @@ for (const category of categories) {
   }
 }
 
+// Shopify source data may repeat the same attribute/reason link for a
+// category. Postgres rejects a single INSERT ... ON CONFLICT statement when
+// the same conflict key occurs more than once in its input batch. Collapse
+// those repeated links deterministically before sending batches.
+function deduplicateLinks(rows, keyFields, merge) {
+  const unique = new Map();
+  for (const row of rows) {
+    const key = keyFields.map((field) => row[field]).join("\\u0000");
+    const previous = unique.get(key);
+    unique.set(key, previous ? merge(previous, row) : row);
+  }
+  return [...unique.values()];
+}
+
+const rawCategoryAttributeLinkCount = categoryAttributeRows.length;
+const rawCategoryReturnReasonLinkCount = categoryReturnReasonRows.length;
+
+const uniqueCategoryAttributeRows = deduplicateLinks(
+  categoryAttributeRows,
+  ["version", "category_id", "attribute_id"],
+  (a, b) => ({
+    ...a,
+    is_extended: a.is_extended || b.is_extended,
+    position: Math.min(a.position, b.position),
+  }),
+);
+const uniqueCategoryReturnReasonRows = deduplicateLinks(
+  categoryReturnReasonRows,
+  ["version", "category_id", "return_reason_id"],
+  (a, b) => ({ ...a, position: Math.min(a.position, b.position) }),
+);
+
 console.log(JSON.stringify({
   version, verticals: verticals.length, categories: categories.length,
   attributes: attributeRows.length, values: valueRows.length,
   returnReasons: returnReasonRows.length,
-  categoryAttributeLinks: categoryAttributeRows.length,
-  categoryReturnReasonLinks: categoryReturnReasonRows.length,
+  categoryAttributeLinks: uniqueCategoryAttributeRows.length,
+  duplicateCategoryAttributeLinks: rawCategoryAttributeLinkCount - uniqueCategoryAttributeRows.length,
+  categoryReturnReasonLinks: uniqueCategoryReturnReasonRows.length,
+  duplicateCategoryReturnReasonLinks: rawCategoryReturnReasonLinkCount - uniqueCategoryReturnReasonRows.length,
 }, null, 2));
 
 await request("shopify_taxonomy_releases", {
@@ -202,9 +236,9 @@ try {
     await upsert("shopify_taxonomy_categories", rows, "id", 300);
   }
 
-  await upsert("shopify_taxonomy_category_attributes", categoryAttributeRows,
+  await upsert("shopify_taxonomy_category_attributes", uniqueCategoryAttributeRows,
     "version,category_id,attribute_id", 300);
-  await upsert("shopify_taxonomy_category_return_reasons", categoryReturnReasonRows,
+  await upsert("shopify_taxonomy_category_return_reasons", uniqueCategoryReturnReasonRows,
     "version,category_id,return_reason_id", 300);
 
   const counts = {
