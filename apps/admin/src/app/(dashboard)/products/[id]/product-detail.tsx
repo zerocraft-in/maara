@@ -53,7 +53,7 @@ type VariantRow = {
 type ProductRow = {
   id: string;
   organization_id: string;
-  shopify_category_id: string | null;
+  category_id: string | null;
   name: string;
   description: string | null;
   status: string;
@@ -276,7 +276,7 @@ export default function ProductDetail({
             </CardHeader>
             <CardContent>
               <p className="text-body">
-                {product.shopify_category_id ?? "No Shopify category assigned"}
+                {product.category_id ?? "No Shopify category assigned"}
               </p>
             </CardContent>
           </Card>
@@ -436,13 +436,13 @@ export default function ProductDetail({
                 </p>
                 <p className="font-mono text-xs text-body break-all">{product.id}</p>
               </div>
-              {product.shopify_category_id && (
+              {product.category_id && (
                 <div>
                   <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                     Shopify category GID
                   </p>
                   <p className="font-mono text-xs text-body break-all">
-                    {product.shopify_category_id}
+                    {product.category_id}
                   </p>
                 </div>
               )}
