@@ -42,9 +42,11 @@ because writes use official GIDs and upsert keys.
 - Return-reason definitions and category-to-return-reason links
 - Release version and import counts
 
-After import, verify that `shopify_taxonomy_releases.import_status = 'complete'` and that
-all recorded counts match table counts. Only then should a separate migration switch the
-application fully to Shopify taxonomy and retire the legacy merchant category schema.
+After import, verify that `shopify_taxonomy_releases.import_status = 'complete'`, all recorded
+counts match table counts, and all three compressed source files exist in the private Storage
+bucket. Product category setup during onboarding saves only the selected top-level Shopify
+category GIDs, atomically with organization creation. The product picker then scopes the shared
+taxonomy to those selected root groups.
 
 ## Official source
 
