@@ -48,7 +48,7 @@ type ProductData = {
   public_id: number;
   name: string;
   description: string | null;
-  shopify_category_id: string | null;
+  category_id: string | null;
   handle: string;
   vendor: string | null;
   product_type: string | null;
@@ -193,7 +193,7 @@ export default function EditProductPage() {
       vendor: "",
       product_type: "",
       tags: [],
-      shopify_category_id: null,
+      category_id: null,
       price: "",
       compare_at_price: "",
       cost_per_item: "",
@@ -305,7 +305,7 @@ export default function EditProductPage() {
           supabase
             .from("products")
             .select(
-                "id, public_id, name, shopify_category_id, description, handle, vendor, product_type, tags, " +
+                "id, public_id, name, category_id, description, handle, vendor, product_type, tags, " +
                 "tax_rate_bps, is_tax_inclusive, requires_shipping, weight_grams, weight_unit, " +
                 "hs_code, country_of_origin, seo_title, seo_description, published_scope, status",
             )
@@ -369,7 +369,7 @@ export default function EditProductPage() {
         vendor: product.vendor ?? "",
         product_type: product.product_type ?? "",
         tags: product.tags ?? [],
-        shopify_category_id: product.shopify_category_id,
+        category_id: product.category_id,
         price: toMoneyInput(primaryVariant?.selling_price_paise ?? null),
         compare_at_price: toMoneyInput(
           primaryVariant?.compare_at_price_paise ?? null,
@@ -520,7 +520,7 @@ export default function EditProductPage() {
       vendor: values.vendor || null,
       product_type: values.product_type || null,
       tags: values.tags,
-      shopify_category_id: values.shopify_category_id,
+      category_id: values.category_id,
       tax_rate_bps: values.tax_rate_percent
         ? Math.round(Number(values.tax_rate_percent) * 100)
         : 0,
